@@ -1,0 +1,9 @@
+/src/obj/Debug/net8.0/AssistenciaTech.csproj.AssemblyReference.cache
+/src/obj/Debug/net8.0/AssistenciaTech.GeneratedMSBuildEditorConfig.editorconfig
+/src/obj/Debug/net8.0/AssistenciaTech.AssemblyInfoInputs.cache
+/src/obj/Debug/net8.0/AssistenciaTech.AssemblyInfo.cs
+/src/obj/Debug/net8.0/AssistenciaTech.csproj.CoreCompileInputs.cache
+/src/obj/Debug/net8.0/AssistenciaTech.MvcApplicationPartsAssemblyInfo.cache
+/src/obj/Debug/net8.0/AssistenciaTech.RazorAssemblyInfo.cache
+/src/obj/Debug/net8.0/AssistenciaTech.RazorAssemblyInfo.cs
+/src/obj/Debug/net8.0/AssistenciaTech.sourcelink.json
