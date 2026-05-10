@@ -1,0 +1,46 @@
+@{
+    ViewData["Title"] = "Consulta de Ordem de Serviço";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-lg border-0 rounded-lg mt-5">
+                <div class="card-header bg-primary text-white text-center">
+                    <h3 class="font-weight-light my-4">Área do Cliente</h3>
+                    <p class="mb-0">Consulte o status do seu equipamento</p>
+                </div>
+                <div class="card-body">
+                    
+                    @* Exibe mensagem de erro caso a OS não seja encontrada *@
+                    @if (ViewBag.Erro != null)
+                    {
+                        <div class="alert alert-danger text-center" role="alert">
+                            @ViewBag.Erro
+                        </div>
+                    }
+
+                    <form asp-controller="Consulta" asp-action="Status" method="post">
+                        <div class="form-floating mb-3">
+                            <input type="number" class="form-control" id="numeroOS" name="numeroOS" placeholder="Ex: 12345" required>
+                            <label for="numeroOS">Número da Ordem de Serviço (OS)</label>
+                        </div>
+                        
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" id="cpf" name="cpf" placeholder="000.000.000-00" required>
+                            <label for="cpf">CPF do Titular</label>
+                            <div class="form-text">Digite apenas os números ou com pontuação.</div>
+                        </div>
+
+                        <div class="d-flex align-items-center justify-content-between mt-4 mb-0">
+                            <button type="submit" class="btn btn-primary w-100 py-2">Consultar Status <i class="bi bi-search"></i></button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-center py-3">
+                    <div class="small"><a href="~/Home/Index">Voltar para a Página Inicial</a></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

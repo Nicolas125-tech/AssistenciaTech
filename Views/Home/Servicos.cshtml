@@ -1,0 +1,123 @@
+@{
+    ViewData["Title"] = "Nossos Serviços";
+}
+
+<div class="bg-primary text-white py-5 mb-5">
+    <div class="container text-center">
+        <h1 class="display-5 fw-bold mb-3">Catálogo de Serviços</h1>
+        <p class="lead mb-0">Soluções completas para todos os seus problemas de hardware e software.</p>
+    </div>
+</div>
+
+<div class="container mb-5">
+    
+    <!-- Filtro/Busca Simples (Apenas visual para compor o layout) -->
+    <div class="row justify-content-center mb-5">
+        <div class="col-md-6">
+            <div class="input-group input-group-lg shadow-sm">
+                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control border-start-0 ps-0" placeholder="Buscar por serviço...">
+            </div>
+        </div>
+    </div>
+
+    <!-- Grid de Serviços Detalhados -->
+    <div class="row g-4">
+        
+        <!-- Serviço 1 -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm border-0 rounded-3">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-light p-3 rounded-circle me-3 text-primary fs-3">
+                            <i class="bi bi-windows"></i>
+                        </div>
+                        <h5 class="card-title fw-bold mb-0">Formatação e Instalação</h5>
+                    </div>
+                    <p class="card-text text-muted">Instalação do Windows 10/11, pacote Office e softwares básicos. Inclui backup completo dos seus arquivos pessoais.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Serviço 2 -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm border-0 rounded-3">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-light p-3 rounded-circle me-3 text-primary fs-3">
+                            <i class="bi bi-cpu-fill"></i>
+                        </div>
+                        <h5 class="card-title fw-bold mb-0">Montagem de PC Gamer</h5>
+                    </div>
+                    <p class="card-text text-muted">Consultoria para escolha de peças, montagem profissional com cable management perfeito e testes de estresse.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Serviço 3 -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm border-0 rounded-3">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-light p-3 rounded-circle me-3 text-primary fs-3">
+                            <i class="bi bi-bug-fill"></i>
+                        </div>
+                        <h5 class="card-title fw-bold mb-0">Remoção de Vírus</h5>
+                    </div>
+                    <p class="card-text text-muted">Limpeza profunda do sistema para remoção de malwares, adwares e trojans, otimizando o desempenho da máquina.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Serviço 4 -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm border-0 rounded-3">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-light p-3 rounded-circle me-3 text-primary fs-3">
+                            <i class="bi bi-motherboard"></i>
+                        </div>
+                        <h5 class="card-title fw-bold mb-0">Reparo de Placa-Mãe</h5>
+                    </div>
+                    <p class="card-text text-muted">Análise de circuitos, substituição de componentes SMD/BGA, gravação de BIOS e recuperação de trilhas rompidas.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Serviço 5 -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm border-0 rounded-3">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-light p-3 rounded-circle me-3 text-primary fs-3">
+                            <i class="bi bi-fan"></i>
+                        </div>
+                        <h5 class="card-title fw-bold mb-0">Limpeza Preventiva</h5>
+                    </div>
+                    <p class="card-text text-muted">Remoção de poeira interna, troca da pasta térmica do processador e placa de vídeo para evitar superaquecimento.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Serviço 6 -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm border-0 rounded-3">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-light p-3 rounded-circle me-3 text-primary fs-3">
+                            <i class="bi bi-laptop"></i>
+                        </div>
+                        <h5 class="card-title fw-bold mb-0">Conserto de Carcaça</h5>
+                    </div>
+                    <p class="card-text text-muted">Restauração de dobradiças quebradas e reconstrução de partes plásticas da carcaça do seu notebook usando resina especial.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="text-center mt-5">
+        <a asp-controller="Consulta" asp-action="Index" class="btn btn-outline-primary btn-lg">Já tem um serviço conosco? Consulte sua OS</a>
+    </div>
+
+</div>

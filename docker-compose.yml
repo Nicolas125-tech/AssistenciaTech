@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  web:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: assistenciatech_web
+    ports:
+      # Mapeia a porta 8080 do contêiner para a 8080 do host (sua máquina)
+      - "8080:8080"
+    environment:
+      # Sobrescreve a connection string para forçar o SQLite a salvar o arquivo dentro da pasta mapeada
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/assistencia.db
+      - ASPNETCORE_ENVIRONMENT=Production
+    volumes:
+      # Mapeia o volume nomeado para a pasta /app/data, protegendo o banco contra deleções acidentais
+      - assistenciadb_data:/app/data
+    restart: unless-stopped
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: assistenciatech_tunnel
+    # Inicia um Quick Tunnel temporário apontando para a rede interna do Docker (serviço web na porta 8080)
+    command: tunnel --url http://web:8080
+    depends_on:
+      # Garante que o túnel só inicie depois que o container da aplicação web estiver rodando
+      - web
+    restart: unless-stopped
+
+volumes:
+  # Declaração do volume gerenciado pelo Docker
+  assistenciadb_data:

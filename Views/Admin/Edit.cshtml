@@ -1,0 +1,82 @@
+@model AssistenciaTech.Models.OrdemServico
+
+@{
+    ViewData["Title"] = "Atualizar Ordem de Serviço";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">Atualizar Equipamento - OS #@Model.Id</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Edit">
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                        
+                        <!-- Campos ocultos necessários para o Post -->
+                        <input type="hidden" asp-for="Id" />
+                        <input type="hidden" asp-for="ClienteId" />
+                        <input type="hidden" asp-for="DataEntrada" />
+                        <input type="hidden" asp-for="DataSaida" />
+
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold">Cliente</label>
+                                <input class="form-control" value="@Model.Cliente?.Nome" disabled />
+                                <div class="form-text">O cliente vinculado não pode ser alterado na edição.</div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-12 form-group">
+                                <label asp-for="Equipamento" class="form-label fw-bold">Equipamento</label>
+                                <input asp-for="Equipamento" class="form-control" required />
+                                <span asp-validation-for="Equipamento" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-12 form-group">
+                                <label asp-for="ProblemaRelatado" class="form-label fw-bold">Problema / Diagnóstico</label>
+                                <textarea asp-for="ProblemaRelatado" class="form-control" rows="3" required></textarea>
+                                <span asp-validation-for="ProblemaRelatado" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6 form-group">
+                                <label asp-for="Status" class="form-label fw-bold">Status do Serviço</label>
+                                <select asp-for="Status" class="form-select">
+                                    <option value="Recebido">Recebido</option>
+                                    <option value="Em Análise">Em Análise</option>
+                                    <option value="Aguardando Peça">Aguardando Peça</option>
+                                    <option value="Em Bancada">Em Bancada</option>
+                                    <option value="Pronto">Pronto para Retirada</option>
+                                    <option value="Entregue">Entregue / Finalizado</option>
+                                </select>
+                                <span asp-validation-for="Status" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label asp-for="ValorOrcamento" class="form-label fw-bold">Valor do Orçamento (R$)</label>
+                                <input asp-for="ValorOrcamento" type="number" step="0.01" class="form-control" />
+                                <span asp-validation-for="ValorOrcamento" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <hr />
+                        <div class="d-flex justify-content-between">
+                            <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
+                            <button type="submit" class="btn btn-warning"><i class="bi bi-arrow-repeat"></i> Atualizar Ordem</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

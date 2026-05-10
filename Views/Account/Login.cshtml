@@ -1,0 +1,51 @@
+@{
+    ViewData["Title"] = "Acesso Restrito";
+}
+
+<div class="container mt-5 pt-5 mb-5 pb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5 col-lg-4">
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-header bg-dark text-white text-center py-4 rounded-top-4">
+                    <h3 class="mb-0 fw-bold"><i class="bi bi-shield-lock-fill"></i> Painel do Técnico</h3>
+                    <p class="mb-0 small text-white-50 mt-1">Acesso exclusivo para funcionários</p>
+                </div>
+                <div class="card-body p-4 p-sm-5">
+                    
+                    @if (ViewBag.Error != null)
+                    {
+                        <div class="alert alert-danger text-center small rounded-3" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill"></i> @ViewBag.Error
+                        </div>
+                    }
+
+                    <form asp-controller="Account" asp-action="Login" method="post">
+                        <!-- Campo oculto para garantir o retorno à página original caso haja bloqueio de Auth -->
+                        <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+                        
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" id="username" name="username" placeholder="Usuário" required autofocus />
+                            <label for="username">Usuário (ex: admin)</label>
+                        </div>
+                        
+                        <div class="form-floating mb-4">
+                            <input type="password" class="form-control" id="password" name="password" placeholder="Senha" required />
+                            <label for="password">Senha (ex: admin123)</label>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg fw-bold">
+                                Entrar <i class="bi bi-box-arrow-in-right"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer bg-transparent border-0 text-center pb-4">
+                    <a asp-controller="Home" asp-action="Index" class="text-decoration-none text-muted small">
+                        <i class="bi bi-arrow-left"></i> Voltar ao site principal
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

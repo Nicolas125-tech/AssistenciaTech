@@ -1,0 +1,79 @@
+@model AssistenciaTech.Models.OrdemServico
+
+@{
+    ViewData["Title"] = "Detalhes da Ordem de Serviço";
+
+    // Define a cor do badge de status
+    string statusBadgeClass = Model.Status switch
+    {
+        "Recebido" => "bg-secondary",
+        "Em Análise" => "bg-warning text-dark",
+        "Aguardando Peça" => "bg-info text-dark",
+        "Pronto" => "bg-success",
+        "Entregue" => "bg-primary",
+        _ => "bg-secondary"
+    };
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0 rounded-lg">
+                <div class="card-header bg-dark text-white text-center py-3">
+                    <h4 class="mb-0">Detalhes da Ordem de Serviço #@Model.Id</h4>
+                </div>
+                <div class="card-body p-4">
+                    
+                    <div class="row mb-3">
+                        <div class="col-sm-4 fw-bold">Status Atual:</div>
+                        <div class="col-sm-8">
+                            <span class="badge @statusBadgeClass fs-6">@Model.Status</span>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <div class="row mb-3">
+                        <div class="col-sm-4 fw-bold">Cliente:</div>
+                        <div class="col-sm-8">@Model.Cliente?.Nome</div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-sm-4 fw-bold">Equipamento:</div>
+                        <div class="col-sm-8">@Model.Equipamento</div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-sm-4 fw-bold">Problema Relatado:</div>
+                        <div class="col-sm-8">@Model.ProblemaRelatado</div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-sm-4 fw-bold">Data de Entrada:</div>
+                        <div class="col-sm-8">@Model.DataEntrada.ToString("dd/MM/yyyy HH:mm")</div>
+                    </div>
+
+                    @if (Model.DataSaida.HasValue)
+                    {
+                        <div class="row mb-3">
+                            <div class="col-sm-4 fw-bold">Data de Saída:</div>
+                            <div class="col-sm-8">@Model.DataSaida.Value.ToString("dd/MM/yyyy HH:mm")</div>
+                        </div>
+                    }
+
+                    @if (Model.ValorOrcamento > 0)
+                    {
+                        <div class="row mb-3">
+                            <div class="col-sm-4 fw-bold">Valor do Orçamento:</div>
+                            <div class="col-sm-8 text-success fw-bold">@Model.ValorOrcamento.ToString("C")</div>
+                        </div>
+                    }
+
+                </div>
+                <div class="card-footer text-center py-3">
+                    <a href="~/Consulta/Index" class="btn btn-outline-primary">Fazer nova consulta</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

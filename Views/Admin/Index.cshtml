@@ -1,0 +1,115 @@
+@model IEnumerable<AssistenciaTech.Models.OrdemServico>
+
+@{
+    ViewData["Title"] = "Painel Administrativo - Ordens de Serviço";
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Painel do Técnico</h2>
+        <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Nova Ordem de Serviço</a>
+    </div>
+
+    <!-- Dashboard Resumo -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white shadow h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="me-3">
+                            <div class="text-white-50 small">Total de OS Abertas</div>
+                            <div class="fs-4 fw-bold">@ViewBag.TotalAbertas</div>
+                        </div>
+                        <i class="bi bi-tools fs-1 text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white shadow h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="me-3">
+                            <div class="text-white-50 small">Equipamentos Prontos</div>
+                            <div class="fs-4 fw-bold">@ViewBag.EquipamentosProntos</div>
+                        </div>
+                        <i class="bi bi-check-circle fs-1 text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-dark text-white shadow h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="me-3">
+                            <div class="text-white-50 small">Faturamento Previsto</div>
+                            <div class="fs-4 fw-bold">@(((decimal)ViewBag.FaturamentoPrevisto).ToString("C"))</div>
+                        </div>
+                        <i class="bi bi-cash-stack fs-1 text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela Gerencial -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Ordens de Serviço Recentes</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle" width="100%" cellspacing="0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nº OS</th>
+                            <th>Cliente</th>
+                            <th>Equipamento</th>
+                            <th>Entrada</th>
+                            <th>Status</th>
+                            <th>Orçamento</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            string badgeClass = item.Status switch
+                            {
+                                "Recebido" => "bg-secondary",
+                                "Em Análise" => "bg-warning text-dark",
+                                "Aguardando Peça" => "bg-info text-dark",
+                                "Em Bancada" => "bg-primary",
+                                "Pronto" => "bg-success",
+                                "Entregue" => "bg-dark",
+                                _ => "bg-secondary"
+                            };
+
+                            <tr>
+                                <td class="fw-bold">#@item.Id</td>
+                                <td>@item.Cliente?.Nome</td>
+                                <td>@item.Equipamento</td>
+                                <td>@item.DataEntrada.ToString("dd/MM/yyyy")</td>
+                                <td><span class="badge @badgeClass">@item.Status</span></td>
+                                <td>@item.ValorOrcamento.ToString("C")</td>
+                                <td class="text-center">
+                                    <div class="d-inline-flex">
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary me-2" title="Editar">
+                                            <i class="bi bi-pencil-square"></i> Editar
+                                        </a>
+                                        <form asp-action="Delete" asp-route-id="@item.Id" method="post" onsubmit="return confirm('Tem certeza que deseja excluir a OS #@item.Id?');">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
