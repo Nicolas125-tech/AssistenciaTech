@@ -7,6 +7,9 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 
 namespace AssistenciaTech.Controllers
 {
@@ -151,6 +154,87 @@ namespace AssistenciaTech.Controllers
                 // Tratar caso a OS tenha dependências impeditivas (raro neste escopo)
                 return RedirectToAction(nameof(Index), new { erro = "Não foi possível excluir a OS." });
             }
+        }
+
+        // GET: Admin/ImprimirOs/5
+        [HttpGet]
+        public async Task<IActionResult> ImprimirOs(int id)
+        {
+            var os = await _context.OrdensServico.Include(o => o.Cliente).FirstOrDefaultAsync(o => o.Id == id);
+            
+            if (os == null) return NotFound();
+
+            var pdfBytes = Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(2, Unit.Centimetre);
+                    page.PageColor(Colors.White);
+                    page.DefaultTextStyle(x => x.FontSize(12));
+
+                    page.Header().Element(ComposeHeader);
+                    page.Content().Element(ComposeContent);
+                    page.Footer().Element(ComposeFooter);
+
+                    // Componentes do PDF extraídos em métodos locais (ou Action) para limpeza do código
+                    void ComposeHeader(IContainer headerContainer)
+                    {
+                        headerContainer.Row(row =>
+                        {
+                            row.RelativeItem().Column(column =>
+                            {
+                                column.Item().Text("Assistência Tech").FontSize(24).SemiBold().FontColor(Colors.Blue.Darken2);
+                                column.Item().Text("Soluções em Tecnologia");
+                            });
+                            
+                            row.ConstantItem(150).AlignRight().Text($"Ordem de Serviço Nº {os.Id}").FontSize(16).Bold();
+                        });
+                    }
+
+                    void ComposeContent(IContainer contentContainer)
+                    {
+                        contentContainer.PaddingVertical(1, Unit.Centimetre).Column(column =>
+                        {
+                            column.Spacing(20);
+
+                            // Dados do Cliente
+                            column.Item().Background(Colors.Grey.Lighten4).Padding(10).Column(c =>
+                            {
+                                c.Item().Text("Dados do Cliente").SemiBold().FontSize(14);
+                                c.Item().Text($"Nome: {os.Cliente?.Nome}");
+                                c.Item().Text($"CPF: {os.Cliente?.Cpf}");
+                            });
+
+                            // Dados do Equipamento e Serviço
+                            column.Item().Background(Colors.Grey.Lighten4).Padding(10).Column(c =>
+                            {
+                                c.Item().Text("Detalhes do Serviço").SemiBold().FontSize(14);
+                                c.Item().Text($"Equipamento: {os.Equipamento}");
+                                c.Item().Text($"Defeito Relatado: {os.ProblemaRelatado}");
+                                c.Item().Text($"Status: {os.Status}").FontColor(os.Status == "Pronto" || os.Status == "Entregue" ? Colors.Green.Darken2 : Colors.Orange.Darken2).SemiBold();
+                                c.Item().Text($"Data de Entrada: {os.DataEntrada:dd/MM/yyyy HH:mm}");
+                            });
+                        });
+                    }
+
+                    void ComposeFooter(IContainer footerContainer)
+                    {
+                        footerContainer.Column(column =>
+                        {
+                            // Orçamento
+                            column.Item().PaddingBottom(2, Unit.Centimetre).AlignRight()
+                                .Text($"Valor do Orçamento: {os.ValorOrcamento:C}").FontSize(16).SemiBold();
+
+                            // Assinatura
+                            column.Item().AlignCenter().Text("___________________________________________________");
+                            column.Item().AlignCenter().Text("Assinatura do Cliente");
+                        });
+                    }
+                });
+            }).GeneratePdf();
+
+            return File(pdfBytes, "application/pdf", $"OS_{os.Id}_{os.Cliente?.Nome}.pdf");
         }
     }
 }
