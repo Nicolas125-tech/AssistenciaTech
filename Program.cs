@@ -33,8 +33,8 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<AppDbContext>();
-        // Executa as Migrations pendentes e cria o banco se não existir
-        context.Database.Migrate();
+        // Cria as tabelas do banco automaticamente sem precisar da pasta Migrations
+        context.Database.EnsureCreated();
     }
     catch (Exception ex)
     {
