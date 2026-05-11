@@ -12,7 +12,7 @@ services:
     environment:
       # Sobrescreve a connection string para forçar o SQLite a salvar o arquivo dentro da pasta mapeada
       - ConnectionStrings__DefaultConnection=Data Source=/app/data/assistencia.db
-      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_ENVIRONMENT=Development
     volumes:
       # Mapeia o volume nomeado para a pasta /app/data, protegendo o banco contra deleções acidentais
       - assistenciadb_data:/app/data

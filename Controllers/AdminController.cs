@@ -29,17 +29,33 @@ namespace AssistenciaTech.Controllers
         // GET: Admin/Index
         public async Task<IActionResult> Index()
         {
-            // Busca todas as OS com os dados dos Clientes
-            var todasOS = await _context.OrdensServico.Include(o => o.Cliente).ToListAsync();
+            try
+            {
+                // Busca todas as OS com os dados dos Clientes
+                var todasOS = await _context.OrdensServico.Include(o => o.Cliente).ToListAsync();
 
-            // Dashboard Data
-            ViewBag.TotalAbertas = todasOS.Count(o => o.Status != "Pronto" && o.Status != "Entregue");
-            ViewBag.EquipamentosProntos = todasOS.Count(o => o.Status == "Pronto");
-            ViewBag.FaturamentoPrevisto = todasOS.Where(o => o.Status != "Entregue" && o.Status != "Cancelado").Sum(o => o.ValorOrcamento);
+                // Dashboard Data (Verificação segura contra nulos)
+                ViewBag.TotalAbertas = todasOS?.Count(o => o.Status != "Pronto" && o.Status != "Entregue") ?? 0;
+                ViewBag.EquipamentosProntos = todasOS?.Count(o => o.Status == "Pronto") ?? 0;
+                ViewBag.FaturamentoPrevisto = todasOS?.Where(o => o.Status != "Entregue" && o.Status != "Cancelado").Sum(o => o.ValorOrcamento) ?? 0m;
 
-            // Retorna as ordens ordenadas da mais recente para a mais antiga
-            var ordensOrdenadas = todasOS.OrderByDescending(o => o.DataEntrada).ToList();
-            return View(ordensOrdenadas);
+                // Retorna as ordens ordenadas da mais recente para a mais antiga
+                var ordensOrdenadas = todasOS?.OrderByDescending(o => o.DataEntrada).ToList() ?? new List<OrdemServico>();
+                return View(ordensOrdenadas);
+            }
+            catch (Exception)
+            {
+                // Log the exception in a real scenario
+                ViewBag.ErroBanco = "Erro ao conectar ao banco de dados. Por favor, tente novamente mais tarde.";
+                
+                // Zera os valores do Dashboard
+                ViewBag.TotalAbertas = 0;
+                ViewBag.EquipamentosProntos = 0;
+                ViewBag.FaturamentoPrevisto = 0m;
+
+                // Retorna uma lista vazia para a View não quebrar
+                return View(new List<OrdemServico>());
+            }
         }
 
         // GET: Admin/Create
@@ -66,7 +82,7 @@ namespace AssistenciaTech.Controllers
                     return RedirectToAction(nameof(Index));
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Em um ambiente real, faríamos um log (ex: Serilog)
                 ModelState.AddModelError(string.Empty, "Erro ao salvar a Ordem de Serviço. Verifique os dados e tente novamente.");
@@ -125,7 +141,7 @@ namespace AssistenciaTech.Controllers
 
                 return RedirectToAction(nameof(Index));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 ModelState.AddModelError(string.Empty, "Ocorreu um erro ao atualizar os dados.");
                 return View(ordemServico);
@@ -149,7 +165,7 @@ namespace AssistenciaTech.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Tratar caso a OS tenha dependências impeditivas (raro neste escopo)
                 return RedirectToAction(nameof(Index), new { erro = "Não foi possível excluir a OS." });
