@@ -1,25 +1,26 @@
 {
   "format": 1,
   "restore": {
-    "/src/AssistenciaTech.csproj": {}
+    "/app/AssistenciaTech.csproj": {}
   },
   "projects": {
-    "/src/AssistenciaTech.csproj": {
+    "/app/AssistenciaTech.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/src/AssistenciaTech.csproj",
+        "projectUniqueName": "/app/AssistenciaTech.csproj",
         "projectName": "AssistenciaTech",
-        "projectPath": "/src/AssistenciaTech.csproj",
-        "packagesPath": "/root/.nuget/packages/",
-        "outputPath": "/src/obj/",
+        "projectPath": "/app/AssistenciaTech.csproj",
+        "packagesPath": "/home/jules/.nuget/packages/",
+        "outputPath": "/app/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/root/.nuget/NuGet/NuGet.Config"
+          "/home/jules/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
         ],
         "sources": {
+          "/usr/lib/dotnet/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -37,7 +38,8 @@
           "enableAudit": "true",
           "auditLevel": "low",
           "auditMode": "direct"
-        }
+        },
+        "SdkAnalysisLevel": "10.0.100"
       },
       "frameworks": {
         "net8.0": {
@@ -46,6 +48,12 @@
             "HarfBuzzSharp.NativeAssets.Linux": {
               "target": "Package",
               "version": "[7.3.0, )"
+            },
+            "Microsoft.EntityFrameworkCore.Design": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[8.0.2, )"
             },
             "Microsoft.EntityFrameworkCore.Sqlite": {
               "target": "Package",
@@ -77,6 +85,12 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.NETCore.App.Host.linux-x64",
+              "version": "[8.0.24, 8.0.24]"
+            }
+          ],
           "frameworkReferences": {
             "Microsoft.AspNetCore.App": {
               "privateAssets": "none"
@@ -85,7 +99,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.420/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/10.0.103/PortableRuntimeIdentifierGraph.json"
         }
       }
     }
