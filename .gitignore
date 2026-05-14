@@ -1,2 +1,8 @@
 bin/
 obj/
+node_modules/
+*.log
+cookies.txt
+create_response.html
+assistencia.db*
+package*
