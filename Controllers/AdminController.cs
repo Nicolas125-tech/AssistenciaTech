@@ -62,7 +62,7 @@ namespace AssistenciaTech.Controllers
         public IActionResult Create()
         {
             // Popula o dropdown de clientes
-            ViewBag.Clientes = new SelectList(_context.Clientes, "Id", "Nome");
+            ViewBag.Clientes = new SelectList(_context.Clientes.Select(c => new { Id = c.Id, Descricao = c.Nome + " - CPF: " + c.Cpf + " - Tel: " + c.Telefone }), "Id", "Descricao");
             return View();
         }
 
@@ -89,7 +89,7 @@ namespace AssistenciaTech.Controllers
             }
 
             // Se falhou, retorna os dados para o formulário
-            ViewBag.Clientes = new SelectList(_context.Clientes, "Id", "Nome", ordemServico.ClienteId);
+            ViewBag.Clientes = new SelectList(_context.Clientes.Select(c => new { Id = c.Id, Descricao = c.Nome + " - CPF: " + c.Cpf + " - Tel: " + c.Telefone }), "Id", "Descricao", ordemServico.ClienteId);
             return View(ordemServico);
         }
 
