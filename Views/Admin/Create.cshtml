@@ -17,7 +17,10 @@
 
                         <div class="row mb-3">
                             <div class="col-md-12 form-group">
-                                <label asp-for="ClienteId" class="form-label fw-bold">Cliente</label>
+                                <div class="d-flex justify-content-between">
+                                    <label asp-for="ClienteId" class="form-label fw-bold">Cliente</label>
+                                    <a asp-controller="Clientes" asp-action="Create" class="text-decoration-none"><i class="bi bi-person-plus"></i> Novo Cliente</a>
+                                </div>
                                 <select asp-for="ClienteId" class="form-select" asp-items="ViewBag.Clientes" required>
                                     <option value="">-- Selecione o Cliente --</option>
                                 </select>

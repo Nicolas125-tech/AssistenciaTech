@@ -50,6 +50,11 @@
                         @if (User.Identity != null && User.Identity.IsAuthenticated)
                         {
                             <li class="nav-item me-3">
+                                <a class="nav-link text-info fw-bold bg-dark border border-info rounded px-3" asp-controller="Clientes" asp-action="Index">
+                                    <i class="bi bi-people"></i> Clientes
+                                </a>
+                            </li>
+                            <li class="nav-item me-3">
                                 <a class="nav-link text-warning fw-bold bg-dark border border-warning rounded px-3" asp-controller="Admin" asp-action="Index">
                                     <i class="bi bi-speedometer2"></i> Painel Admin
                                 </a>
