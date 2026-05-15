@@ -6,3 +6,11 @@ cookies.txt
 create_response.html
 assistencia.db*
 package*
+venv/
+publish/
+test_*.py
+token*.txt
+cookies.txt
+app*.log
+*.html
+test.db
