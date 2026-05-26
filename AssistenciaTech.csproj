@@ -21,4 +21,11 @@
     <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="7.3.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="src\**" />
+    <Content Remove="src\**" />
+    <EmbeddedResource Remove="src\**" />
+    <None Remove="src\**" />
+  </ItemGroup>
+
 </Project>
