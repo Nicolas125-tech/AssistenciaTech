@@ -1,0 +1,144 @@
+/* site.css - Tema Premium Dark Mode para TechOS */
+
+:root {
+    /* Design Tokens de Cores */
+    --bs-body-bg: #121212;
+    --bs-body-color: #F3F4F6;
+    
+    --tech-surface: #1E1E1E;
+    --tech-surface-hover: #2A2A2A;
+    --tech-border: #2D2D2D;
+    
+    --bs-primary: #0052CC;
+    --bs-primary-hover: #0761ED;
+    --bs-success: #10B981;
+    --bs-success-hover: #05D38F;
+    
+    --tech-text-main: #F3F4F6;
+    --tech-text-muted: #9CA3AF;
+    
+    /* Tipografia */
+    --bs-body-font-family: 'Inter', sans-serif;
+}
+
+/* Reset Geral e Fontes */
+body {
+    background-color: var(--bs-body-bg) !important;
+    color: var(--bs-body-color) !important;
+    font-family: var(--bs-body-font-family) !important;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Classe Customizada para Fontes Técnicas */
+.font-monospace-tech {
+    font-family: 'Fira Code', 'JetBrains Mono', monospace !important;
+    font-weight: 500;
+    letter-spacing: -0.5px;
+}
+
+/* Sobrescrevendo classes utilitárias de fundo do Bootstrap */
+.bg-light {
+    background-color: var(--bs-body-bg) !important;
+}
+
+.bg-dark {
+    background-color: var(--tech-surface) !important;
+}
+
+/* Sobrescrevendo a Navbar */
+.navbar-dark, .navbar {
+    background-color: var(--tech-surface) !important;
+    border-bottom: 1px solid var(--tech-border);
+}
+
+.navbar-brand {
+    color: var(--bs-primary) !important;
+    font-family: var(--bs-body-font-family);
+}
+
+/* Cards Premium */
+.card {
+    background-color: var(--tech-surface) !important;
+    border: 1px solid var(--tech-border) !important;
+    border-radius: 12px !important;
+    color: var(--tech-text-main) !important;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.card:hover {
+    transform: translateY(-2px);
+    border-color: #444444 !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+}
+.card-header, .card-footer {
+    background-color: rgba(255, 255, 255, 0.02) !important;
+    border-color: var(--tech-border) !important;
+}
+
+/* Botões Customizados */
+.btn {
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    padding: 0.5rem 1.25rem;
+    transition: all 0.2s ease-in-out;
+}
+.btn-primary {
+    background-color: var(--bs-primary) !important;
+    border-color: var(--bs-primary) !important;
+    color: #ffffff !important;
+}
+.btn-primary:hover, .btn-primary:focus {
+    background-color: var(--bs-primary-hover) !important;
+    border-color: var(--bs-primary-hover) !important;
+}
+.btn-success {
+    background-color: var(--bs-success) !important;
+    border-color: var(--bs-success) !important;
+    color: #ffffff !important;
+}
+.btn-success:hover, .btn-success:focus {
+    background-color: var(--bs-success-hover) !important;
+    border-color: var(--bs-success-hover) !important;
+}
+
+/* Badges e Status */
+.badge {
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    padding: 0.35em 0.65em !important;
+}
+.bg-success {
+    background-color: rgba(16, 185, 129, 0.15) !important;
+    color: #10B981 !important;
+    border: 1px solid rgba(16, 185, 129, 0.3) !important;
+}
+.bg-warning {
+    background-color: rgba(245, 158, 11, 0.15) !important;
+    color: #F59E0B !important;
+    border: 1px solid rgba(245, 158, 11, 0.3) !important;
+}
+
+/* Elementos de Formulário */
+.form-control, .form-select {
+    background-color: #161616 !important;
+    border: 1px solid var(--tech-border) !important;
+    color: var(--tech-text-main) !important;
+    border-radius: 8px !important;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+.form-control:focus, .form-select:focus {
+    background-color: #161616 !important;
+    border-color: var(--bs-primary) !important;
+    box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.25) !important;
+    color: var(--tech-text-main) !important;
+}
+
+/* Utilitários de Texto */
+.text-muted {
+    color: var(--tech-text-muted) !important;
+}
+.text-light {
+    color: var(--tech-text-main) !important;
+}
+.text-dark {
+    color: var(--tech-surface) !important;
+}
