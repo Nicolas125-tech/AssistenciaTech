@@ -29,6 +29,10 @@ namespace AssistenciaTech.Controllers
         // GET: Admin/Index
         public async Task<IActionResult> Index()
         {
+            if (TempData["ErroBanco"] != null)
+            {
+                ViewBag.ErroBanco = TempData["ErroBanco"].ToString();
+            }
             try
             {
                 // Busca todas as OS com os dados dos Clientes
@@ -61,9 +65,17 @@ namespace AssistenciaTech.Controllers
         // GET: Admin/Create
         public IActionResult Create()
         {
-            // Popula o dropdown de clientes
-            ViewBag.Clientes = new SelectList(_context.Clientes.Select(c => new { Id = c.Id, Descricao = c.Nome + " - CPF: " + c.Cpf + " - Tel: " + c.Telefone }), "Id", "Descricao");
-            return View();
+            try
+            {
+                // Popula o dropdown de clientes
+                ViewBag.Clientes = new SelectList(_context.Clientes.Select(c => new { Id = c.Id, Descricao = c.Nome + " - CPF: " + c.Cpf + " - Tel: " + c.Telefone }), "Id", "Descricao");
+                return View();
+            }
+            catch (Exception)
+            {
+                TempData["ErroBanco"] = "Não foi possível carregar a tela de criação. O banco de dados está inacessível.";
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         // POST: Admin/Create
@@ -98,13 +110,21 @@ namespace AssistenciaTech.Controllers
         {
             if (id == null) return NotFound();
 
-            var ordemServico = await _context.OrdensServico
-                                             .Include(o => o.Cliente)
-                                             .FirstOrDefaultAsync(m => m.Id == id);
-            
-            if (ordemServico == null) return NotFound();
+            try
+            {
+                var ordemServico = await _context.OrdensServico
+                                                 .Include(o => o.Cliente)
+                                                 .FirstOrDefaultAsync(m => m.Id == id);
+                
+                if (ordemServico == null) return NotFound();
 
-            return View(ordemServico);
+                return View(ordemServico);
+            }
+            catch (Exception)
+            {
+                TempData["ErroBanco"] = "Não foi possível carregar a tela de edição. O banco de dados está inacessível.";
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         // POST: Admin/Edit/5
