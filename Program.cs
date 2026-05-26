@@ -3,14 +3,42 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using AssistenciaTech.Data;
 
+using Npgsql;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
 // Registrando o contexto do banco de dados PostgreSQL
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+// Força a resolução do Host para IPv4 para evitar falhas de IPv6 no Render
+if (!string.IsNullOrEmpty(connectionString))
+{
+    try
+    {
+        var connBuilder = new NpgsqlConnectionStringBuilder(connectionString);
+        if (!string.IsNullOrEmpty(connBuilder.Host) && !System.Net.IPAddress.TryParse(connBuilder.Host, out _))
+        {
+            var addresses = System.Net.Dns.GetHostAddresses(connBuilder.Host);
+            var ipv4 = addresses.FirstOrDefault(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
+            if (ipv4 != null)
+            {
+                Console.WriteLine($"[DNS] Resolvendo {connBuilder.Host} para IPv4: {ipv4}");
+                connBuilder.Host = ipv4.ToString();
+                connectionString = connBuilder.ConnectionString;
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[DNS] Erro ao resolver host para IPv4: {ex.Message}");
+    }
+}
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(connectionString));
 
 // Configuração de Autenticação baseada em Cookies
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
