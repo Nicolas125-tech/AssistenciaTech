@@ -10,4 +10,8 @@
     <ProjectReference Include="..\AssistenciaTech.Application\AssistenciaTech.Application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
+  </ItemGroup>
+
 </Project>
