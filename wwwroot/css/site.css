@@ -1,42 +1,66 @@
-/* site.css - Tema Premium Dark Mode para TechOS */
+/* site.css - Tema Profissional Premium Dark Mode para TechOS */
 
 :root {
-    /* Design Tokens de Cores */
-    --bs-body-bg: #121212;
-    --bs-body-color: #F3F4F6;
+    /* Paleta de Cores de Alta Fidelidade (Dark Mode) */
+    --bs-body-bg: #0B0F19; /* Grafite Azulado Profundo (Mais premium que cinza puro) */
+    --bs-body-color: #E2E8F0;
     
-    --tech-surface: #1E1E1E;
-    --tech-surface-hover: #2A2A2A;
-    --tech-border: #2D2D2D;
+    --tech-surface: #151B26; /* Superfície dos painéis e cards */
+    --tech-surface-hover: #1E2633;
+    --tech-border: rgba(255, 255, 255, 0.08); /* Bordas semitransparentes elegantes */
+    --tech-border-focus: rgba(0, 82, 204, 0.5);
     
-    --bs-primary: #0052CC;
+    /* Cores de Destaque */
+    --bs-primary: #0052CC; /* Azul Cobalto */
     --bs-primary-hover: #0761ED;
-    --bs-success: #10B981;
-    --bs-success-hover: #05D38F;
+    --bs-primary-gradient: linear-gradient(135deg, #0052CC 0%, #1E40AF 100%);
     
+    --bs-success: #10B981; /* Verde Esmeralda */
+    --bs-success-hover: #05D38F;
+    --bs-success-gradient: linear-gradient(135deg, #10B981 0%, #047857 100%);
+    
+    /* Textos */
     --tech-text-main: #F3F4F6;
     --tech-text-muted: #9CA3AF;
     
-    /* Tipografia */
+    /* Fontes */
     --bs-body-font-family: 'Inter', sans-serif;
 }
 
-/* Reset Geral e Fontes */
+/* Reset Geral e Suavização */
 body {
     background-color: var(--bs-body-bg) !important;
     color: var(--bs-body-color) !important;
     font-family: var(--bs-body-font-family) !important;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-/* Classe Customizada para Fontes Técnicas */
+/* Scrollbar Customizada (Fina e Discreta) */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: var(--bs-body-bg);
+}
+::-webkit-scrollbar-thumb {
+    background: #232C3B;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #3B4B63;
+}
+
+/* Tipografia Técnica */
 .font-monospace-tech {
     font-family: 'Fira Code', 'JetBrains Mono', monospace !important;
     font-weight: 500;
     letter-spacing: -0.5px;
+    color: #38BDF8 !important; /* Azul Ciano Neon para números de série e códigos */
 }
 
-/* Sobrescrevendo classes utilitárias de fundo do Bootstrap */
+/* Sobrescrevendo classes de fundo nativas do Bootstrap */
 .bg-light {
     background-color: var(--bs-body-bg) !important;
 }
@@ -45,91 +69,125 @@ body {
     background-color: var(--tech-surface) !important;
 }
 
-/* Sobrescrevendo a Navbar */
+/* Navbar Premium (Efeito Blur/Glassmorphism) */
 .navbar-dark, .navbar {
-    background-color: var(--tech-surface) !important;
+    background-color: rgba(21, 27, 38, 0.85) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--tech-border);
 }
 
 .navbar-brand {
-    color: var(--bs-primary) !important;
-    font-family: var(--bs-body-font-family);
+    font-weight: 800 !important;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, #FFF 30%, #0052CC 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
-/* Cards Premium */
+/* Cards de Bancada Premium */
 .card {
     background-color: var(--tech-surface) !important;
     border: 1px solid var(--tech-border) !important;
-    border-radius: 12px !important;
+    border-radius: 14px !important;
     color: var(--tech-text-main) !important;
-    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
 }
 .card:hover {
-    transform: translateY(-2px);
-    border-color: #444444 !important;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+    transform: translateY(-4px);
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45) !important;
 }
-.card-header, .card-footer {
-    background-color: rgba(255, 255, 255, 0.02) !important;
-    border-color: var(--tech-border) !important;
+.card-header {
+    background-color: rgba(255, 255, 255, 0.01) !important;
+    border-bottom: 1px solid var(--tech-border) !important;
+    padding: 1.25rem !important;
 }
 
-/* Botões Customizados */
+/* Botões com Gradientes Suaves */
 .btn {
     border-radius: 8px !important;
     font-weight: 600 !important;
     padding: 0.5rem 1.25rem;
-    transition: all 0.2s ease-in-out;
+    transition: all 0.25s ease-in-out;
+    border: none !important;
 }
 .btn-primary {
-    background-color: var(--bs-primary) !important;
-    border-color: var(--bs-primary) !important;
+    background: var(--bs-primary-gradient) !important;
     color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(0, 82, 204, 0.3);
 }
-.btn-primary:hover, .btn-primary:focus {
-    background-color: var(--bs-primary-hover) !important;
-    border-color: var(--bs-primary-hover) !important;
+.btn-primary:hover {
+    filter: brightness(1.15);
+    box-shadow: 0 6px 16px rgba(0, 82, 204, 0.45);
 }
 .btn-success {
-    background-color: var(--bs-success) !important;
-    border-color: var(--bs-success) !important;
+    background: var(--bs-success-gradient) !important;
     color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
-.btn-success:hover, .btn-success:focus {
-    background-color: var(--bs-success-hover) !important;
-    border-color: var(--bs-success-hover) !important;
-}
-
-/* Badges e Status */
-.badge {
-    border-radius: 6px !important;
-    font-weight: 600 !important;
-    padding: 0.35em 0.65em !important;
-}
-.bg-success {
-    background-color: rgba(16, 185, 129, 0.15) !important;
-    color: #10B981 !important;
-    border: 1px solid rgba(16, 185, 129, 0.3) !important;
-}
-.bg-warning {
-    background-color: rgba(245, 158, 11, 0.15) !important;
-    color: #F59E0B !important;
-    border: 1px solid rgba(245, 158, 11, 0.3) !important;
+.btn-success:hover {
+    filter: brightness(1.15);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.45);
 }
 
-/* Elementos de Formulário */
+/* Inputs Modernos com Bordas de Foco Suaves */
 .form-control, .form-select {
-    background-color: #161616 !important;
+    background-color: rgba(0, 0, 0, 0.2) !important;
     border: 1px solid var(--tech-border) !important;
     color: var(--tech-text-main) !important;
     border-radius: 8px !important;
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    padding: 0.6rem 1rem !important;
+    transition: all 0.2s ease-in-out;
 }
 .form-control:focus, .form-select:focus {
-    background-color: #161616 !important;
+    background-color: rgba(0, 0, 0, 0.35) !important;
     border-color: var(--bs-primary) !important;
-    box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.25) !important;
-    color: var(--tech-text-main) !important;
+    box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.2) !important;
+}
+
+/* Badges de Status Refinados (Outline & Glow) */
+.badge {
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    padding: 0.4em 0.8em !important;
+    text-transform: uppercase;
+    font-size: 0.75rem !important;
+    letter-spacing: 0.5px;
+}
+.bg-success {
+    background-color: rgba(16, 185, 129, 0.1) !important;
+    color: #10B981 !important;
+    border: 1px solid rgba(16, 185, 129, 0.25) !important;
+}
+.bg-warning {
+    background-color: rgba(245, 158, 11, 0.1) !important;
+    color: #F59E0B !important;
+    border: 1px solid rgba(245, 158, 11, 0.25) !important;
+}
+.bg-danger {
+    background-color: rgba(239, 68, 68, 0.1) !important;
+    color: #EF4444 !important;
+    border: 1px solid rgba(239, 68, 68, 0.25) !important;
+}
+
+/* Tabelas Premium */
+.table {
+    color: var(--bs-body-color) !important;
+    border-color: var(--tech-border) !important;
+}
+.table > :not(caption) > * > * {
+    background-color: transparent !important;
+    border-bottom-color: var(--tech-border) !important;
+    padding: 1rem 0.75rem !important;
+}
+.table tbody tr {
+    transition: background-color 0.2s ease;
+}
+.table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.02) !important;
 }
 
 /* Utilitários de Texto */
@@ -140,5 +198,11 @@ body {
     color: var(--tech-text-main) !important;
 }
 .text-dark {
-    color: var(--tech-surface) !important;
+    color: #0b0f19 !important;
+}
+
+/* Rodapé */
+footer {
+    background-color: #080C14 !important;
+    border-top: 1px solid var(--tech-border) !important;
 }
