@@ -8,9 +8,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-// Registrando o contexto do banco de dados SQLite
+// Registrando o contexto do banco de dados PostgreSQL
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Configuração de Autenticação baseada em Cookies
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

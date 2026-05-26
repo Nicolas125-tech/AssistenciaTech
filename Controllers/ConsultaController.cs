@@ -41,10 +41,11 @@ namespace AssistenciaTech.Controllers
             // Remove pontuação do CPF para consulta, caso o cliente digite formatado
             string cpfLimpo = new string(cpf.Where(char.IsDigit).ToArray());
 
-            // Busca a Ordem de Serviço pelo número e verifica se o CPF do cliente está correto
+            // Busca a Ordem de Serviço pelo número e verifica se o CPF do cliente está correto (ignorando pontuações salvas no banco)
             var ordem = _context.OrdensServico
                                 .Include(o => o.Cliente) // Faz o JOIN com a tabela de Clientes
-                                .FirstOrDefault(o => o.Id == numeroOS && o.Cliente.Cpf == cpfLimpo);
+                                .FirstOrDefault(o => o.Id == numeroOS && 
+                                                     o.Cliente.Cpf.Replace(".", "").Replace("-", "").Replace(" ", "") == cpfLimpo);
             
             if (ordem == null)
             {

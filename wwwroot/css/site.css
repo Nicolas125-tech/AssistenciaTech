@@ -259,8 +259,43 @@ body {
     color: #0b0f19 !important;
 }
 
+/* Links Globais em Dark Mode */
+a {
+    color: #38BDF8 !important;
+    text-decoration: none;
+    transition: color 0.15s ease-in-out;
+}
+a:hover {
+    color: #0ea5e9 !important;
+    text-decoration: underline;
+}
+
+/* Correção para Floating Labels do Bootstrap 5 em Dark Mode */
+.form-floating > label {
+    color: var(--tech-text-muted) !important;
+}
+.form-floating > .form-control:focus ~ label,
+.form-floating > .form-control:not(:placeholder-shown) ~ label,
+.form-floating > .form-select ~ label {
+    color: #38BDF8 !important;
+}
+.form-floating > .form-control::placeholder {
+    color: transparent;
+}
+
+/* Ajuste nos cabeçalhos de cards do layout */
+.card-header.bg-primary {
+    background: var(--bs-primary-gradient) !important;
+    border-bottom: 1px solid var(--tech-border) !important;
+}
+.card-header.bg-dark {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+    border-bottom: 1px solid var(--tech-border) !important;
+}
+
 /* Rodapé */
 footer {
     background-color: #080C14 !important;
     border-top: 1px solid var(--tech-border) !important;
 }
+
