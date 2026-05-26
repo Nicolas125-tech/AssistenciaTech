@@ -148,7 +148,7 @@ body {
     box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.2) !important;
 }
 
-/* Badges de Status Refinados (Outline & Glow) */
+/* Badges e Status */
 .badge {
     border-radius: 6px !important;
     font-weight: 600 !important;
@@ -171,6 +171,56 @@ body {
     background-color: rgba(239, 68, 68, 0.1) !important;
     color: #EF4444 !important;
     border: 1px solid rgba(239, 68, 68, 0.25) !important;
+}
+
+/* Cores de Texto de Alta Visibilidade para Dark Mode */
+.text-success {
+    color: #34D399 !important; /* Verde Esmeralda claro para contraste em fundo escuro (Preços/Valores) */
+}
+.text-warning {
+    color: #FBBF24 !important; /* Amarelo/Laranja claro */
+}
+.text-danger {
+    color: #F87171 !important; /* Vermelho claro */
+}
+.text-info {
+    color: #38BDF8 !important; /* Azul Ciano claro */
+}
+
+/* Customização de Cards Coloridos do Dashboard (Evita fundo chapado e traz estilo Outline/Accent) */
+.card.bg-primary, .card.bg-success, .card.bg-dark, .card.bg-warning, .card.bg-danger {
+    background-color: var(--tech-surface) !important;
+    color: var(--tech-text-main) !important;
+}
+.card.bg-primary {
+    border-left: 4px solid var(--bs-primary) !important;
+}
+.card.bg-success {
+    border-left: 4px solid var(--bs-success) !important;
+}
+.card.bg-dark {
+    border-left: 4px solid #38BDF8 !important; /* Destaque para Faturamento */
+}
+.card.bg-warning {
+    border-left: 4px solid #F59E0B !important;
+}
+.card.bg-danger {
+    border-left: 4px solid #EF4444 !important;
+}
+
+/* Elementos de Formulário */
+.form-control, .form-select {
+    background-color: rgba(0, 0, 0, 0.2) !important;
+    border: 1px solid var(--tech-border) !important;
+    color: var(--tech-text-main) !important;
+    border-radius: 8px !important;
+    padding: 0.6rem 1rem !important;
+    transition: all 0.2s ease-in-out;
+}
+.form-control:focus, .form-select:focus {
+    background-color: rgba(0, 0, 0, 0.35) !important;
+    border-color: var(--bs-primary) !important;
+    box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.2) !important;
 }
 
 /* Tabelas Premium */
