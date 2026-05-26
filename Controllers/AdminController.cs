@@ -47,8 +47,9 @@ namespace AssistenciaTech.Controllers
                 var ordensOrdenadas = todasOS?.OrderByDescending(o => o.DataEntrada).ToList() ?? new List<OrdemServico>();
                 return View(ordensOrdenadas);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine("DB_CONNECTION_ERROR (Admin/Index): " + ex.ToString());
                 // Log the exception in a real scenario
                 ViewBag.ErroBanco = "Erro ao conectar ao banco de dados. Por favor, tente novamente mais tarde.";
                 

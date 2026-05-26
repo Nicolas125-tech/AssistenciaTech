@@ -1,12 +1,32 @@
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
+using AssistenciaTech.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace AssistenciaTech.Controllers
 {
     public class HomeController : Controller
     {
-        public HomeController()
+        private readonly AppDbContext _context;
+
+        public HomeController(AppDbContext context)
         {
+            _context = context;
+        }
+
+        // GET: /Home/TestDb
+        public IActionResult TestDb()
+        {
+            try
+            {
+                _context.Database.OpenConnection();
+                _context.Database.CloseConnection();
+                return Content("Conexão com o banco de dados realizada com SUCESSO!");
+            }
+            catch (Exception ex)
+            {
+                return Content($"ERRO de conexão: {ex.Message}\n\nDetalhes:\n{ex.StackTrace}\n\nInner Exception:\n{ex.InnerException?.Message}");
+            }
         }
 
         // GET: / ou /Home/Index
