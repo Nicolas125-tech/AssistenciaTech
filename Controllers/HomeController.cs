@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using AssistenciaTech.Data;
+using Npgsql;
 using Microsoft.EntityFrameworkCore;
 
 namespace AssistenciaTech.Controllers
