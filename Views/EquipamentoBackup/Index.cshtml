@@ -1,0 +1,48 @@
+@model IEnumerable<AssistenciaTech.Models.EquipamentoBackup>
+@{
+    ViewData["Title"] = "Equipamentos de Backup";
+}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Equipamentos de Backup (Empréstimo)</h2>
+        <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Novo Equipamento</a>
+    </div>
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Descrição</th>
+                        <th>Nº Série / Patrimônio</th>
+                        <th>Status</th>
+                        <th class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model) {
+                        <tr>
+                            <td class="fw-bold">@item.Descricao</td>
+                            <td>@item.NumeroSerie</td>
+                            <td>
+                                @if (item.Disponivel) { <span class="badge bg-success">Disponível</span> }
+                                else { <span class="badge bg-danger">Emprestado</span> }
+                            </td>
+                            <td class="text-center">
+                                @if (!item.Disponivel)
+                                {
+                                    <form asp-action="Devolver" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Marcar como Devolvido/Disponível?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-success"><i class="bi bi-arrow-return-left"></i> Devolver</button>
+                                    </form>
+                                }
+                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil-square"></i> Editar</a>
+                                <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Deseja excluir?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Excluir</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

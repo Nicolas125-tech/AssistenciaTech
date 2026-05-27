@@ -1,0 +1,27 @@
+@model AssistenciaTech.Models.EquipamentoBackup
+@{
+    ViewData["Title"] = "Novo Equipamento Backup";
+}
+<div class="container mt-5">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white"><h5>Cadastrar Equipamento Reserva</h5></div>
+        <div class="card-body">
+            <form asp-action="Create">
+                <div class="mb-3">
+                    <label asp-for="Descricao" class="form-label fw-bold">Descrição (Ex: Notebook Dell)</label>
+                    <input asp-for="Descricao" class="form-control" required />
+                </div>
+                <div class="mb-3">
+                    <label asp-for="NumeroSerie" class="form-label fw-bold">Número de Série / Patrimônio</label>
+                    <input asp-for="NumeroSerie" class="form-control" />
+                </div>
+                <div class="mb-3 form-check">
+                    <input asp-for="Disponivel" class="form-check-input" />
+                    <label asp-for="Disponivel" class="form-check-label fw-bold">Disponível</label>
+                </div>
+                <button type="submit" class="btn btn-primary">Salvar</button>
+                <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
+            </form>
+        </div>
+    </div>
+</div>

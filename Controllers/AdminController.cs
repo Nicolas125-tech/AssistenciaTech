@@ -140,9 +140,15 @@ namespace AssistenciaTech.Controllers
             {
                 var ordemServico = await _context.OrdensServico
                                                  .Include(o => o.Cliente)
+                                                 .Include(o => o.TecnicoResponsavel)
+                                                 .Include(o => o.EquipamentoBackup)
+                                                 .Include(o => o.Evidencias)
                                                  .FirstOrDefaultAsync(m => m.Id == id);
                 
                 if (ordemServico == null) return NotFound();
+
+                ViewBag.Tecnicos = new SelectList(await _context.Tecnicos.Where(t => t.Ativo).ToListAsync(), "Id", "Nome");
+                ViewBag.EquipamentosBackup = new SelectList(await _context.EquipamentosBackup.Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).ToListAsync(), "Id", "Descricao");
 
                 return View(ordemServico);
             }
@@ -174,6 +180,36 @@ namespace AssistenciaTech.Controllers
                 ordemExistente.NumeroSerie = ordemServico.NumeroSerie;
                 ordemExistente.ProblemaRelatado = ordemServico.ProblemaRelatado;
                 ordemExistente.AvariasPreExistentes = ordemServico.AvariasPreExistentes;
+
+                // Acesso restrito ao Laudo Técnico (Simulado usando a lógica de Admin - Pode ser melhorado com Claims no futuro)
+                ordemExistente.LaudoTecnico = ordemServico.LaudoTecnico;
+
+                // Relacionamentos e RMA
+                ordemExistente.TecnicoId = ordemServico.TecnicoId;
+                ordemExistente.EnviadoParaTerceiro = ordemServico.EnviadoParaTerceiro;
+                ordemExistente.NomeParceiro = ordemServico.NomeParceiro;
+                ordemExistente.CustoTerceirizado = ordemServico.CustoTerceirizado;
+                ordemExistente.PrevisaoRetornoParceiro = ordemServico.PrevisaoRetornoParceiro;
+
+                // Lógica do Equipamento de Backup
+                if (ordemExistente.EquipamentoBackupId != ordemServico.EquipamentoBackupId)
+                {
+                    // Se ele tinha um antes e tirou, marcamos o antigo como disponivel
+                    if (ordemExistente.EquipamentoBackupId.HasValue)
+                    {
+                        var backupAntigo = await _context.EquipamentosBackup.FindAsync(ordemExistente.EquipamentoBackupId);
+                        if (backupAntigo != null) backupAntigo.Disponivel = true;
+                    }
+
+                    // Se ele atrelou um novo, marcamos como indisponível
+                    if (ordemServico.EquipamentoBackupId.HasValue)
+                    {
+                        var backupNovo = await _context.EquipamentosBackup.FindAsync(ordemServico.EquipamentoBackupId);
+                        if (backupNovo != null) backupNovo.Disponivel = false;
+                    }
+
+                    ordemExistente.EquipamentoBackupId = ordemServico.EquipamentoBackupId;
+                }
                 
                 string statusAnterior = ordemExistente.Status;
                 ordemExistente.Status = ordemServico.Status;
@@ -197,6 +233,20 @@ namespace AssistenciaTech.Controllers
 
                 if (ordemExistente.Status == WorkflowStatus.Entregue && ordemExistente.DataEntregaCliente == null)
                 {
+                    // BLOQUEIO EMPRESARIAL: Equipamento de Backup precisa ser devolvido primeiro
+                    if (ordemExistente.EquipamentoBackupId.HasValue)
+                    {
+                        var backup = await _context.EquipamentosBackup.FindAsync(ordemExistente.EquipamentoBackupId);
+                        if (backup != null && backup.Disponivel == false)
+                        {
+                            ModelState.AddModelError(string.Empty, $"O status não pode ser 'Entregue' até que o equipamento '{backup.Descricao}' seja devolvido no sistema.");
+                            
+                            ViewBag.Tecnicos = new SelectList(await _context.Tecnicos.Where(t => t.Ativo).ToListAsync(), "Id", "Nome", ordemServico.TecnicoId);
+                            ViewBag.EquipamentosBackup = new SelectList(await _context.EquipamentosBackup.Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).ToListAsync(), "Id", "Descricao", ordemServico.EquipamentoBackupId);
+                            return View(ordemExistente); // Retorna a view impedindo o salvamento
+                        }
+                    }
+
                     // A garantia passa a valer a partir deste momento
                     ordemExistente.DataEntregaCliente = DateTime.Now;
                     
@@ -333,6 +383,8 @@ namespace AssistenciaTech.Controllers
                                 if (!string.IsNullOrEmpty(os.NumeroSerie))
                                     c.Item().Text($"Nº de Série: {os.NumeroSerie}");
                                 c.Item().Text($"Defeito Relatado: {os.ProblemaRelatado}");
+                                if (!string.IsNullOrEmpty(os.LaudoTecnico))
+                                    c.Item().Text($"Laudo Técnico: {os.LaudoTecnico}");
                                 if (!string.IsNullOrEmpty(os.AvariasPreExistentes))
                                     c.Item().Text($"Avarias Pré-Existentes: {os.AvariasPreExistentes}");
                                 c.Item().Text($"Status: {os.Status}").FontColor(os.Status == WorkflowStatus.Concluido || os.Status == WorkflowStatus.Entregue ? Colors.Green.Darken2 : Colors.Orange.Darken2).SemiBold();

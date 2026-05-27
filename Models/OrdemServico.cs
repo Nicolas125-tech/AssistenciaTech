@@ -32,6 +32,48 @@ namespace AssistenciaTech.Models
         public ICollection<OrdemServicoPeca> PecasUtilizadas { get; set; } = new List<OrdemServicoPeca>();
         public ICollection<Evidencia> Evidencias { get; set; } = new List<Evidencia>();
 
+        [Display(Name = "Laudo Técnico (Diagnóstico)")]
+        public string? LaudoTecnico { get; set; } // O diagnóstico real dado pelo técnico
+
+        // === Funcionalidades Enterprise Nível 2 ===
+        
+        [Display(Name = "Equipamento de Backup")]
+        public int? EquipamentoBackupId { get; set; }
+        public EquipamentoBackup? EquipamentoBackup { get; set; }
+
+        [Display(Name = "Técnico Responsável")]
+        public int? TecnicoId { get; set; }
+        public Tecnico? TecnicoResponsavel { get; set; }
+
+        // RMA / Terceirizados
+        [Display(Name = "Enviado para Terceirizado?")]
+        public bool EnviadoParaTerceiro { get; set; } = false;
+
+        [Display(Name = "Nome do Parceiro/Laboratório")]
+        public string? NomeParceiro { get; set; }
+
+        [Display(Name = "Custo Terceirizado")]
+        public decimal CustoTerceirizado { get; set; } = 0;
+
+        [Display(Name = "Previsão de Retorno (RMA)")]
+        public DateTime? PrevisaoRetornoParceiro { get; set; }
+
+        // Propriedade Computada para Comissão
+        [NotMapped]
+        public decimal ValorComissao 
+        {
+            get 
+            {
+                if (TecnicoResponsavel != null)
+                {
+                    return CustoMaoDeObra * (TecnicoResponsavel.PercentualComissao / 100);
+                }
+                return 0m;
+            }
+        }
+
+        // ==========================================
+
         [Display(Name = "Avarias Pré-Existentes")]
         public string? AvariasPreExistentes { get; set; } // Checklist visual
 

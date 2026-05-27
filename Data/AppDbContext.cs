@@ -22,6 +22,9 @@ namespace AssistenciaTech.Data
         public DbSet<Peca> Pecas { get; set; }
         public DbSet<Evidencia> Evidencias { get; set; }
         public DbSet<OrdemServicoPeca> OrdemServicoPecas { get; set; }
+        
+        public DbSet<Tecnico> Tecnicos { get; set; }
+        public DbSet<EquipamentoBackup> EquipamentosBackup { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
