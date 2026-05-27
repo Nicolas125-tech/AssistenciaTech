@@ -1,4 +1,5 @@
 using AssistenciaTech.Models;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace AssistenciaTech.Data
@@ -7,7 +8,7 @@ namespace AssistenciaTech.Data
     /// Contexto do banco de dados do Entity Framework Core.
     /// Gerencia a conexão com o banco e o mapeamento das entidades.
     /// </summary>
-    public class AppDbContext : DbContext
+    public class AppDbContext : DbContext, IDataProtectionKeyContext
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
@@ -16,6 +17,7 @@ namespace AssistenciaTech.Data
         // Representação das tabelas no banco de dados
         public DbSet<Cliente> Clientes { get; set; }
         public DbSet<OrdemServico> OrdensServico { get; set; }
+        public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

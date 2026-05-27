@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AssistenciaTech")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+adc0003b432df2bf5b94979031b5aa7ccf6f50cb")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+aec30ef689f45e7e5eac8bc513e074c39bac3833")]
 [assembly: System.Reflection.AssemblyProductAttribute("AssistenciaTech")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AssistenciaTech")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
