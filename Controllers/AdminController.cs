@@ -136,6 +136,8 @@ namespace AssistenciaTech.Controllers
         {
             if (id == null) return NotFound();
 
+            try
+            {
                 var ordemServico = await _context.OrdensServico
                                                  .Include(o => o.Cliente)
                                                  .Include(o => o.TecnicoResponsavel)
