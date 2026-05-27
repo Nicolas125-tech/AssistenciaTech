@@ -83,5 +83,16 @@ namespace AssistenciaTech.Controllers
             // O catálogo completo pode ser injetado da mesma forma
             return View();
         }
+
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public IActionResult Error()
+        {
+            var exceptionHandlerPathFeature = HttpContext.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
+            return View(new AssistenciaTech.Models.ErrorViewModel 
+            { 
+                RequestId = System.Diagnostics.Activity.Current?.Id ?? HttpContext.TraceIdentifier,
+                ExceptionMessage = exceptionHandlerPathFeature?.Error?.Message
+            });
+        }
     }
 }
