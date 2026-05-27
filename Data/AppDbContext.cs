@@ -18,6 +18,10 @@ namespace AssistenciaTech.Data
         public DbSet<Cliente> Clientes { get; set; }
         public DbSet<OrdemServico> OrdensServico { get; set; }
         public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
+        
+        public DbSet<Peca> Pecas { get; set; }
+        public DbSet<Evidencia> Evidencias { get; set; }
+        public DbSet<OrdemServicoPeca> OrdemServicoPecas { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

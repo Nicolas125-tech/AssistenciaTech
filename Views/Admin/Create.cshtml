@@ -28,11 +28,23 @@
                             </div>
                         </div>
 
+                        @if (TempData["AlertaGarantia"] != null)
+                        {
+                            <div class="alert alert-warning shadow-sm border-0 rounded-4" role="alert">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["AlertaGarantia"]
+                            </div>
+                        }
+
                         <div class="row mb-3">
-                            <div class="col-md-12 form-group">
+                            <div class="col-md-6 form-group">
                                 <label asp-for="Equipamento" class="form-label fw-bold">Equipamento</label>
                                 <input asp-for="Equipamento" class="form-control" placeholder="Ex: Notebook Dell Inspiron 15" required />
                                 <span asp-validation-for="Equipamento" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label asp-for="NumeroSerie" class="form-label fw-bold">Número de Série (S/N)</label>
+                                <input asp-for="NumeroSerie" class="form-control" placeholder="Opcional. Ajuda a rastrear retornos." />
+                                <span asp-validation-for="NumeroSerie" class="text-danger"></span>
                             </div>
                         </div>
 

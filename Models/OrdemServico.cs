@@ -21,9 +21,16 @@ namespace AssistenciaTech.Models
         [Display(Name = "Equipamento")]
         public string Equipamento { get; set; } = string.Empty; // Ex: Notebook Dell Inspiron, PC Gamer
 
+        [Display(Name = "Número de Série")]
+        public string? NumeroSerie { get; set; } // Para histórico de garantia
+
         [Required(ErrorMessage = "A descrição do problema é obrigatória.")]
         [Display(Name = "Problema Relatado")]
         public string ProblemaRelatado { get; set; } = string.Empty; // Ex: Não liga, precisa de formatação
+
+        // Relacionamentos para Funcionalidades Empresariais
+        public ICollection<OrdemServicoPeca> PecasUtilizadas { get; set; } = new List<OrdemServicoPeca>();
+        public ICollection<Evidencia> Evidencias { get; set; } = new List<Evidencia>();
 
         [Display(Name = "Avarias Pré-Existentes")]
         public string? AvariasPreExistentes { get; set; } // Checklist visual

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using AssistenciaTech.Data;
 using AssistenciaTech.Models;
+using AssistenciaTech.Services;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -10,6 +11,9 @@ using Microsoft.AspNetCore.Authorization;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using System.IO;
 
 namespace AssistenciaTech.Controllers
 {
@@ -20,10 +24,14 @@ namespace AssistenciaTech.Controllers
     public class AdminController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly IEstoqueService _estoqueService;
+        private readonly IWebHostEnvironment _env;
 
-        public AdminController(AppDbContext context)
+        public AdminController(AppDbContext context, IEstoqueService estoqueService, IWebHostEnvironment env)
         {
             _context = context;
+            _estoqueService = estoqueService;
+            _env = env;
         }
 
         // GET: Admin/Index
@@ -94,6 +102,19 @@ namespace AssistenciaTech.Controllers
                     ordemServico.ValorOrcamento = ordemServico.ValorTotalCalculado;
                     _context.Add(ordemServico);
                     await _context.SaveChangesAsync();
+
+                    // Regra: Alerta de Retorno por Número de Série (30 dias)
+                    if (!string.IsNullOrEmpty(ordemServico.NumeroSerie))
+                    {
+                        var retornoRecente = await _context.OrdensServico
+                            .AnyAsync(o => o.NumeroSerie == ordemServico.NumeroSerie && o.Id != ordemServico.Id && o.DataEntrada >= DateTime.Now.AddDays(-30));
+                        
+                        if (retornoRecente)
+                        {
+                            TempData["AlertaGarantia"] = $"ATENÇÃO: O equipamento com NS {ordemServico.NumeroSerie} já deu entrada na assistência nos últimos 30 dias. Verifique se é um retorno em garantia!";
+                        }
+                    }
+
                     return RedirectToAction(nameof(Index));
                 }
             }
@@ -135,20 +156,26 @@ namespace AssistenciaTech.Controllers
         // POST: Admin/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, OrdemServico ordemServico)
+        public async Task<IActionResult> Edit(int id, OrdemServico ordemServico, IFormFileCollection fotos)
         {
             if (id != ordemServico.Id) return NotFound();
 
             try
             {
                 // Busca a OS existente no banco
-                var ordemExistente = await _context.OrdensServico.FindAsync(id);
+                var ordemExistente = await _context.OrdensServico
+                    .Include(o => o.Evidencias)
+                    .FirstOrDefaultAsync(o => o.Id == id);
+                    
                 if (ordemExistente == null) return NotFound();
 
                 // Atualiza apenas os campos permitidos
                 ordemExistente.Equipamento = ordemServico.Equipamento;
+                ordemExistente.NumeroSerie = ordemServico.NumeroSerie;
                 ordemExistente.ProblemaRelatado = ordemServico.ProblemaRelatado;
                 ordemExistente.AvariasPreExistentes = ordemServico.AvariasPreExistentes;
+                
+                string statusAnterior = ordemExistente.Status;
                 ordemExistente.Status = ordemServico.Status;
                 
                 ordemExistente.CustoPecas = ordemServico.CustoPecas;
@@ -160,10 +187,12 @@ namespace AssistenciaTech.Controllers
                 if (ordemExistente.Status == WorkflowStatus.Concluido && ordemExistente.DataConclusao == null)
                 {
                     ordemExistente.DataConclusao = DateTime.Now;
+                    await _estoqueService.DeduzirEstoque(ordemExistente.Id);
                 }
-                else if (ordemExistente.Status != WorkflowStatus.Concluido && ordemExistente.Status != WorkflowStatus.Entregue)
+                else if (statusAnterior == WorkflowStatus.Concluido && ordemExistente.Status != WorkflowStatus.Concluido && ordemExistente.Status != WorkflowStatus.Entregue)
                 {
                     ordemExistente.DataConclusao = null; // Caso retroceda
+                    await _estoqueService.RestaurarEstoque(ordemExistente.Id);
                 }
 
                 if (ordemExistente.Status == WorkflowStatus.Entregue && ordemExistente.DataEntregaCliente == null)
@@ -173,11 +202,41 @@ namespace AssistenciaTech.Controllers
                     
                     // Garante que a data de conclusão também exista se pular direto
                     if (ordemExistente.DataConclusao == null) 
+                    {
                         ordemExistente.DataConclusao = DateTime.Now;
+                        await _estoqueService.DeduzirEstoque(ordemExistente.Id);
+                    }
                 }
                 else if (ordemExistente.Status != WorkflowStatus.Entregue)
                 {
                     ordemExistente.DataEntregaCliente = null; // Anula garantia se retroceder
+                }
+
+                // Lógica de Upload de Evidências (Fotos)
+                if (fotos != null && fotos.Count > 0)
+                {
+                    string uploadsFolder = Path.Combine(_env.WebRootPath, "uploads", "evidencias");
+                    Directory.CreateDirectory(uploadsFolder); // Garante que a pasta existe
+
+                    foreach (var foto in fotos)
+                    {
+                        if (foto.Length > 0)
+                        {
+                            string uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(foto.FileName);
+                            string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                            using (var fileStream = new FileStream(filePath, FileMode.Create))
+                            {
+                                await foto.CopyToAsync(fileStream);
+                            }
+
+                            ordemExistente.Evidencias.Add(new Evidencia
+                            {
+                                CaminhoArquivo = "/uploads/evidencias/" + uniqueFileName,
+                                DataUpload = DateTime.Now
+                            });
+                        }
+                    }
                 }
 
                 _context.Update(ordemExistente);
@@ -271,13 +330,19 @@ namespace AssistenciaTech.Controllers
                             {
                                 c.Item().Text("Detalhes do Serviço").SemiBold().FontSize(14);
                                 c.Item().Text($"Equipamento: {os.Equipamento}");
+                                if (!string.IsNullOrEmpty(os.NumeroSerie))
+                                    c.Item().Text($"Nº de Série: {os.NumeroSerie}");
                                 c.Item().Text($"Defeito Relatado: {os.ProblemaRelatado}");
                                 if (!string.IsNullOrEmpty(os.AvariasPreExistentes))
                                     c.Item().Text($"Avarias Pré-Existentes: {os.AvariasPreExistentes}");
                                 c.Item().Text($"Status: {os.Status}").FontColor(os.Status == WorkflowStatus.Concluido || os.Status == WorkflowStatus.Entregue ? Colors.Green.Darken2 : Colors.Orange.Darken2).SemiBold();
                                 c.Item().Text($"Data de Entrada: {os.DataEntrada:dd/MM/yyyy HH:mm}");
                                 if (os.DataEntregaCliente.HasValue)
+                                {
                                     c.Item().Text($"Data de Entrega: {os.DataEntregaCliente:dd/MM/yyyy HH:mm}");
+                                    if (os.GarantiaAtiva)
+                                        c.Item().Text($"Garantia Válida até: {os.DataVencimentoGarantia:dd/MM/yyyy}");
+                                }
                             });
                         });
                     }

@@ -12,7 +12,7 @@
                     <h5 class="mb-0">Atualizar Equipamento - OS #@Model.Id</h5>
                 </div>
                 <div class="card-body">
-                    <form asp-action="Edit">
+                    <form asp-action="Edit" enctype="multipart/form-data">
                         <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
                         
                         <!-- Campos ocultos necessários para o Post -->
@@ -31,10 +31,15 @@
                         </div>
 
                         <div class="row mb-3">
-                            <div class="col-md-12 form-group">
+                            <div class="col-md-6 form-group">
                                 <label asp-for="Equipamento" class="form-label fw-bold">Equipamento</label>
                                 <input asp-for="Equipamento" class="form-control" required />
                                 <span asp-validation-for="Equipamento" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label asp-for="NumeroSerie" class="form-label fw-bold">Número de Série (S/N)</label>
+                                <input asp-for="NumeroSerie" class="form-control" />
+                                <span asp-validation-for="NumeroSerie" class="text-danger"></span>
                             </div>
                         </div>
 
@@ -51,6 +56,29 @@
                                 <label asp-for="AvariasPreExistentes" class="form-label fw-bold">Avarias Pré-Existentes (Checklist Visual)</label>
                                 <textarea asp-for="AvariasPreExistentes" class="form-control" rows="2" placeholder="Descreva arranhões, trincas, peças faltando, etc."></textarea>
                                 <span asp-validation-for="AvariasPreExistentes" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-12 form-group">
+                                <label class="form-label fw-bold">Evidências (Fotos do Equipamento)</label>
+                                <input type="file" name="fotos" class="form-control" accept="image/*" multiple />
+                                <div class="form-text">Você pode selecionar múltiplas fotos para comprovar o estado do aparelho.</div>
+                                
+                                @if (Model.Evidencias != null && Model.Evidencias.Any())
+                                {
+                                    <div class="mt-3">
+                                        <h6>Fotos já enviadas:</h6>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            @foreach(var ev in Model.Evidencias)
+                                            {
+                                                <a href="@ev.CaminhoArquivo" target="_blank">
+                                                    <img src="@ev.CaminhoArquivo" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;" />
+                                                </a>
+                                            }
+                                        </div>
+                                    </div>
+                                }
                             </div>
                         </div>
 
