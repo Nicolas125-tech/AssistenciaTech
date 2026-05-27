@@ -19,45 +19,31 @@ namespace AssistenciaTech.Controllers
         public IActionResult TestDb()
         {
             var connString = _context.Database.GetConnectionString();
-            if (string.IsNullOrEmpty(connString)) return Content("String de conexão está vazia.");
-
-            var builder = new NpgsqlConnectionStringBuilder(connString);
-            string projectRef = "plygtwevgiziaznttnwc";
-            
-            // Extract the project ref if it's in the username
-            if (builder.Username != null && builder.Username.Contains("."))
+            string maskedConnString = "";
+            if (!string.IsNullOrEmpty(connString))
             {
-                projectRef = builder.Username.Split('.')[1];
-            }
-
-            var regions = new[] { "sa-east-1", "us-east-1", "us-east-2", "us-west-1", "us-west-2", "eu-west-1", "eu-west-2", "eu-central-1" };
-            
-            string output = "Iniciando teste de regiões para o projeto: " + projectRef + "\n\n";
-
-            foreach (var region in regions)
-            {
-                builder.Host = $"aws-0-{region}.pooler.supabase.com";
-                builder.Port = 5432;
-                builder.Username = $"postgres.{projectRef}";
-                
-                output += $"Testando região {region} ({builder.Host})... ";
-                
                 try
                 {
-                    using var conn = new NpgsqlConnection(builder.ConnectionString);
-                    conn.Open();
-                    conn.Close();
-                    
-                    builder.Password = "******"; // mascarar para exibir
-                    return Content(output + $"\n\nSUCESSO na região {region}!!!\n\nA string de conexão correta que você deve colocar no Render é:\n\n{builder.ConnectionString}");
+                    var connBuilder = new NpgsqlConnectionStringBuilder(connString);
+                    connBuilder.Password = "******";
+                    maskedConnString = connBuilder.ConnectionString;
                 }
-                catch (Exception ex)
+                catch
                 {
-                    output += $"FALHOU: {ex.Message}\n";
+                    maskedConnString = "Erro ao formatar a string de conexão.";
                 }
             }
 
-            return Content(output + "\nNenhuma região funcionou. Verifique se a senha está correta ou se o ID do projeto está digitado corretamente.");
+            try
+            {
+                _context.Database.OpenConnection();
+                _context.Database.CloseConnection();
+                return Content($"Conexão com o banco de dados realizada com SUCESSO!\n\nString de conexão utilizada:\n{maskedConnString}");
+            }
+            catch (Exception ex)
+            {
+                return Content($"ERRO de conexão: {ex.Message}\n\nString de conexão utilizada:\n{maskedConnString}\n\nDetalhes:\n{ex.StackTrace}\n\nInner Exception:\n{ex.InnerException?.Message}");
+            }
         }
 
         // GET: / ou /Home/Index
