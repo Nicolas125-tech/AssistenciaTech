@@ -95,10 +95,12 @@ namespace AssistenciaTech.Controllers
                     return RedirectToAction(nameof(Index));
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 // Em um ambiente real, faríamos um log (ex: Serilog)
-                ModelState.AddModelError(string.Empty, "Erro ao salvar a Ordem de Serviço. Verifique os dados e tente novamente.");
+                string errorMsg = ex.Message;
+                if (ex.InnerException != null) errorMsg += " | Inner: " + ex.InnerException.Message;
+                ModelState.AddModelError(string.Empty, $"Erro ao salvar a Ordem de Serviço: {errorMsg}");
             }
 
             // Se falhou, retorna os dados para o formulário
