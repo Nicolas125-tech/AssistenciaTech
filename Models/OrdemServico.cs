@@ -41,6 +41,16 @@ namespace AssistenciaTech.Models
         public int? EquipamentoBackupId { get; set; }
         public EquipamentoBackup? EquipamentoBackup { get; set; }
 
+        [Display(Name = "Contrato / SLA")]
+        public int? ContratoId { get; set; }
+        public Contrato? Contrato { get; set; }
+
+        [Display(Name = "Contador de Páginas Inicial")]
+        public int? ContadorPaginasInicial { get; set; }
+
+        [Display(Name = "Contador de Páginas Final")]
+        public int? ContadorPaginasFinal { get; set; }
+
         [Display(Name = "Técnico Responsável")]
         public int? TecnicoId { get; set; }
         public Tecnico? TecnicoResponsavel { get; set; }

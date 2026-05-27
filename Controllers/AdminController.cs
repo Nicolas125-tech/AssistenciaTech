@@ -136,19 +136,19 @@ namespace AssistenciaTech.Controllers
         {
             if (id == null) return NotFound();
 
-            try
-            {
                 var ordemServico = await _context.OrdensServico
                                                  .Include(o => o.Cliente)
                                                  .Include(o => o.TecnicoResponsavel)
                                                  .Include(o => o.EquipamentoBackup)
                                                  .Include(o => o.Evidencias)
+                                                 .Include(o => o.Contrato)
                                                  .FirstOrDefaultAsync(m => m.Id == id);
                 
                 if (ordemServico == null) return NotFound();
 
                 ViewBag.Tecnicos = new SelectList(await _context.Tecnicos.Where(t => t.Ativo).ToListAsync(), "Id", "Nome");
                 ViewBag.EquipamentosBackup = new SelectList(await _context.EquipamentosBackup.Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).ToListAsync(), "Id", "Descricao");
+                ViewBag.Contratos = new SelectList(await _context.Contratos.Include(c => c.Cliente).Where(c => c.ClienteId == ordemServico.ClienteId).Select(c => new { c.Id, NomeDesc = "Contrato: SLA " + c.HorasSLA + "h - R$ " + c.ValorMensal }).ToListAsync(), "Id", "NomeDesc");
 
                 return View(ordemServico);
             }
@@ -190,6 +190,11 @@ namespace AssistenciaTech.Controllers
                 ordemExistente.NomeParceiro = ordemServico.NomeParceiro;
                 ordemExistente.CustoTerceirizado = ordemServico.CustoTerceirizado;
                 ordemExistente.PrevisaoRetornoParceiro = ordemServico.PrevisaoRetornoParceiro;
+
+                // Contratos e SLAs (Impressoras)
+                ordemExistente.ContratoId = ordemServico.ContratoId;
+                ordemExistente.ContadorPaginasInicial = ordemServico.ContadorPaginasInicial;
+                ordemExistente.ContadorPaginasFinal = ordemServico.ContadorPaginasFinal;
 
                 // Lógica do Equipamento de Backup
                 if (ordemExistente.EquipamentoBackupId != ordemServico.EquipamentoBackupId)
@@ -243,6 +248,7 @@ namespace AssistenciaTech.Controllers
                             
                             ViewBag.Tecnicos = new SelectList(await _context.Tecnicos.Where(t => t.Ativo).ToListAsync(), "Id", "Nome", ordemServico.TecnicoId);
                             ViewBag.EquipamentosBackup = new SelectList(await _context.EquipamentosBackup.Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).ToListAsync(), "Id", "Descricao", ordemServico.EquipamentoBackupId);
+                            ViewBag.Contratos = new SelectList(await _context.Contratos.Include(c => c.Cliente).Where(c => c.ClienteId == ordemServico.ClienteId).Select(c => new { c.Id, NomeDesc = "Contrato: SLA " + c.HorasSLA + "h - R$ " + c.ValorMensal }).ToListAsync(), "Id", "NomeDesc", ordemServico.ContratoId);
                             return View(ordemExistente); // Retorna a view impedindo o salvamento
                         }
                     }

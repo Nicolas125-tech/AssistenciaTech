@@ -1,0 +1,55 @@
+@model IEnumerable<AssistenciaTech.Models.Faturamento>
+@{
+    ViewData["Title"] = "Gestão de Faturamentos (PIX)";
+}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Faturamentos & PIX Dinâmico</h2>
+    </div>
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID Fatura</th>
+                        <th>OS #</th>
+                        <th>Valor Total</th>
+                        <th>Vencimento</th>
+                        <th>Status</th>
+                        <th class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model) {
+                        <tr>
+                            <td class="fw-bold">@item.Id</td>
+                            <td>@item.OrdemServicoId</td>
+                            <td>@item.ValorTotal.ToString("C")</td>
+                            <td>@item.DataVencimento.ToString("dd/MM/yyyy")</td>
+                            <td>
+                                @if (item.StatusPagamento == AssistenciaTech.Models.PagamentoStatus.Pago_Total) {
+                                    <span class="badge bg-success">Pago</span>
+                                } else if (item.StatusPagamento == AssistenciaTech.Models.PagamentoStatus.Pago_Parcial) {
+                                    <span class="badge bg-warning text-dark">Parcial</span>
+                                } else {
+                                    <span class="badge bg-danger">Pendente</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                @if (item.StatusPagamento != AssistenciaTech.Models.PagamentoStatus.Pago_Total)
+                                {
+                                    <button class="btn btn-sm btn-outline-info" onclick="alert('BR Code Pix: @item.QrCodePayload')">
+                                        <i class="bi bi-qr-code-scan"></i> Ver PIX
+                                    </button>
+                                    <form asp-action="MarcarPago" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Marcar como Pago Totalmente?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-success"><i class="bi bi-check-circle"></i> Marcar Pago</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

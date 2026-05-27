@@ -84,6 +84,27 @@
                             </div>
                         </div>
 
+                        <!-- SLA e Contratos -->
+                        <div class="row mb-3">
+                            <div class="col-md-12 form-group">
+                                <label asp-for="ContratoId" class="form-label fw-bold text-success">Contrato SLA Vigente</label>
+                                <select asp-for="ContratoId" class="form-select border-success" asp-items="ViewBag.Contratos">
+                                    <option value="">-- Sem Contrato --</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6 form-group">
+                                <label asp-for="ContadorPaginasInicial" class="form-label fw-bold">Contador Inicial (Impressoras)</label>
+                                <input asp-for="ContadorPaginasInicial" type="number" class="form-control" />
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label asp-for="ContadorPaginasFinal" class="form-label fw-bold">Contador Final (Impressoras)</label>
+                                <input asp-for="ContadorPaginasFinal" type="number" class="form-control" />
+                            </div>
+                        </div>
+
                         <div class="row mb-3">
                             <div class="col-md-12 form-group">
                                 <label class="form-label fw-bold">Evidências (Fotos do Equipamento)</label>
@@ -167,7 +188,12 @@
                         </div>
                         
                         <div class="row mb-3">
-                            <div class="col-md-12 text-end">
+                            <div class="col-md-6 text-start">
+                                <button type="submit" formaction="/Faturamentos/GerarDaOS?osId=@Model.Id" formmethod="post" class="btn btn-outline-success">
+                                    <i class="bi bi-qr-code"></i> Gerar Cobrança PIX
+                                </button>
+                            </div>
+                            <div class="col-md-6 text-end">
                                 <h4 class="fw-bold">Total: <span id="valorTotalDisplay" class="text-success">R$ 0,00</span></h4>
                             </div>
                         </div>

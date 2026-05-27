@@ -25,6 +25,12 @@ namespace AssistenciaTech.Data
         
         public DbSet<Tecnico> Tecnicos { get; set; }
         public DbSet<EquipamentoBackup> EquipamentosBackup { get; set; }
+        
+        // Nivel 3 Enterprise
+        public DbSet<Contrato> Contratos { get; set; }
+        public DbSet<Faturamento> Faturamentos { get; set; }
+        public DbSet<VisitaCampo> VisitasCampo { get; set; }
+        public DbSet<AuditoriaOS> AuditoriaOS { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
