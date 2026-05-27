@@ -1,1 +1,1 @@
-The database connection error 'Erro ao conectar ao banco de dados' was caused by the Render deployment not having the correct PostgreSQL connection string pointing to the active Supabase instance. The fix was applied directly to Render environment variables, which does not require any code changes.
+The connection string on Render was updated from `Username=assistencia_tech_user` to `Username=postgres` and the password provided by the user was applied.
