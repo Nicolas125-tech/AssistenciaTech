@@ -24,26 +24,37 @@ if (!string.IsNullOrEmpty(connectionString))
         // Supabase IPv4 Pooler Rewrite (Supabase removed IPv4 from db.*.supabase.co)
         if (!string.IsNullOrEmpty(connBuilder.Host) && (connBuilder.Host.StartsWith("db.") && connBuilder.Host.EndsWith(".supabase.co") || connBuilder.Host.Contains("pooler.supabase.com")))
         {
-            // Parse project ref if it's db.*
-            string projectRef = "plygtwevgiziaznttnwc"; // default based on instructions
+            string projectRef = "";
 
-            if (connBuilder.Host.StartsWith("db.")) {
+            if (connBuilder.Host.StartsWith("db."))
+            {
                 var parts = connBuilder.Host.Split('.');
                 if (parts.Length >= 2) {
                     projectRef = parts[1];
                 }
+
+                // If using a db.* direct connection string, fallback to us-east-1 pooler since we can't reliably guess the region.
+                // It is highly recommended to provide the pooler connection string directly in environment variables.
+                connBuilder.Host = $"aws-0-us-east-1.pooler.supabase.com";
+            }
+            else if (connBuilder.Host.Contains("pooler.supabase.com"))
+            {
+                // Keep the existing pooler host
+                // Extract projectRef from Username if it exists (e.g. postgres.projectref)
+                if (!string.IsNullOrEmpty(connBuilder.Username) && connBuilder.Username.Contains("."))
+                {
+                    var parts = connBuilder.Username.Split('.');
+                    if (parts.Length >= 2) {
+                        projectRef = parts[1];
+                    }
+                }
             }
 
-            // The user has project plygtwevgiziaznttnwc in us-east-1
-            string region = "us-east-1";
-            if (projectRef == "kpturmbeavfmudrtomea") region = "sa-east-1";
+            connBuilder.Port = 5432; // Pooler session port (fixes port 6543 issue and is required by EF Core)
 
-            connBuilder.Host = $"aws-0-{region}.pooler.supabase.com";
-            connBuilder.Port = 5432; // Pooler session port (fixes port 6543 issue)
-
-            if (!string.IsNullOrEmpty(connBuilder.Username))
+            if (!string.IsNullOrEmpty(connBuilder.Username) && !string.IsNullOrEmpty(projectRef))
             {
-                // Ensure username doesn't already have projectRef
+                // Ensure username has projectRef
                 var baseUsername = connBuilder.Username.Contains(".") ? connBuilder.Username.Split('.')[0] : connBuilder.Username;
                 connBuilder.Username = $"{baseUsername}.{projectRef}";
             }
@@ -51,7 +62,7 @@ if (!string.IsNullOrEmpty(connectionString))
             connBuilder.SslMode = SslMode.Require;
             connBuilder.TrustServerCertificate = true;
 
-            Console.WriteLine($"[Supabase] Rewrote connection string to use IPv4 Pooler: {connBuilder.Host} for user {connBuilder.Username} on port {connBuilder.Port}");
+            Console.WriteLine($"[Supabase] Configured connection string for IPv4 Pooler: {connBuilder.Host} for user {connBuilder.Username} on port {connBuilder.Port}");
             connectionString = connBuilder.ConnectionString;
         }
         else if (!string.IsNullOrEmpty(connBuilder.Host) && !System.Net.IPAddress.TryParse(connBuilder.Host, out _))
