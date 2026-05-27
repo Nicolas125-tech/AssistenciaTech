@@ -6,11 +6,13 @@
     // Define a cor do badge de status
     string statusBadgeClass = Model.Status switch
     {
-        "Recebido" => "bg-secondary",
-        "Em Análise" => "bg-warning text-dark",
-        "Aguardando Peça" => "bg-info text-dark",
-        "Pronto" => "bg-success",
-        "Entregue" => "bg-primary",
+        AssistenciaTech.Models.WorkflowStatus.Recebido => "bg-secondary",
+        AssistenciaTech.Models.WorkflowStatus.EmAnalise => "bg-warning text-dark",
+        AssistenciaTech.Models.WorkflowStatus.AguardandoAprovacao => "bg-info text-dark",
+        AssistenciaTech.Models.WorkflowStatus.AguardandoPecas => "bg-danger",
+        AssistenciaTech.Models.WorkflowStatus.EmReparo => "bg-primary",
+        AssistenciaTech.Models.WorkflowStatus.Concluido => "bg-success",
+        AssistenciaTech.Models.WorkflowStatus.Entregue => "bg-dark",
         _ => "bg-secondary"
     };
 }
@@ -53,11 +55,19 @@
                         <div class="col-sm-8">@Model.DataEntrada.ToString("dd/MM/yyyy HH:mm")</div>
                     </div>
 
-                    @if (Model.DataSaida.HasValue)
+                    @if (Model.DataConclusao.HasValue)
                     {
                         <div class="row mb-3">
-                            <div class="col-sm-4 fw-bold">Data de Saída:</div>
-                            <div class="col-sm-8">@Model.DataSaida.Value.ToString("dd/MM/yyyy HH:mm")</div>
+                            <div class="col-sm-4 fw-bold">Data de Conclusão:</div>
+                            <div class="col-sm-8">@Model.DataConclusao.Value.ToString("dd/MM/yyyy HH:mm")</div>
+                        </div>
+                    }
+
+                    @if (Model.DataEntregaCliente.HasValue)
+                    {
+                        <div class="row mb-3">
+                            <div class="col-sm-4 fw-bold">Data de Retirada:</div>
+                            <div class="col-sm-8">@Model.DataEntregaCliente.Value.ToString("dd/MM/yyyy HH:mm")</div>
                         </div>
                     }
 
