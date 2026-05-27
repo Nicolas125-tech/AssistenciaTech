@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using AssistenciaTech.Data;
 
@@ -40,6 +41,10 @@ if (!string.IsNullOrEmpty(connectionString))
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
+// Configuração do Data Protection (Persistindo chaves no banco de dados para suportar reinícios do contêiner)
+builder.Services.AddDataProtection()
+    .PersistKeysToDbContext<AppDbContext>();
+
 // Configuração de Autenticação baseada em Cookies
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -62,6 +67,8 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 
 var app = builder.Build();
+
+app.UseForwardedHeaders(); // Movido para o topo do pipeline
 
 // === ADICIONADO: Auto-Migration para produção/Docker ===
 // Garante que o banco de dados seja criado e atualizado automaticamente ao iniciar a aplicação.
@@ -88,7 +95,6 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseForwardedHeaders();
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
