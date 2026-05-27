@@ -39,9 +39,9 @@ namespace AssistenciaTech.Controllers
                 var todasOS = await _context.OrdensServico.Include(o => o.Cliente).ToListAsync();
 
                 // Dashboard Data (Verificação segura contra nulos)
-                ViewBag.TotalAbertas = todasOS?.Count(o => o.Status != "Pronto" && o.Status != "Entregue") ?? 0;
-                ViewBag.EquipamentosProntos = todasOS?.Count(o => o.Status == "Pronto") ?? 0;
-                ViewBag.FaturamentoPrevisto = todasOS?.Where(o => o.Status != "Entregue" && o.Status != "Cancelado").Sum(o => o.ValorOrcamento) ?? 0m;
+                ViewBag.TotalAbertas = todasOS?.Count(o => o.Status != WorkflowStatus.Concluido && o.Status != WorkflowStatus.Entregue) ?? 0;
+                ViewBag.EquipamentosProntos = todasOS?.Count(o => o.Status == WorkflowStatus.Concluido) ?? 0;
+                ViewBag.FaturamentoPrevisto = todasOS?.Where(o => o.Status != WorkflowStatus.Entregue && o.Status != "Cancelado").Sum(o => o.ValorOrcamento) ?? 0m;
 
                 // Retorna as ordens ordenadas da mais recente para a mais antiga
                 var ordensOrdenadas = todasOS?.OrderByDescending(o => o.DataEntrada).ToList() ?? new List<OrdemServico>();
@@ -90,6 +90,8 @@ namespace AssistenciaTech.Controllers
                 if (ModelState.IsValid)
                 {
                     ordemServico.DataEntrada = DateTime.Now;
+                    ordemServico.Status = WorkflowStatus.Recebido; // Força fluxo inicial
+                    ordemServico.ValorOrcamento = ordemServico.ValorTotalCalculado;
                     _context.Add(ordemServico);
                     await _context.SaveChangesAsync();
                     return RedirectToAction(nameof(Index));
@@ -146,17 +148,36 @@ namespace AssistenciaTech.Controllers
                 // Atualiza apenas os campos permitidos
                 ordemExistente.Equipamento = ordemServico.Equipamento;
                 ordemExistente.ProblemaRelatado = ordemServico.ProblemaRelatado;
+                ordemExistente.AvariasPreExistentes = ordemServico.AvariasPreExistentes;
                 ordemExistente.Status = ordemServico.Status;
-                ordemExistente.ValorOrcamento = ordemServico.ValorOrcamento;
+                
+                ordemExistente.CustoPecas = ordemServico.CustoPecas;
+                ordemExistente.CustoMaoDeObra = ordemServico.CustoMaoDeObra;
+                ordemExistente.DescontoAplicado = ordemServico.DescontoAplicado;
+                ordemExistente.ValorOrcamento = ordemExistente.ValorTotalCalculado;
 
-                // Regra de negócio: Se o status for alterado para 'Entregue', seta a Data de Saída
-                if (ordemExistente.Status == "Entregue" && ordemExistente.DataSaida == null)
+                // Fluxo de Trabalho (Workflow Restrito e Datas Automáticas)
+                if (ordemExistente.Status == WorkflowStatus.Concluido && ordemExistente.DataConclusao == null)
                 {
-                    ordemExistente.DataSaida = DateTime.Now;
+                    ordemExistente.DataConclusao = DateTime.Now;
                 }
-                else if (ordemExistente.Status != "Entregue")
+                else if (ordemExistente.Status != WorkflowStatus.Concluido && ordemExistente.Status != WorkflowStatus.Entregue)
                 {
-                    ordemExistente.DataSaida = null; // Caso o status retroceda
+                    ordemExistente.DataConclusao = null; // Caso retroceda
+                }
+
+                if (ordemExistente.Status == WorkflowStatus.Entregue && ordemExistente.DataEntregaCliente == null)
+                {
+                    // A garantia passa a valer a partir deste momento
+                    ordemExistente.DataEntregaCliente = DateTime.Now;
+                    
+                    // Garante que a data de conclusão também exista se pular direto
+                    if (ordemExistente.DataConclusao == null) 
+                        ordemExistente.DataConclusao = DateTime.Now;
+                }
+                else if (ordemExistente.Status != WorkflowStatus.Entregue)
+                {
+                    ordemExistente.DataEntregaCliente = null; // Anula garantia se retroceder
                 }
 
                 _context.Update(ordemExistente);
@@ -251,8 +272,12 @@ namespace AssistenciaTech.Controllers
                                 c.Item().Text("Detalhes do Serviço").SemiBold().FontSize(14);
                                 c.Item().Text($"Equipamento: {os.Equipamento}");
                                 c.Item().Text($"Defeito Relatado: {os.ProblemaRelatado}");
-                                c.Item().Text($"Status: {os.Status}").FontColor(os.Status == "Pronto" || os.Status == "Entregue" ? Colors.Green.Darken2 : Colors.Orange.Darken2).SemiBold();
+                                if (!string.IsNullOrEmpty(os.AvariasPreExistentes))
+                                    c.Item().Text($"Avarias Pré-Existentes: {os.AvariasPreExistentes}");
+                                c.Item().Text($"Status: {os.Status}").FontColor(os.Status == WorkflowStatus.Concluido || os.Status == WorkflowStatus.Entregue ? Colors.Green.Darken2 : Colors.Orange.Darken2).SemiBold();
                                 c.Item().Text($"Data de Entrada: {os.DataEntrada:dd/MM/yyyy HH:mm}");
+                                if (os.DataEntregaCliente.HasValue)
+                                    c.Item().Text($"Data de Entrega: {os.DataEntregaCliente:dd/MM/yyyy HH:mm}");
                             });
                         });
                     }

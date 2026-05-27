@@ -90,6 +90,16 @@ using (var scope = app.Services.CreateScope())
         // Cria as tabelas do banco automaticamente sem precisar da pasta Migrations
         context.Database.EnsureCreated();
 
+        // Migração manual: Adiciona novas colunas caso o banco já tenha sido criado antes (pois o EnsureCreated não altera tabelas existentes)
+        context.Database.ExecuteSqlRaw(@"
+            ALTER TABLE ""OrdensServico"" ADD COLUMN IF NOT EXISTS ""CustoPecas"" numeric NOT NULL DEFAULT 0;
+            ALTER TABLE ""OrdensServico"" ADD COLUMN IF NOT EXISTS ""CustoMaoDeObra"" numeric NOT NULL DEFAULT 0;
+            ALTER TABLE ""OrdensServico"" ADD COLUMN IF NOT EXISTS ""DescontoAplicado"" numeric NOT NULL DEFAULT 0;
+            ALTER TABLE ""OrdensServico"" ADD COLUMN IF NOT EXISTS ""DataConclusao"" timestamp without time zone NULL;
+            ALTER TABLE ""OrdensServico"" ADD COLUMN IF NOT EXISTS ""DataEntregaCliente"" timestamp without time zone NULL;
+            ALTER TABLE ""OrdensServico"" ADD COLUMN IF NOT EXISTS ""AvariasPreExistentes"" text NULL;
+        ");
+
         // Garante que a tabela de chaves de proteção exista, pois o EnsureCreated ignora se o banco já existir
         context.Database.ExecuteSqlRaw(@"
             CREATE TABLE IF NOT EXISTS ""DataProtectionKeys"" (

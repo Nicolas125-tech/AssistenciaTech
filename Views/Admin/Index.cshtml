@@ -87,21 +87,42 @@
                         {
                             string badgeClass = item.Status switch
                             {
-                                "Recebido" => "bg-secondary",
-                                "Em Análise" => "bg-warning text-dark",
-                                "Aguardando Peça" => "bg-info text-dark",
-                                "Em Bancada" => "bg-primary",
-                                "Pronto" => "bg-success",
-                                "Entregue" => "bg-dark",
+                                AssistenciaTech.Models.WorkflowStatus.Recebido => "bg-secondary",
+                                AssistenciaTech.Models.WorkflowStatus.EmAnalise => "bg-warning text-dark",
+                                AssistenciaTech.Models.WorkflowStatus.AguardandoAprovacao => "bg-info text-dark",
+                                AssistenciaTech.Models.WorkflowStatus.AguardandoPecas => "bg-danger",
+                                AssistenciaTech.Models.WorkflowStatus.EmReparo => "bg-primary",
+                                AssistenciaTech.Models.WorkflowStatus.Concluido => "bg-success",
+                                AssistenciaTech.Models.WorkflowStatus.Entregue => "bg-dark",
                                 _ => "bg-secondary"
                             };
 
                             <tr>
-                                <td class="fw-bold">#@item.Id</td>
+                                <td class="fw-bold">
+                                    #@item.Id
+                                    @if (item.AparelhoAbandonado)
+                                    {
+                                        <br /><span class="badge bg-danger mt-1" title="Mais de 90 dias sem retirada"><i class="bi bi-exclamation-triangle"></i> Abandonado</span>
+                                    }
+                                </td>
                                 <td>@item.Cliente?.Nome</td>
                                 <td>@item.Equipamento</td>
                                 <td>@item.DataEntrada.ToString("dd/MM/yyyy")</td>
-                                <td><span class="badge @badgeClass">@item.Status</span></td>
+                                <td>
+                                    <span class="badge @badgeClass">@item.Status</span>
+                                    @if (item.Status == AssistenciaTech.Models.WorkflowStatus.Entregue && item.DataVencimentoGarantia.HasValue)
+                                    {
+                                        <br />
+                                        @if (item.GarantiaAtiva)
+                                        {
+                                            <span class="badge bg-success mt-1" style="font-size: 0.65rem;">Garantia até @item.DataVencimentoGarantia.Value.ToString("dd/MM/yy")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary mt-1" style="font-size: 0.65rem;">Garantia Expirada</span>
+                                        }
+                                    }
+                                </td>
                                 <td>@item.ValorOrcamento.ToString("C")</td>
                                 <td class="text-center">
                                     <div class="d-inline-flex">

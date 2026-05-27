@@ -19,7 +19,8 @@
                         <input type="hidden" asp-for="Id" />
                         <input type="hidden" asp-for="ClienteId" />
                         <input type="hidden" asp-for="DataEntrada" />
-                        <input type="hidden" asp-for="DataSaida" />
+                        <input type="hidden" asp-for="DataConclusao" />
+                        <input type="hidden" asp-for="DataEntregaCliente" />
 
                         <div class="row mb-3">
                             <div class="col-md-12">
@@ -40,28 +41,56 @@
                         <div class="row mb-3">
                             <div class="col-md-12 form-group">
                                 <label asp-for="ProblemaRelatado" class="form-label fw-bold">Problema / Diagnóstico</label>
-                                <textarea asp-for="ProblemaRelatado" class="form-control" rows="3" required></textarea>
+                                <textarea asp-for="ProblemaRelatado" class="form-control" rows="2" required></textarea>
                                 <span asp-validation-for="ProblemaRelatado" class="text-danger"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-12 form-group">
+                                <label asp-for="AvariasPreExistentes" class="form-label fw-bold">Avarias Pré-Existentes (Checklist Visual)</label>
+                                <textarea asp-for="AvariasPreExistentes" class="form-control" rows="2" placeholder="Descreva arranhões, trincas, peças faltando, etc."></textarea>
+                                <span asp-validation-for="AvariasPreExistentes" class="text-danger"></span>
                             </div>
                         </div>
 
                         <div class="row mb-3">
-                            <div class="col-md-6 form-group">
+                            <div class="col-md-12 form-group">
                                 <label asp-for="Status" class="form-label fw-bold">Status do Serviço</label>
                                 <select asp-for="Status" class="form-select">
-                                    <option value="Recebido">Recebido</option>
-                                    <option value="Em Análise">Em Análise</option>
-                                    <option value="Aguardando Peça">Aguardando Peça</option>
-                                    <option value="Em Bancada">Em Bancada</option>
-                                    <option value="Pronto">Pronto para Retirada</option>
-                                    <option value="Entregue">Entregue / Finalizado</option>
+                                    <option value="@AssistenciaTech.Models.WorkflowStatus.Recebido">@AssistenciaTech.Models.WorkflowStatus.Recebido</option>
+                                    <option value="@AssistenciaTech.Models.WorkflowStatus.EmAnalise">@AssistenciaTech.Models.WorkflowStatus.EmAnalise</option>
+                                    <option value="@AssistenciaTech.Models.WorkflowStatus.AguardandoAprovacao">@AssistenciaTech.Models.WorkflowStatus.AguardandoAprovacao</option>
+                                    <option value="@AssistenciaTech.Models.WorkflowStatus.AguardandoPecas">@AssistenciaTech.Models.WorkflowStatus.AguardandoPecas</option>
+                                    <option value="@AssistenciaTech.Models.WorkflowStatus.EmReparo">@AssistenciaTech.Models.WorkflowStatus.EmReparo</option>
+                                    <option value="@AssistenciaTech.Models.WorkflowStatus.Concluido">@AssistenciaTech.Models.WorkflowStatus.Concluido</option>
+                                    <option value="@AssistenciaTech.Models.WorkflowStatus.Entregue">@AssistenciaTech.Models.WorkflowStatus.Entregue</option>
                                 </select>
                                 <span asp-validation-for="Status" class="text-danger"></span>
                             </div>
-                            <div class="col-md-6 form-group">
-                                <label asp-for="ValorOrcamento" class="form-label fw-bold">Valor do Orçamento (R$)</label>
-                                <input asp-for="ValorOrcamento" type="number" step="0.01" class="form-control" />
-                                <span asp-validation-for="ValorOrcamento" class="text-danger"></span>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4 form-group">
+                                <label asp-for="CustoPecas" class="form-label fw-bold">Custo de Peças (R$)</label>
+                                <input asp-for="CustoPecas" type="number" step="0.01" class="form-control custo-input" />
+                                <span asp-validation-for="CustoPecas" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 form-group">
+                                <label asp-for="CustoMaoDeObra" class="form-label fw-bold">Mão de Obra (R$)</label>
+                                <input asp-for="CustoMaoDeObra" type="number" step="0.01" class="form-control custo-input" />
+                                <span asp-validation-for="CustoMaoDeObra" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 form-group">
+                                <label asp-for="DescontoAplicado" class="form-label fw-bold">Desconto (R$)</label>
+                                <input asp-for="DescontoAplicado" type="number" step="0.01" class="form-control custo-input" />
+                                <span asp-validation-for="DescontoAplicado" class="text-danger"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-12 text-end">
+                                <h4 class="fw-bold">Total: <span id="valorTotalDisplay" class="text-success">R$ 0,00</span></h4>
                             </div>
                         </div>
 
@@ -79,4 +108,25 @@
 
 @section Scripts {
     <partial name="~/Views/Shared/_ValidationScriptsPartial.cshtml" />
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const inputs = document.querySelectorAll('.custo-input');
+            const totalDisplay = document.getElementById('valorTotalDisplay');
+
+            function calcularTotal() {
+                let pecas = parseFloat(document.getElementById('CustoPecas').value) || 0;
+                let maoDeObra = parseFloat(document.getElementById('CustoMaoDeObra').value) || 0;
+                let desconto = parseFloat(document.getElementById('DescontoAplicado').value) || 0;
+                
+                let total = (pecas + maoDeObra) - desconto;
+                totalDisplay.innerText = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            }
+
+            inputs.forEach(input => {
+                input.addEventListener('input', calcularTotal);
+            });
+            
+            calcularTotal();
+        });
+    </script>
 }

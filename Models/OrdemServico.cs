@@ -25,17 +25,49 @@ namespace AssistenciaTech.Models
         [Display(Name = "Problema Relatado")]
         public string ProblemaRelatado { get; set; } = string.Empty; // Ex: Não liga, precisa de formatação
 
+        [Display(Name = "Avarias Pré-Existentes")]
+        public string? AvariasPreExistentes { get; set; } // Checklist visual
+
         [Required]
-        public string Status { get; set; } = "Recebido"; // Ex: Recebido, Em Análise, Aguardando Peça, Pronto
+        public string Status { get; set; } = "Recebido"; // Fluxo de Trabalho Restrito
+
+        [DataType(DataType.Currency)]
+        [Display(Name = "Custo de Peças")]
+        public decimal CustoPecas { get; set; }
+
+        [DataType(DataType.Currency)]
+        [Display(Name = "Mão de Obra")]
+        public decimal CustoMaoDeObra { get; set; }
+
+        [DataType(DataType.Currency)]
+        [Display(Name = "Desconto")]
+        public decimal DescontoAplicado { get; set; }
 
         [DataType(DataType.Currency)]
         [Display(Name = "Valor do Orçamento")]
-        public decimal ValorOrcamento { get; set; }
+        public decimal ValorOrcamento { get; set; } // Valor final armazenado. Pode ser calculado.
 
         [Display(Name = "Data de Entrada")]
         public DateTime DataEntrada { get; set; } = DateTime.Now;
 
-        [Display(Name = "Data de Saída")]
-        public DateTime? DataSaida { get; set; }
+        [Display(Name = "Data de Conclusão")]
+        public DateTime? DataConclusao { get; set; } // Quando o reparo termina
+
+        [Display(Name = "Data de Entrega")]
+        public DateTime? DataEntregaCliente { get; set; } // Quando o cliente retira
+
+        // === Propriedades Calculadas (Regras de Negócio em Tempo Real) ===
+
+        [NotMapped]
+        public decimal ValorTotalCalculado => (CustoPecas + CustoMaoDeObra) - DescontoAplicado;
+
+        [NotMapped]
+        public DateTime? DataVencimentoGarantia => DataEntregaCliente?.AddDays(90);
+
+        [NotMapped]
+        public bool GarantiaAtiva => DataVencimentoGarantia.HasValue && DateTime.Now.Date <= DataVencimentoGarantia.Value.Date;
+
+        [NotMapped]
+        public bool AparelhoAbandonado => Status == "Concluído" && DataConclusao.HasValue && !DataEntregaCliente.HasValue && (DateTime.Now - DataConclusao.Value).TotalDays > 90;
     }
 }
