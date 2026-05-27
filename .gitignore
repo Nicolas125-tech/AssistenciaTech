@@ -1,18 +1,14 @@
+# Build and Output folders
 bin/
 obj/
-node_modules/
-*.log
-cookies.txt
-create_response.html
-assistencia.db*
-package*
-venv/
-publish/
-test_*.py
-token*.txt
-cookies.txt
-app*.log
-*.html
-test.db
-agy.exe
 
+# Logs
+*.log
+
+# Personal/Environment
+.env
+.vs/
+.vscode/
+
+# Render Attachments
+/tmp/file_attachments/
