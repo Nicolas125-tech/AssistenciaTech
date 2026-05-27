@@ -20,7 +20,30 @@ if (!string.IsNullOrEmpty(connectionString))
     try
     {
         var connBuilder = new NpgsqlConnectionStringBuilder(connectionString);
-        if (!string.IsNullOrEmpty(connBuilder.Host) && !System.Net.IPAddress.TryParse(connBuilder.Host, out _))
+
+        // Supabase IPv4 Pooler Rewrite (Supabase removed IPv4 from db.*.supabase.co)
+        if (!string.IsNullOrEmpty(connBuilder.Host) && connBuilder.Host.StartsWith("db.") && connBuilder.Host.EndsWith(".supabase.co"))
+        {
+            var parts = connBuilder.Host.Split('.');
+            if (parts.Length >= 2)
+            {
+                var projectRef = parts[1];
+                string region = "us-east-1";
+                if (projectRef == "kpturmbeavfmudrtomea") region = "sa-east-1";
+
+                connBuilder.Host = $"aws-0-{region}.pooler.supabase.com";
+                connBuilder.Port = 5432; // Pooler session port
+
+                if (!string.IsNullOrEmpty(connBuilder.Username) && !connBuilder.Username.Contains("."))
+                {
+                    connBuilder.Username = $"{connBuilder.Username}.{projectRef}";
+                }
+
+                Console.WriteLine($"[Supabase] Rewrote connection string to use IPv4 Pooler: {connBuilder.Host} for user {connBuilder.Username}");
+                connectionString = connBuilder.ConnectionString;
+            }
+        }
+        else if (!string.IsNullOrEmpty(connBuilder.Host) && !System.Net.IPAddress.TryParse(connBuilder.Host, out _))
         {
             var addresses = System.Net.Dns.GetHostAddresses(connBuilder.Host);
             var ipv4 = addresses.FirstOrDefault(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
