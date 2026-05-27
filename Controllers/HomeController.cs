@@ -88,10 +88,16 @@ namespace AssistenciaTech.Controllers
         public IActionResult Error()
         {
             var exceptionHandlerPathFeature = HttpContext.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
+            var ex = exceptionHandlerPathFeature?.Error;
+            string fullError = ex?.Message;
+            if (ex?.InnerException != null) {
+                fullError += "\nInner Exception: " + ex.InnerException.Message;
+            }
+
             return View(new AssistenciaTech.Models.ErrorViewModel 
             { 
                 RequestId = System.Diagnostics.Activity.Current?.Id ?? HttpContext.TraceIdentifier,
-                ExceptionMessage = exceptionHandlerPathFeature?.Error?.Message
+                ExceptionMessage = fullError
             });
         }
     }
