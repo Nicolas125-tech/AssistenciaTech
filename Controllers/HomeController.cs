@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using AssistenciaTech.Data;
-using Npgsql;
 using Microsoft.EntityFrameworkCore;
 
 namespace AssistenciaTech.Controllers
@@ -19,30 +18,16 @@ namespace AssistenciaTech.Controllers
         public IActionResult TestDb()
         {
             var connString = _context.Database.GetConnectionString();
-            string maskedConnString = "";
-            if (!string.IsNullOrEmpty(connString))
-            {
-                try
-                {
-                    var connBuilder = new NpgsqlConnectionStringBuilder(connString);
-                    connBuilder.Password = "******";
-                    maskedConnString = connBuilder.ConnectionString;
-                }
-                catch
-                {
-                    maskedConnString = "Erro ao formatar a string de conexão.";
-                }
-            }
 
             try
             {
                 _context.Database.OpenConnection();
                 _context.Database.CloseConnection();
-                return Content($"Conexão com o banco de dados realizada com SUCESSO!\n\nString de conexão utilizada:\n{maskedConnString}");
+                return Content($"Conexão com o banco de dados realizada com SUCESSO!\n\nString de conexão utilizada:\n{connString}");
             }
             catch (Exception ex)
             {
-                return Content($"ERRO de conexão: {ex.Message}\n\nString de conexão utilizada:\n{maskedConnString}\n\nDetalhes:\n{ex.StackTrace}\n\nInner Exception:\n{ex.InnerException?.Message}");
+                return Content($"ERRO de conexão: {ex.Message}\n\nString de conexão utilizada:\n{connString}\n\nDetalhes:\n{ex.StackTrace}\n\nInner Exception:\n{ex.InnerException?.Message}");
             }
         }
 
