@@ -29,7 +29,7 @@ if (!string.IsNullOrEmpty(connectionString))
             {
                 var projectRef = parts[1];
                 string region = "us-east-1";
-                if (projectRef == "kpturmbeavfmudrtomea" || projectRef == "plygtwevgiziaznttnwc") region = "sa-east-1";
+                if (projectRef == "kpturmbeavfmudrtomea") region = "sa-east-1";
 
                 connBuilder.Host = $"aws-0-{region}.pooler.supabase.com";
                 connBuilder.Port = 5432; // Pooler session port
