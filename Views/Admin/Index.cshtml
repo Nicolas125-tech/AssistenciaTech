@@ -10,6 +10,7 @@
         <div>
             <a asp-controller="Clientes" asp-action="Index" class="btn btn-secondary me-2"><i class="bi bi-people"></i> Clientes</a>
             <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Nova Ordem de Serviço</a>
+            <a asp-action="ExportarCsv" class="btn btn-success"><i class="bi bi-file-earmark-excel"></i> Exportar CSV</a>
         </div>
     </div>
 
@@ -20,6 +21,44 @@
         </div>
     }
 
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form asp-action="Index" method="get" class="row g-3 align-items-center">
+                <div class="col-auto">
+                    <input type="text" name="searchString" class="form-control" placeholder="Buscar por Cliente, Equipamento ou Nº OS" value="@ViewBag.SearchString" />
+                </div>
+                <div class="col-auto">
+                    <select name="statusFilter" class="form-select">
+                        <option value="">Todos os Status</option>
+                        <option value="Recebido" selected="@(ViewBag.StatusFilter == "Recebido")">Recebido</option>
+                        <option value="Em Análise" selected="@(ViewBag.StatusFilter == "Em Análise")">Em Análise</option>
+                        <option value="Aguardando Aprovação" selected="@(ViewBag.StatusFilter == "Aguardando Aprovação")">Aguardando Aprovação</option>
+                        <option value="Aguardando Peças" selected="@(ViewBag.StatusFilter == "Aguardando Peças")">Aguardando Peças</option>
+                        <option value="Em Reparo" selected="@(ViewBag.StatusFilter == "Em Reparo")">Em Reparo</option>
+                        <option value="Concluído" selected="@(ViewBag.StatusFilter == "Concluído")">Concluído</option>
+                        <option value="Entregue" selected="@(ViewBag.StatusFilter == "Entregue")">Entregue</option>
+                        <option value="Cancelado" selected="@(ViewBag.StatusFilter == "Cancelado")">Cancelado</option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Filtrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">OS por Status</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="statusChart" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- Dashboard Resumo -->
     <div class="row mb-4">
         <div class="col-md-4">
@@ -129,6 +168,9 @@
                                         <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary me-2" title="Editar">
                                             <i class="bi bi-pencil-square"></i> Editar
                                         </a>
+                                        <a href="https://wa.me/55@{if (item.Cliente?.Telefone != null) @Html.Raw(new string(item.Cliente.Telefone.Where(char.IsDigit).ToArray()))}?text=Ol%C3%A1%2C%20gostaria%20de%20atualizar%20sobre%20a%20Ordem%20de%20Servi%C3%A7o%20%23@item.Id%20do%20equipamento%20@Uri.EscapeDataString(item.Equipamento)." class="btn btn-sm btn-success me-2" target="_blank" title="Enviar WhatsApp">
+                                            <i class="bi bi-whatsapp"></i> WhatsApp
+                                        </a>
                                         <a asp-action="ImprimirOs" asp-route-id="@item.Id" class="btn btn-sm btn-secondary me-2" target="_blank" title="Imprimir Recibo">
                                             <i class="bi bi-printer"></i> Imprimir
                                         </a>
@@ -147,3 +189,50 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var ctx = document.getElementById('statusChart').getContext('2d');
+
+            var chartLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartLabels));
+            var chartData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartData));
+
+            var myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'Quantidade de OS',
+                        data: chartData,
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.2)',
+                            'rgba(54, 162, 235, 0.2)',
+                            'rgba(255, 206, 86, 0.2)',
+                            'rgba(75, 192, 192, 0.2)',
+                            'rgba(153, 102, 255, 0.2)',
+                            'rgba(255, 159, 64, 0.2)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(153, 102, 255, 1)',
+                            'rgba(255, 159, 64, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+}
