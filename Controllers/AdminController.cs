@@ -35,7 +35,20 @@ namespace AssistenciaTech.Controllers
         }
 
         // GET: Admin/Index
-        public async Task<IActionResult> Index()
+        [HttpGet]
+        public async Task<IActionResult> ExportarCsv()
+        {
+            var todasOS = await _context.OrdensServico.Include(o => o.Cliente).OrderByDescending(o => o.Id).ToListAsync();
+            var csv = new System.Text.StringBuilder();
+            csv.AppendLine("Id,Cliente,Equipamento,Data Entrada,Status,Valor Orçamento");
+            foreach (var os in todasOS)
+            {
+                csv.AppendLine($"{os.Id},\"{os.Cliente?.Nome}\",\"{os.Equipamento}\",{os.DataEntrada:dd/MM/yyyy},{os.Status},{os.ValorOrcamento}");
+            }
+            return File(System.Text.Encoding.UTF8.GetBytes(csv.ToString()), "text/csv", "OrdensDeServico.csv");
+        }
+
+        public async Task<IActionResult> Index(string searchString, string statusFilter)
         {
             if (TempData["ErroBanco"] != null)
             {
@@ -44,7 +57,27 @@ namespace AssistenciaTech.Controllers
             try
             {
                 // Busca todas as OS com os dados dos Clientes
-                var todasOS = await _context.OrdensServico.Include(o => o.Cliente).ToListAsync();
+                var query = _context.OrdensServico.Include(o => o.Cliente).AsQueryable();
+
+                if (!string.IsNullOrEmpty(searchString))
+                {
+                    query = query.Where(o => (o.Cliente.Nome != null && o.Cliente.Nome.Contains(searchString)) || o.Equipamento.Contains(searchString) || o.Id.ToString() == searchString);
+                }
+
+                if (!string.IsNullOrEmpty(statusFilter))
+                {
+                    query = query.Where(o => o.Status == statusFilter);
+                }
+
+                var todasOS = await query.ToListAsync();
+
+                ViewBag.SearchString = searchString;
+                ViewBag.StatusFilter = statusFilter;
+
+                var statusGroup = todasOS.GroupBy(o => o.Status).Select(g => new { Status = g.Key, Count = g.Count() }).ToList();
+                ViewBag.ChartLabels = statusGroup.Select(g => g.Status).ToList();
+                ViewBag.ChartData = statusGroup.Select(g => g.Count).ToList();
+
 
                 // Dashboard Data (Verificação segura contra nulos)
                 ViewBag.TotalAbertas = todasOS?.Count(o => o.Status != WorkflowStatus.Concluido && o.Status != WorkflowStatus.Entregue) ?? 0;
