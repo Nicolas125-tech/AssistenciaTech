@@ -143,6 +143,18 @@
                                     {
                                         <br /><span class="badge bg-danger mt-1" title="Mais de 90 dias sem retirada"><i class="bi bi-exclamation-triangle"></i> Abandonado</span>
                                     }
+                                    @if (item.Prioridade == 2)
+                                    {
+                                        <br /><span class="badge bg-danger mt-1"><i class="bi bi-lightning-charge"></i> Urgente</span>
+                                    }
+                                    else if (item.Prioridade == 1)
+                                    {
+                                        <br /><span class="badge bg-warning text-dark mt-1"><i class="bi bi-lightning-charge"></i> Alta</span>
+                                    }
+                                    @if(!string.IsNullOrEmpty(item.AnotacoesInternas))
+                                    {
+                                        <br /><i class="bi bi-journal-text text-info mt-1" title="@item.AnotacoesInternas" data-bs-toggle="tooltip"></i>
+                                    }
                                 </td>
                                 <td>@item.Cliente?.Nome</td>
                                 <td>@item.Equipamento</td>
