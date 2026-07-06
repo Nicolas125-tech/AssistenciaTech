@@ -90,6 +90,12 @@ namespace AssistenciaTech.Models
         [Required]
         public string Status { get; set; } = "Recebido"; // Fluxo de Trabalho Restrito
 
+        [Display(Name = "Anotações Internas")]
+        public string? AnotacoesInternas { get; set; }
+
+        [Display(Name = "Prioridade")]
+        public int Prioridade { get; set; } = 0; // 0=Normal, 1=Alta, 2=Urgente
+
         [DataType(DataType.Currency)]
         [Display(Name = "Custo de Peças")]
         public decimal CustoPecas { get; set; }

@@ -44,10 +44,19 @@
                         </div>
 
                         <div class="row mb-3">
-                            <div class="col-md-12 form-group">
+                            <div class="col-md-9 form-group">
                                 <label asp-for="ProblemaRelatado" class="form-label fw-bold">Problema / Diagnóstico</label>
                                 <textarea asp-for="ProblemaRelatado" class="form-control" rows="2" required></textarea>
                                 <span asp-validation-for="ProblemaRelatado" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-3 form-group">
+                                <label asp-for="Prioridade" class="form-label fw-bold">Prioridade</label>
+                                <select asp-for="Prioridade" class="form-select">
+                                    <option value="0">Normal</option>
+                                    <option value="1">Alta</option>
+                                    <option value="2">Urgente</option>
+                                </select>
+                                <span asp-validation-for="Prioridade" class="text-danger"></span>
                             </div>
                         </div>
                         
@@ -60,10 +69,15 @@
                         </div>
 
                         <div class="row mb-3">
-                            <div class="col-md-12 form-group">
+                            <div class="col-md-6 form-group">
                                 <label asp-for="LaudoTecnico" class="form-label fw-bold text-primary">Laudo Técnico (Diagnóstico Oficial)</label>
                                 <textarea asp-for="LaudoTecnico" class="form-control border-primary" rows="3" placeholder="Insira o laudo final..."></textarea>
                                 <span asp-validation-for="LaudoTecnico" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label asp-for="AnotacoesInternas" class="form-label fw-bold text-info"><i class="bi bi-journal-text"></i> Anotações Internas (Privado)</label>
+                                <textarea asp-for="AnotacoesInternas" class="form-control border-info" rows="3" placeholder="Observações apenas para a equipe técnica..."></textarea>
+                                <span asp-validation-for="AnotacoesInternas" class="text-danger"></span>
                             </div>
                         </div>
 
