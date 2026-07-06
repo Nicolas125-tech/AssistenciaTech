@@ -29,6 +29,7 @@ namespace AssistenciaTech.Controllers
         // POST: /Consulta/Status
         // Processa os dados enviados pelo formulário
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult Status(int numeroOS, string cpf)
         {
             // Validação básica de campos
