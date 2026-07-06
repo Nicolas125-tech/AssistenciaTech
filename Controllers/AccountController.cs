@@ -9,6 +9,13 @@ namespace AssistenciaTech.Controllers
 {
     public class AccountController : Controller
     {
+        private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration;
+
+        public AccountController(Microsoft.Extensions.Configuration.IConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
+
         // GET: /Account/Login
         public IActionResult Login(string? returnUrl = null)
         {
@@ -30,7 +37,11 @@ namespace AssistenciaTech.Controllers
             ViewData["ReturnUrl"] = returnUrl;
 
             // Validação Hardcoded simples para o MVP (Não recomendado para produção real sem hash/banco)
-            if (username == "admin" && password == "admin123")
+
+            var configUser = _configuration["AdminCredentials:Username"] ?? "admin";
+            var configPass = _configuration["AdminCredentials:Password"] ?? "admin123";
+
+            if (username == configUser && password == configPass)
             {
                 var claims = new List<Claim>
                 {

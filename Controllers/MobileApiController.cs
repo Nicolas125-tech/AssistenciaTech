@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -9,6 +10,7 @@ namespace AssistenciaTech.Controllers
 {
     [ApiController]
     [Route("api/mobile")]
+    [Authorize]
     public class MobileApiController : ControllerBase
     {
         private readonly AppDbContext _context;
