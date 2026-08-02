@@ -180,7 +180,7 @@
                                         <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary me-2" title="Editar">
                                             <i class="bi bi-pencil-square"></i> Editar
                                         </a>
-                                        <a href="https://wa.me/55@{if (item.Cliente?.Telefone != null) @Html.Raw(new string(item.Cliente.Telefone.Where(char.IsDigit).ToArray()))}?text=Ol%C3%A1%2C%20gostaria%20de%20atualizar%20sobre%20a%20Ordem%20de%20Servi%C3%A7o%20%23@item.Id%20do%20equipamento%20@Uri.EscapeDataString(item.Equipamento)." class="btn btn-sm btn-success me-2" target="_blank" title="Enviar WhatsApp">
+                                        <a href="https://wa.me/55@(item.Cliente?.Telefone != null ? new string(item.Cliente.Telefone.Where(char.IsDigit).ToArray()) : string.Empty)?text=Ol%C3%A1%2C%20gostaria%20de%20atualizar%20sobre%20a%20Ordem%20de%20Servi%C3%A7o%20%23@item.Id%20do%20equipamento%20@Uri.EscapeDataString(item.Equipamento)." class="btn btn-sm btn-success me-2" target="_blank" title="Enviar WhatsApp">
                                             <i class="bi bi-whatsapp"></i> WhatsApp
                                         </a>
                                         <a asp-action="ImprimirOs" asp-route-id="@item.Id" class="btn btn-sm btn-secondary me-2" target="_blank" title="Imprimir Recibo">
