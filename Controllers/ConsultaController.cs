@@ -45,8 +45,21 @@ namespace AssistenciaTech.Controllers
             // Busca a Ordem de Serviço pelo número e verifica se o CPF do cliente está correto (ignorando pontuações salvas no banco)
             var ordem = _context.OrdensServico
                                 .Include(o => o.Cliente) // Faz o JOIN com a tabela de Clientes
-                                .FirstOrDefault(o => o.Id == numeroOS && 
-                                                     o.Cliente.Cpf.Replace(".", "").Replace("-", "").Replace(" ", "") == cpfLimpo);
+                                .FirstOrDefault(o => o.Id == numeroOS);
+
+            if (ordem != null)
+            {
+                if (ordem.Cliente?.Cpf == null)
+                {
+                    ordem = null;
+                }
+                else
+                {
+                    string cpfBancoLimpo = new string(ordem.Cliente.Cpf.Where(char.IsDigit).ToArray());
+                    if (cpfBancoLimpo != cpfLimpo)
+                        ordem = null;
+                }
+            }
             
             if (ordem == null)
             {
