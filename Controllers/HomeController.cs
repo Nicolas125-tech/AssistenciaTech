@@ -17,17 +17,15 @@ namespace AssistenciaTech.Controllers
         // GET: /Home/TestDb
         public IActionResult TestDb()
         {
-            var connString = _context.Database.GetConnectionString();
-
             try
             {
                 _context.Database.OpenConnection();
                 _context.Database.CloseConnection();
-                return Content($"Conexão com o banco de dados realizada com SUCESSO!\n\nString de conexão utilizada:\n{connString}");
+                return Content("Conexão com o banco de dados realizada com SUCESSO!");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return Content($"ERRO de conexão: {ex.Message}\n\nString de conexão utilizada:\n{connString}\n\nDetalhes:\n{ex.StackTrace}\n\nInner Exception:\n{ex.InnerException?.Message}");
+                return Content("ERRO: Não foi possível conectar ao banco de dados.");
             }
         }
 
