@@ -38,10 +38,11 @@ namespace AssistenciaTech.Controllers
 
             // Validação Hardcoded simples para o MVP (Não recomendado para produção real sem hash/banco)
 
-            var configUser = _configuration["AdminCredentials:Username"] ?? "admin";
-            var configPass = _configuration["AdminCredentials:Password"] ?? "admin123";
+            var configUser = _configuration["AdminCredentials:Username"];
+            var configPass = _configuration["AdminCredentials:Password"];
 
-            if (username == configUser && password == configPass)
+            if (!string.IsNullOrEmpty(configUser) && !string.IsNullOrEmpty(configPass) &&
+                username == configUser && password == configPass)
             {
                 var claims = new List<Claim>
                 {
