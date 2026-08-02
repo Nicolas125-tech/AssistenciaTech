@@ -41,7 +41,6 @@ namespace AssistenciaTech.Services
                     }
 
                     item.Peca.QuantidadeEstoque -= item.Quantidade;
-                    _context.Pecas.Update(item.Peca);
                 }
             }
 
@@ -63,7 +62,6 @@ namespace AssistenciaTech.Services
                 if (item.Peca != null)
                 {
                     item.Peca.QuantidadeEstoque += item.Quantidade;
-                    _context.Pecas.Update(item.Peca);
                 }
             }
 
