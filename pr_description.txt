@@ -1,6 +1,0 @@
-🧹 [Refactor deep conditionals in AdminController]
-
-🎯 **What:** Simplified the conditionals dealing with `EquipamentoBackupId` in `Controllers/AdminController.cs`. Replaced nested properties accesses and `HasValue` checks with C# pattern matching.
-💡 **Why:** To reduce redundancy and nesting depth, improving the overall readability and cleanliness of the code. Now the unboxing is done inline and redundant lookups via `.Value` properties are eliminated.
-✅ **Verification:** Verified via `dotnet build` ensuring the project still compiles perfectly and the refactored code has identical semantic behavior to before. No external functionality was broken.
-✨ **Result:** A more readable, succinct setup for Backup Equipment logic.
