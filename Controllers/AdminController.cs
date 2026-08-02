@@ -235,16 +235,16 @@ namespace AssistenciaTech.Controllers
                 if (ordemExistente.EquipamentoBackupId != ordemServico.EquipamentoBackupId)
                 {
                     // Se ele tinha um antes e tirou, marcamos o antigo como disponivel
-                    if (ordemExistente.EquipamentoBackupId.HasValue)
+                    if (ordemExistente.EquipamentoBackupId is int antigoId)
                     {
-                        var backupAntigo = await _context.EquipamentosBackup.FindAsync(ordemExistente.EquipamentoBackupId);
+                        var backupAntigo = await _context.EquipamentosBackup.FindAsync(antigoId);
                         if (backupAntigo != null) backupAntigo.Disponivel = true;
                     }
 
                     // Se ele atrelou um novo, marcamos como indisponível
-                    if (ordemServico.EquipamentoBackupId.HasValue)
+                    if (ordemServico.EquipamentoBackupId is int novoId)
                     {
-                        var backupNovo = await _context.EquipamentosBackup.FindAsync(ordemServico.EquipamentoBackupId);
+                        var backupNovo = await _context.EquipamentosBackup.FindAsync(novoId);
                         if (backupNovo != null) backupNovo.Disponivel = false;
                     }
 
