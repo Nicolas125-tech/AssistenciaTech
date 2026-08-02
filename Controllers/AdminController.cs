@@ -38,10 +38,10 @@ namespace AssistenciaTech.Controllers
         [HttpGet]
         public async Task<IActionResult> ExportarCsv()
         {
-            var todasOS = await _context.OrdensServico.Include(o => o.Cliente).OrderByDescending(o => o.Id).ToListAsync();
+            var todasOS = _context.OrdensServico.Include(o => o.Cliente).OrderByDescending(o => o.Id).AsAsyncEnumerable();
             var csv = new System.Text.StringBuilder();
             csv.AppendLine("Id,Cliente,Equipamento,Data Entrada,Status,Valor Orçamento");
-            foreach (var os in todasOS)
+            await foreach (var os in todasOS)
             {
                 csv.AppendLine($"{os.Id},\"{os.Cliente?.Nome}\",\"{os.Equipamento}\",{os.DataEntrada:dd/MM/yyyy},{os.Status},{os.ValorOrcamento}");
             }
