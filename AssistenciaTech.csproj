@@ -24,6 +24,10 @@
 
   <ItemGroup>
     <Compile Remove="src/**" />
+    <Compile Remove="tests/**" />
+    <Content Remove="tests/**" />
+    <EmbeddedResource Remove="tests/**" />
+    <None Remove="tests/**" />
     <Content Remove="src/**" />
     <EmbeddedResource Remove="src/**" />
     <None Remove="src/**" />

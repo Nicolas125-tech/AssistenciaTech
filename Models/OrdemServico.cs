@@ -130,9 +130,13 @@ namespace AssistenciaTech.Models
         public DateTime? DataVencimentoGarantia => DataEntregaCliente?.AddDays(90);
 
         [NotMapped]
-        public bool GarantiaAtiva => DataVencimentoGarantia.HasValue && DateTime.Now.Date <= DataVencimentoGarantia.Value.Date;
+        public bool GarantiaAtiva => IsGarantiaAtiva(DateTime.Now);
+
+        public bool IsGarantiaAtiva(DateTime dataAtual) => DataVencimentoGarantia.HasValue && dataAtual.Date <= DataVencimentoGarantia.Value.Date;
 
         [NotMapped]
-        public bool AparelhoAbandonado => Status == "Concluído" && DataConclusao.HasValue && !DataEntregaCliente.HasValue && (DateTime.Now - DataConclusao.Value).TotalDays > 90;
+        public bool AparelhoAbandonado => IsAparelhoAbandonado(DateTime.Now);
+
+        public bool IsAparelhoAbandonado(DateTime dataAtual) => Status == "Concluído" && DataConclusao.HasValue && !DataEntregaCliente.HasValue && (dataAtual - DataConclusao.Value).TotalDays > 90;
     }
 }
