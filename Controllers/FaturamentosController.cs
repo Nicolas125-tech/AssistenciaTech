@@ -1,4 +1,5 @@
 using System;
+using System.Security.Cryptography;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -6,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using AssistenciaTech.Data;
 using AssistenciaTech.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Configuration;
 
 namespace AssistenciaTech.Controllers
 {
@@ -13,10 +15,12 @@ namespace AssistenciaTech.Controllers
     public class FaturamentosController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public FaturamentosController(AppDbContext context)
+        public FaturamentosController(AppDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         public async Task<IActionResult> Index()
@@ -60,6 +64,25 @@ namespace AssistenciaTech.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> WebhookPix([FromBody] dynamic payload)
         {
+            var webhookSecret = _configuration["WebhookSecret"];
+            if (string.IsNullOrEmpty(webhookSecret))
+            {
+                return StatusCode(500, "Webhook secret is not configured.");
+            }
+
+            if (!Request.Headers.TryGetValue("X-Webhook-Token", out var providedToken))
+            {
+                return Unauthorized("Invalid or missing webhook token.");
+            }
+
+            // Constant-time string comparison to prevent timing attacks
+            if (!CryptographicOperations.FixedTimeEquals(
+                System.Text.Encoding.UTF8.GetBytes(providedToken.ToString()),
+                System.Text.Encoding.UTF8.GetBytes(webhookSecret)))
+            {
+                return Unauthorized("Invalid or missing webhook token.");
+            }
+
             // Em produção real, este endpoint receberia o JSON do banco informando que o PIX foi pago.
             // Para o MVP, aceitaremos o txId via querystring ou body para simular.
             return Ok();
