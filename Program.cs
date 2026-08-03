@@ -7,7 +7,7 @@ using AssistenciaTech.Services;
 
 using Npgsql;
 
-// Fix para erro de timezone no PostgreSQL ("Cannot write DateTime with Kind=Local")
+// Configuração de compatibilidade para permitir DateTime local no PostgreSQL ("Cannot write DateTime with Kind=Local")
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
