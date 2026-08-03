@@ -308,11 +308,18 @@ namespace AssistenciaTech.Controllers
                 {
                     string uploadsFolder = Path.Combine(_env.WebRootPath, "uploads", "evidencias");
                     Directory.CreateDirectory(uploadsFolder); // Garante que a pasta existe
+                    var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".pdf" };
 
                     foreach (var foto in fotos)
                     {
                         if (foto.Length > 0)
                         {
+                            var extension = Path.GetExtension(foto.FileName).ToLowerInvariant();
+                            if (!allowedExtensions.Contains(extension))
+                            {
+                                continue;
+                            }
+
                             string uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(foto.FileName);
                             string filePath = Path.Combine(uploadsFolder, uniqueFileName);
 
