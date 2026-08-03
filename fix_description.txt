@@ -1,1 +1,14 @@
-The connection string on Render was updated from `Username=assistencia_tech_user` to `Username=postgres` and the password provided by the user was applied.
+🧪 Add FaturamentosController testing suite
+
+🎯 **What:** The testing gap addressed
+* The `FaturamentosController` class previously lacked unit testing entirely.
+* Implemented tests covering endpoint validations, entity creations, DB updates, and view rendering.
+
+📊 **Coverage:** What scenarios are now tested
+* `GerarDaOS`: Success case creating `Faturamento` with calculated totals and redirect, Error case for missing OS returning NotFound.
+* `Index`: Verifies standard retrieval and View returns.
+* `MarcarPago`: Verifies updating the StatusPagamento of the existing entity when found, redirecting safely when missing.
+* `WebhookPix`: Basic OK response check.
+
+✨ **Result:** The improvement in test coverage
+* Added tests for a vital controller addressing billing flow (generating the bill and tracking the PIX simulation). Ensures logic doesn't break regressions down the line when updating dependencies.
