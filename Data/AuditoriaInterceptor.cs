@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +14,7 @@ namespace AssistenciaTech.Data
     public class AuditoriaInterceptor : SaveChangesInterceptor
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly List<(AuditoriaOS Audit, OrdemServico OS)> _pendingAudits = new();
 
         public AuditoriaInterceptor(IHttpContextAccessor httpContextAccessor)
         {
@@ -29,6 +31,59 @@ namespace AssistenciaTech.Data
         {
             Audit(eventData.Context);
             return base.SavingChangesAsync(eventData, result, cancellationToken);
+        }
+
+
+        public override int SavedChanges(SaveChangesCompletedEventData eventData, int result)
+        {
+            var baseResult = base.SavedChanges(eventData, result);
+            ProcessPendingAudits(eventData.Context);
+            return baseResult;
+        }
+
+        public override async ValueTask<int> SavedChangesAsync(SaveChangesCompletedEventData eventData, int result, CancellationToken cancellationToken = default)
+        {
+            var baseResult = await base.SavedChangesAsync(eventData, result, cancellationToken);
+            await ProcessPendingAuditsAsync(eventData.Context, cancellationToken);
+            return baseResult;
+        }
+
+        public override void SaveChangesFailed(DbContextErrorEventData eventData)
+        {
+            _pendingAudits.Clear();
+            base.SaveChangesFailed(eventData);
+        }
+
+        public override Task SaveChangesFailedAsync(DbContextErrorEventData eventData, CancellationToken cancellationToken = default)
+        {
+            _pendingAudits.Clear();
+            return base.SaveChangesFailedAsync(eventData, cancellationToken);
+        }
+
+        private void ProcessPendingAudits(DbContext? context)
+        {
+            if (context == null || !_pendingAudits.Any()) return;
+
+            foreach (var pending in _pendingAudits)
+            {
+                pending.Audit.OrdemServicoId = pending.OS.Id;
+                context.Add(pending.Audit);
+            }
+            _pendingAudits.Clear();
+            context.SaveChanges();
+        }
+
+        private async Task ProcessPendingAuditsAsync(DbContext? context, CancellationToken cancellationToken)
+        {
+            if (context == null || !_pendingAudits.Any()) return;
+
+            foreach (var pending in _pendingAudits)
+            {
+                pending.Audit.OrdemServicoId = pending.OS.Id;
+                context.Add(pending.Audit);
+            }
+            _pendingAudits.Clear();
+            await context.SaveChangesAsync(cancellationToken);
         }
 
         private void Audit(DbContext? context)
@@ -80,16 +135,13 @@ namespace AssistenciaTech.Data
                 {
                     var auditoria = new AuditoriaOS
                     {
-                        OrdemServicoId = entry.Entity.Id,
                         Usuario = usuario,
                         DataAlteracao = DateTime.Now,
                         CampoAlterado = "CRIACAO_OS",
                         ValorAntigo = "",
                         ValorNovo = "OS Criada"
                     };
-                    // Não podemos adicionar ainda pq o ID da OS pode ser 0 (se for Identity db-gerado),
-                    // Mas para não complicar com SaveChanges duplo, aceitaremos 0 ou criaremos a lógica no Controller se necessário.
-                    // Para o MVP: assumimos que o mais importante é auditar a MODIFICAÇÃO de status e valores.
+                    _pendingAudits.Add((auditoria, entry.Entity));
                 }
             }
         }
