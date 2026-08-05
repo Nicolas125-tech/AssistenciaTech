@@ -1,9 +1,12 @@
-🧹 [Refactor] Extract PDF generation logic into PdfGeneratorService
+🧪 Add missing tests for CanceladoState
 
-🎯 What: Extracted the inline PDF generation logic (using QuestPDF) from the `ImprimirOs` method in `AdminController.cs` into a dedicated `PdfGeneratorService` class. Registered the new service in `Program.cs` and injected it into the controller.
+🎯 **What:** The testing gap addressed
+This PR adds unit tests for `CanceladoState` to ensure it correctly throws an `InvalidOperationException` when attempting to advance or cancel the service order state, and correctly returns its status name.
 
-💡 Why: This improves maintainability and readability by keeping the controller focused on handling HTTP requests and returning views/files, while delegating the complex PDF generation logic (which was > 100 lines) to a separate service class. This follows the Single Responsibility Principle (SRP).
+📊 **Coverage:** What scenarios are now tested
+- Calling `AvancarStatus()` on an `OrdemServico` in `CanceladoState` throws an exception.
+- Calling `CancelarOS("motivo")` on an `OrdemServico` in `CanceladoState` throws an exception.
+- Calling `ObterStatusNome()` of `CanceladoState` returns "Cancelado".
 
-✅ Verification: Compiled successfully with `dotnet build AssistenciaTech.sln` and all tests passed using `dotnet test AssistenciaTech.sln`. Refactored files were manually reviewed.
-
-✨ Result: `AdminController.cs` is cleaner and easier to read, and the PDF generation logic is encapsulated in `PdfGeneratorService`, making it reusable and easier to maintain/test in the future.
+✨ **Result:** The improvement in test coverage
+The code coverage for `CanceladoState` is now complete. The state class is now resilient against regressions.
