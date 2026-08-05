@@ -15,6 +15,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<IEstoqueService, EstoqueService>();
+builder.Services.AddScoped<IPdfGeneratorService, PdfGeneratorService>();
 
 // Registrando o contexto do banco de dados PostgreSQL
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");

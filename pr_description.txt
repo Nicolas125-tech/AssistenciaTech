@@ -1,5 +1,9 @@
-🔒 Fix exposure of detailed exception information in Error action
+🧹 [Refactor] Extract PDF generation logic into PdfGeneratorService
 
-🎯 **What:** The `Error` action in `HomeController` was passing detailed exception messages (including inner exceptions) to the `ErrorViewModel`, which was then rendering this sensitive information in the view.
-⚠️ **Risk:** Displaying raw exception messages to end users in a production environment can expose sensitive internal system details, stack traces, and database structure information. This falls under Information Exposure (CWE-200), potentially assisting attackers in footprinting and planning further attacks.
-🛡️ **Solution:** Removed the code that extracts and passes the exception message to the `ErrorViewModel`. The view now only displays a generic error message and the Request ID for correlation. The `ExceptionMessage` property was also removed from the view model and the corresponding HTML block from the view template.
+🎯 What: Extracted the inline PDF generation logic (using QuestPDF) from the `ImprimirOs` method in `AdminController.cs` into a dedicated `PdfGeneratorService` class. Registered the new service in `Program.cs` and injected it into the controller.
+
+💡 Why: This improves maintainability and readability by keeping the controller focused on handling HTTP requests and returning views/files, while delegating the complex PDF generation logic (which was > 100 lines) to a separate service class. This follows the Single Responsibility Principle (SRP).
+
+✅ Verification: Compiled successfully with `dotnet build AssistenciaTech.sln` and all tests passed using `dotnet test AssistenciaTech.sln`. Refactored files were manually reviewed.
+
+✨ Result: `AdminController.cs` is cleaner and easier to read, and the PDF generation logic is encapsulated in `PdfGeneratorService`, making it reusable and easier to maintain/test in the future.
