@@ -327,6 +327,8 @@ namespace AssistenciaTech.Controllers
                     Directory.CreateDirectory(uploadsFolder); // Garante que a pasta existe
                     var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".pdf" };
 
+                    var uploadTasks = new List<Task>();
+
                     foreach (var foto in fotos)
                     {
                         if (foto.Length > 0)
@@ -340,10 +342,16 @@ namespace AssistenciaTech.Controllers
                             string uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(foto.FileName);
                             string filePath = Path.Combine(uploadsFolder, uniqueFileName);
 
-                            using (var fileStream = new FileStream(filePath, FileMode.Create))
+                            var currentFoto = foto;
+                            async Task SaveFileAsync()
                             {
-                                await foto.CopyToAsync(fileStream);
+                                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                                {
+                                    await currentFoto.CopyToAsync(fileStream);
+                                }
                             }
+
+                            uploadTasks.Add(SaveFileAsync());
 
                             ordemExistente.Evidencias.Add(new Evidencia
                             {
@@ -352,6 +360,8 @@ namespace AssistenciaTech.Controllers
                             });
                         }
                     }
+
+                    await Task.WhenAll(uploadTasks);
                 }
 
                 _context.Update(ordemExistente);
