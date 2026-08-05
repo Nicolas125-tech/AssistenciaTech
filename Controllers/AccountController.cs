@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Identity;
 
 namespace AssistenciaTech.Controllers
 {
@@ -39,10 +40,22 @@ namespace AssistenciaTech.Controllers
             // Validação Hardcoded simples para o MVP (Não recomendado para produção real sem hash/banco)
 
             var configUser = _configuration["AdminCredentials:Username"];
-            var configPass = _configuration["AdminCredentials:Password"];
+            var configPassHash = _configuration["AdminCredentials:PasswordHash"];
 
-            if (!string.IsNullOrEmpty(configUser) && !string.IsNullOrEmpty(configPass) &&
-                username == configUser && password == configPass)
+            bool isAuthenticated = false;
+
+            if (!string.IsNullOrEmpty(configUser) && !string.IsNullOrEmpty(configPassHash) && username == configUser)
+            {
+                var hasher = new PasswordHasher<string>();
+                var result = hasher.VerifyHashedPassword(username, configPassHash, password);
+
+                if (result == PasswordVerificationResult.Success || result == PasswordVerificationResult.SuccessRehashNeeded)
+                {
+                    isAuthenticated = true;
+                }
+            }
+
+            if (isAuthenticated)
             {
                 var claims = new List<Claim>
                 {
