@@ -27,13 +27,15 @@ namespace AssistenciaTech.Controllers
         private readonly IEstoqueService _estoqueService;
         private readonly IWebHostEnvironment _env;
         private readonly IPdfGeneratorService _pdfGeneratorService;
+        private readonly IAdminDashboardService _dashboardService;
 
-        public AdminController(AppDbContext context, IEstoqueService estoqueService, IWebHostEnvironment env, IPdfGeneratorService pdfGeneratorService)
+        public AdminController(AppDbContext context, IEstoqueService estoqueService, IWebHostEnvironment env, IPdfGeneratorService pdfGeneratorService, IAdminDashboardService dashboardService)
         {
             _context = context;
             _estoqueService = estoqueService;
             _env = env;
             _pdfGeneratorService = pdfGeneratorService;
+            _dashboardService = dashboardService;
         }
 
         // GET: Admin/Index
@@ -58,54 +60,20 @@ namespace AssistenciaTech.Controllers
             }
             try
             {
-                // Busca todas as OS com os dados dos Clientes
-                var query = _context.OrdensServico.Include(o => o.Cliente).AsQueryable();
-
-                if (!string.IsNullOrEmpty(searchString))
-                {
-                    query = query.Where(o => (o.Cliente.Nome != null && o.Cliente.Nome.Contains(searchString)) || o.Equipamento.Contains(searchString) || o.Id.ToString() == searchString);
-                }
-
-                if (!string.IsNullOrEmpty(statusFilter))
-                {
-                    query = query.Where(o => o.Status == statusFilter);
-                }
-
-                // Executa a agregação no banco de dados para evitar o carregamento de todos os registros na memória
-                var statusGroupDb = await query.GroupBy(o => o.Status)
-                    .Select(g => new {
-                        Status = g.Key,
-                        Count = g.Count(),
-                        TotalValor = g.Sum(x => x.ValorOrcamento)
-                    })
-                    .ToListAsync();
+                var dashboardData = await _dashboardService.GetDashboardDataAsync(searchString, statusFilter);
 
                 ViewBag.SearchString = searchString;
                 ViewBag.StatusFilter = statusFilter;
 
-                ViewBag.ChartLabels = statusGroupDb.Select(g => g.Status).ToList();
-                ViewBag.ChartData = statusGroupDb.Select(g => g.Count).ToList();
+                ViewBag.ChartLabels = dashboardData.ChartLabels;
+                ViewBag.ChartData = dashboardData.ChartData;
 
+                // Dashboard Data
+                ViewBag.TotalAbertas = dashboardData.TotalAbertas;
+                ViewBag.EquipamentosProntos = dashboardData.EquipamentosProntos;
+                ViewBag.FaturamentoPrevisto = dashboardData.FaturamentoPrevisto;
 
-                // Dashboard Data (Verificação segura contra nulos)
-                ViewBag.TotalAbertas = statusGroupDb
-                    .Where(g => g.Status != WorkflowStatus.Concluido && g.Status != WorkflowStatus.Entregue)
-                    .Sum(g => g.Count);
-
-                ViewBag.EquipamentosProntos = statusGroupDb
-                    .Where(g => g.Status == WorkflowStatus.Concluido)
-                    .Sum(g => g.Count);
-
-                ViewBag.FaturamentoPrevisto = statusGroupDb
-                    .Where(g => g.Status != WorkflowStatus.Entregue && g.Status != "Cancelado")
-                    .Sum(g => g.TotalValor);
-
-                // Retorna as ordens ordenadas da mais recente para a mais antiga
-                var ordensOrdenadas = await query
-                    .OrderByDescending(o => o.DataEntrada)
-                    .ToListAsync();
-
-                return View(ordensOrdenadas);
+                return View(dashboardData.Ordens);
             }
             catch (Exception ex)
             {
