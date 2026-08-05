@@ -15,13 +15,7 @@
         </p>
     }
 
-    @if (!string.IsNullOrEmpty(Model.ExceptionMessage))
-    {
-        <div class="alert alert-warning text-start mt-4 overflow-auto" style="max-height: 300px;">
-            <strong>Detalhes Técnicos:</strong><br/>
-            @Model.ExceptionMessage
-        </div>
-    }
+
 
     <a asp-controller="Home" asp-action="Index" class="btn btn-primary mt-4">
         <i class="bi bi-house-door"></i> Voltar para o Início
