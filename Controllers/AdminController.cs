@@ -69,23 +69,40 @@ namespace AssistenciaTech.Controllers
                     query = query.Where(o => o.Status == statusFilter);
                 }
 
-                var todasOS = await query.ToListAsync();
+                // Executa a agregação no banco de dados para evitar o carregamento de todos os registros na memória
+                var statusGroupDb = await query.GroupBy(o => o.Status)
+                    .Select(g => new {
+                        Status = g.Key,
+                        Count = g.Count(),
+                        TotalValor = g.Sum(x => x.ValorOrcamento)
+                    })
+                    .ToListAsync();
 
                 ViewBag.SearchString = searchString;
                 ViewBag.StatusFilter = statusFilter;
 
-                var statusGroup = todasOS.GroupBy(o => o.Status).Select(g => new { Status = g.Key, Count = g.Count() }).ToList();
-                ViewBag.ChartLabels = statusGroup.Select(g => g.Status).ToList();
-                ViewBag.ChartData = statusGroup.Select(g => g.Count).ToList();
+                ViewBag.ChartLabels = statusGroupDb.Select(g => g.Status).ToList();
+                ViewBag.ChartData = statusGroupDb.Select(g => g.Count).ToList();
 
 
                 // Dashboard Data (Verificação segura contra nulos)
-                ViewBag.TotalAbertas = todasOS?.Count(o => o.Status != WorkflowStatus.Concluido && o.Status != WorkflowStatus.Entregue) ?? 0;
-                ViewBag.EquipamentosProntos = todasOS?.Count(o => o.Status == WorkflowStatus.Concluido) ?? 0;
-                ViewBag.FaturamentoPrevisto = todasOS?.Where(o => o.Status != WorkflowStatus.Entregue && o.Status != "Cancelado").Sum(o => o.ValorOrcamento) ?? 0m;
+                ViewBag.TotalAbertas = statusGroupDb
+                    .Where(g => g.Status != WorkflowStatus.Concluido && g.Status != WorkflowStatus.Entregue)
+                    .Sum(g => g.Count);
+
+                ViewBag.EquipamentosProntos = statusGroupDb
+                    .Where(g => g.Status == WorkflowStatus.Concluido)
+                    .Sum(g => g.Count);
+
+                ViewBag.FaturamentoPrevisto = statusGroupDb
+                    .Where(g => g.Status != WorkflowStatus.Entregue && g.Status != "Cancelado")
+                    .Sum(g => g.TotalValor);
 
                 // Retorna as ordens ordenadas da mais recente para a mais antiga
-                var ordensOrdenadas = todasOS?.OrderByDescending(o => o.DataEntrada).ToList() ?? new List<OrdemServico>();
+                var ordensOrdenadas = await query
+                    .OrderByDescending(o => o.DataEntrada)
+                    .ToListAsync();
+
                 return View(ordensOrdenadas);
             }
             catch (Exception ex)
