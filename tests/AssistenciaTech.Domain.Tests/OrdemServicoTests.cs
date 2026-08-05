@@ -42,11 +42,14 @@ public class OrdemServicoTests
         os.ValorOrcamento.Should().Be(150.0m);
     }
 
-    [Fact]
-    public void DefinirDiagnostico_Vazio_DeveLancarArgumentException()
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData(null)]
+    public void DefinirDiagnostico_Invalido_DeveLancarArgumentException(string? diagnosticoInvalido)
     {
         var os = new OrdemServico("OS-001", "123", "Modelo", "NS123", "Defeito");
-        Action action = () => os.DefinirDiagnostico(" ", 150.0m);
+        Action action = () => os.DefinirDiagnostico(diagnosticoInvalido!, 150.0m);
         action.Should().Throw<ArgumentException>().WithMessage("O diagnóstico técnico não pode ser vazio.");
     }
 
