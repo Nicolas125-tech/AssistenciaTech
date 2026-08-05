@@ -1,0 +1,22 @@
+--- Controllers/MobileApiController.cs
++++ Controllers/MobileApiController.cs
+@@ -32,12 +32,18 @@
+         [HttpPost("os/{id}/checkin")]
+         public async Task<IActionResult> CheckIn(int id, [FromBody] CheckInRequest request)
+         {
++            var tecnicoIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
++            if (string.IsNullOrEmpty(tecnicoIdClaim) || !int.TryParse(tecnicoIdClaim, out int tecnicoId))
++            {
++                return Unauthorized(new { error = "Técnico não autenticado." });
++            }
++
+             var os = await _context.OrdensServico.FindAsync(id);
+             if (os == null) return NotFound(new { error = "OS não encontrada" });
+
+             var visita = new VisitaCampo
+             {
+                 OrdemServicoId = id,
+-                TecnicoId = request.TecnicoId,
++                TecnicoId = tecnicoId,
+                 CheckIn = DateTime.Now,
+                 Latitude = request.Latitude,

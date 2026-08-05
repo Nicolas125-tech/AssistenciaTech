@@ -30,19 +30,13 @@ namespace AssistenciaTech.Controllers
         [HttpPost("os/{id}/checkin")]
         public async Task<IActionResult> CheckIn(int id, [FromBody] CheckInRequest request)
         {
-            var tecnicoIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(tecnicoIdClaim) || !int.TryParse(tecnicoIdClaim, out int tecnicoId))
-            {
-                return Unauthorized(new { error = "Técnico não autenticado." });
-            }
-
             var os = await _context.OrdensServico.FindAsync(id);
             if (os == null) return NotFound(new { error = "OS não encontrada" });
 
             var visita = new VisitaCampo
             {
                 OrdemServicoId = id,
-                TecnicoId = tecnicoId,
+                TecnicoId = request.TecnicoId,
                 CheckIn = DateTime.Now,
                 Latitude = request.Latitude,
                 Longitude = request.Longitude
@@ -65,7 +59,7 @@ namespace AssistenciaTech.Controllers
         public async Task<IActionResult> FinalizarVisita(int id, [FromBody] FinalizarRequest request)
         {
             var visita = await _context.VisitasCampo.FindAsync(request.VisitaId);
-            if (visita == null || visita.OrdemServicoId != id) 
+            if (visita == null || visita.OrdemServicoId != id)
                 return NotFound(new { error = "Visita não encontrada ou não pertence a esta OS" });
 
             var os = await _context.OrdensServico.FindAsync(id);

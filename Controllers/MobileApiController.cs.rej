@@ -1,0 +1,10 @@
+--- MobileApiController.cs
++++ MobileApiController.cs
+@@ -6,6 +6,7 @@
+ using Microsoft.EntityFrameworkCore;
+ using AssistenciaTech.Data;
+ using AssistenciaTech.Models;
++using System.Security.Claims;
+
+ namespace AssistenciaTech.Controllers
+ {
