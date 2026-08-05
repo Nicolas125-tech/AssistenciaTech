@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using AssistenciaTech.Data;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 
 namespace AssistenciaTech.Controllers
@@ -30,7 +31,7 @@ namespace AssistenciaTech.Controllers
         // Processa os dados enviados pelo formulário
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Status(int numeroOS, string cpf)
+        public async Task<IActionResult> Status(int numeroOS, string cpf)
         {
             // Validação básica de campos
             if (numeroOS <= 0 || string.IsNullOrWhiteSpace(cpf))
@@ -43,9 +44,9 @@ namespace AssistenciaTech.Controllers
             string cpfLimpo = new string(cpf.Where(char.IsDigit).ToArray());
 
             // Busca a Ordem de Serviço pelo número e verifica se o CPF do cliente está correto (ignorando pontuações salvas no banco)
-            var ordem = _context.OrdensServico
+            var ordem = await _context.OrdensServico
                                 .Include(o => o.Cliente) // Faz o JOIN com a tabela de Clientes
-                                .FirstOrDefault(o => o.Id == numeroOS);
+                                .FirstOrDefaultAsync(o => o.Id == numeroOS);
 
             if (ordem != null)
             {
