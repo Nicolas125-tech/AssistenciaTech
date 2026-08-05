@@ -1,0 +1,5 @@
+🔒 Fix exposure of detailed exception information in Error action
+
+🎯 **What:** The `Error` action in `HomeController` was passing detailed exception messages (including inner exceptions) to the `ErrorViewModel`, which was then rendering this sensitive information in the view.
+⚠️ **Risk:** Displaying raw exception messages to end users in a production environment can expose sensitive internal system details, stack traces, and database structure information. This falls under Information Exposure (CWE-200), potentially assisting attackers in footprinting and planning further attacks.
+🛡️ **Solution:** Removed the code that extracts and passes the exception message to the `ErrorViewModel`. The view now only displays a generic error message and the Request ID for correlation. The `ExceptionMessage` property was also removed from the view model and the corresponding HTML block from the view template.
