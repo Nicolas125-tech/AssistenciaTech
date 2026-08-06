@@ -8,6 +8,7 @@ RUN dotnet restore "AssistenciaTech.csproj"
 
 # Copia o restante do código fonte e faz o build em modo Release
 COPY . .
+RUN rm -rf tests
 RUN dotnet publish "AssistenciaTech.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 # Estágio 2: Runtime (Usa a imagem enxuta apenas para rodar a aplicação)
