@@ -1,1 +1,0 @@
-The connection string on Render was updated from `Username=assistencia_tech_user` to `Username=postgres` and the password provided by the user was applied.
