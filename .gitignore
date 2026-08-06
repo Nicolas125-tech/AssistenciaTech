@@ -14,3 +14,4 @@ obj/
 /tmp/file_attachments/
 
 agy.exe
+appsettings.Development.json

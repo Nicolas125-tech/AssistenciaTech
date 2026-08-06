@@ -78,3 +78,16 @@ Este projeto foi desenhado e arquitetado por **Nicolas**.
 📸 **Instagram**: [@_nicolas_mb](https://instagram.com/_nicolas_mb)
 
 *Sinta-se à vontade para entrar em contato para feedbacks ou oportunidades!*
+
+## Acesso Administrativo Local
+
+Para desenvolvimento local, a aplicação requer a configuração de credenciais no arquivo `appsettings.Development.json`.
+Você pode gerar este arquivo automaticamente utilizando o script incluso:
+
+```bash
+./setup_local_admin.sh
+```
+
+Isto configurará o ambiente com as seguintes credenciais padrão:
+- **Usuário:** `admin`
+- **Senha:** `Admin@123`
