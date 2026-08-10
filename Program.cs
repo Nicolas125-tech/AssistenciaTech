@@ -39,7 +39,6 @@ if (!string.IsNullOrEmpty(connectionString) && (connectionString.StartsWith("pos
         if (connectionString.Contains("sslmode=require", StringComparison.OrdinalIgnoreCase))
         {
             connBuilder.SslMode = SslMode.Require;
-            connBuilder.TrustServerCertificate = true;
         }
         
         connectionString = connBuilder.ConnectionString;
