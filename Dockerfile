@@ -17,6 +17,7 @@ WORKDIR /app
 
 # Configura a porta padrão da aplicação para 8080
 ENV ASPNETCORE_URLS=http://+:8080
+ENV DOTNET_hostBuilder__reloadConfigOnChange=false
 EXPOSE 8080
 
 # Cria o diretório para mapear o banco de dados via Volume
