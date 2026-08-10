@@ -64,12 +64,21 @@ namespace AssistenciaTech.Controllers
         [HttpPost("os/{id}/finalizar")]
         public async Task<IActionResult> FinalizarVisita(int id, [FromBody] FinalizarRequest request)
         {
+            var tecnicoIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(tecnicoIdClaim) || !int.TryParse(tecnicoIdClaim, out int tecnicoId))
+            {
+                return Unauthorized(new { error = "Técnico não autenticado." });
+            }
+
             var visita = await _context.VisitasCampo.FindAsync(request.VisitaId);
             if (visita == null || visita.OrdemServicoId != id) 
                 return NotFound(new { error = "Visita não encontrada ou não pertence a esta OS" });
 
             var os = await _context.OrdensServico.FindAsync(id);
             if (os == null) return NotFound();
+
+            if (visita.TecnicoId != tecnicoId)
+                return Forbid();
 
             // Atualiza a Visita
             visita.CheckOut = DateTime.Now;
