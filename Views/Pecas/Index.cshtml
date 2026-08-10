@@ -27,6 +27,18 @@
                         </tr>
                     </thead>
                     <tbody>
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center py-5 text-muted">
+                                    <i class="bi bi-box-seam fs-1 d-block mb-3"></i>
+                                    <h5>Nenhuma peça no estoque</h5>
+                                    <p>Clique em "Nova Peça" para adicionar itens ao estoque.</p>
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
                         @foreach (var item in Model)
                         {
                             <tr>
@@ -51,6 +63,7 @@
                                     </div>
                                 </td>
                             </tr>
+                        }
                         }
                     </tbody>
                 </table>
