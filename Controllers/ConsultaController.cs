@@ -34,7 +34,7 @@ namespace AssistenciaTech.Controllers
         public async Task<IActionResult> Status(int numeroOS, string cpf)
         {
             // Validação básica de campos
-            if (numeroOS <= 0 || string.IsNullOrWhiteSpace(cpf))
+            if (numeroOS <= 0 || string.IsNullOrWhiteSpace(cpf) || cpf.Length > 20)
             {
                 ViewBag.Erro = "Por favor, preencha o número da OS e o CPF.";
                 return View("Index");
