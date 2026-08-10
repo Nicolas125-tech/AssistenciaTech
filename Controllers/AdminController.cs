@@ -309,7 +309,7 @@ namespace AssistenciaTech.Controllers
                                 continue;
                             }
 
-                            string uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(foto.FileName);
+                            string uniqueFileName = $"{Guid.NewGuid()}_{Path.GetFileName(foto.FileName)}";
                             string filePath = Path.Combine(uploadsFolder, uniqueFileName);
 
                             var currentFoto = foto;
