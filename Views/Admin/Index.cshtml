@@ -122,6 +122,18 @@
                         </tr>
                     </thead>
                     <tbody>
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                                    <h5>Nenhuma Ordem de Serviço encontrada</h5>
+                                    <p>As OS cadastradas aparecerão aqui.</p>
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
                         @foreach (var item in Model)
                         {
                             string badgeClass = item.Status switch
@@ -194,6 +206,7 @@
                                     </div>
                                 </td>
                             </tr>
+                        }
                         }
                     </tbody>
                 </table>
