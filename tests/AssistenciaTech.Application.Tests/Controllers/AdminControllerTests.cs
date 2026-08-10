@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Moq;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace AssistenciaTech.Application.Tests.Controllers
@@ -23,6 +24,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
         private readonly Mock<IWebHostEnvironment> _mockEnv;
         private readonly Mock<IPdfGeneratorService> _mockPdfGeneratorService;
         private readonly Mock<IAdminDashboardService> _mockDashboardService;
+        private readonly Mock<ILogger<AdminController>> _mockLogger;
         private readonly AdminController _controller;
 
         public AdminControllerTests()
@@ -36,13 +38,15 @@ namespace AssistenciaTech.Application.Tests.Controllers
             _mockEnv = new Mock<IWebHostEnvironment>();
             _mockPdfGeneratorService = new Mock<IPdfGeneratorService>();
             _mockDashboardService = new Mock<IAdminDashboardService>();
+            _mockLogger = new Mock<ILogger<AdminController>>();
 
             _controller = new AdminController(
                 _context,
                 _mockEstoqueService.Object,
                 _mockEnv.Object,
                 _mockPdfGeneratorService.Object,
-                _mockDashboardService.Object
+                _mockDashboardService.Object,
+                _mockLogger.Object
             );
         }
 

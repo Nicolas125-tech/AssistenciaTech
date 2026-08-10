@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.EntityFrameworkCore;
 using Moq;
+using Microsoft.Extensions.Logging;
 using FluentAssertions;
 using Xunit;
 
@@ -37,7 +38,8 @@ namespace AssistenciaTech.Application.Tests
                 .Setup(s => s.GetDashboardDataAsync(It.IsAny<string>(), It.IsAny<string>()))
                 .ThrowsAsync(new Exception("Database connection failed"));
 
-            var controller = new AdminController(context, mockEstoqueService.Object, mockEnv.Object, mockPdfService.Object, mockDashboardService.Object);
+            var mockLogger = new Mock<ILogger<AdminController>>();
+            var controller = new AdminController(context, mockEstoqueService.Object, mockEnv.Object, mockPdfService.Object, mockDashboardService.Object, mockLogger.Object);
 
             // Set TempData
             var httpContext = new DefaultHttpContext();

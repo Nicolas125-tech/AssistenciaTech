@@ -14,6 +14,7 @@ using QuestPDF.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using System.IO;
+using Microsoft.Extensions.Logging;
 
 namespace AssistenciaTech.Controllers
 {
@@ -28,14 +29,16 @@ namespace AssistenciaTech.Controllers
         private readonly IWebHostEnvironment _env;
         private readonly IPdfGeneratorService _pdfGeneratorService;
         private readonly IAdminDashboardService _dashboardService;
+        private readonly ILogger<AdminController> _logger;
 
-        public AdminController(AppDbContext context, IEstoqueService estoqueService, IWebHostEnvironment env, IPdfGeneratorService pdfGeneratorService, IAdminDashboardService dashboardService)
+        public AdminController(AppDbContext context, IEstoqueService estoqueService, IWebHostEnvironment env, IPdfGeneratorService pdfGeneratorService, IAdminDashboardService dashboardService, ILogger<AdminController> logger)
         {
             _context = context;
             _estoqueService = estoqueService;
             _env = env;
             _pdfGeneratorService = pdfGeneratorService;
             _dashboardService = dashboardService;
+            _logger = logger;
         }
 
         // GET: Admin/Index
@@ -81,7 +84,7 @@ namespace AssistenciaTech.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine("DB_CONNECTION_ERROR (Admin/Index): " + ex.ToString());
+                _logger.LogError(ex, "DB_CONNECTION_ERROR (Admin/Index)");
                 // Log the exception in a real scenario
                 ViewBag.ErroBanco = "Erro ao conectar ao banco de dados. Por favor, tente novamente mais tarde.";
                 
