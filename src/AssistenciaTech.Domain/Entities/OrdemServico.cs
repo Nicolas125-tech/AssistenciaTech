@@ -17,7 +17,7 @@ public class OrdemServico
     public DateTime DataEntrada { get; private set; }
     public DateTime? DataSaida { get; private set; }
     public string? MotivoCancelamento { get; private set; }
-    
+
     public IOrdemServicoState EstadoAtual { get; private set; }
 
     public OrdemServico(string numeroOS, string clientCpf, string equipamentoModelo, string numeroSerie, string defeitoRelatado)
@@ -41,7 +41,7 @@ public class OrdemServico
     {
         if (string.IsNullOrWhiteSpace(diagnostico))
             throw new ArgumentException("O diagnóstico técnico não pode ser vazio.");
-            
+
         DiagnosticoTecnico = diagnostico;
         ValorOrcamento = orcamento;
     }

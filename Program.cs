@@ -35,12 +35,12 @@ if (!string.IsNullOrEmpty(connectionString) && (connectionString.StartsWith("pos
             Password = userInfo.Length > 1 ? userInfo[1] : "",
             Database = uri.LocalPath.TrimStart('/')
         };
-        
+
         if (connectionString.Contains("sslmode=require", StringComparison.OrdinalIgnoreCase))
         {
             connBuilder.SslMode = SslMode.Require;
         }
-        
+
         connectionString = connBuilder.ConnectionString;
         Console.WriteLine($"[Neon/Postgres] Converted URI to connection string for Host: {connBuilder.Host}");
     }

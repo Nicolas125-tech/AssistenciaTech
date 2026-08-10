@@ -76,7 +76,7 @@ namespace AssistenciaTech.Controllers
             }
 
             var visita = await _context.VisitasCampo.FindAsync(request.VisitaId);
-            if (visita == null || visita.OrdemServicoId != id) 
+            if (visita == null || visita.OrdemServicoId != id)
                 return NotFound(new { error = "Visita não encontrada ou não pertence a esta OS" });
 
             var os = await _context.OrdensServico.FindAsync(id);

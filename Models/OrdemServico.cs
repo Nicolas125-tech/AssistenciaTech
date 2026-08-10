@@ -36,7 +36,7 @@ namespace AssistenciaTech.Models
         public string? LaudoTecnico { get; set; } // O diagnóstico real dado pelo técnico
 
         // === Funcionalidades Enterprise Nível 2 ===
-        
+
         [Display(Name = "Equipamento de Backup")]
         public int? EquipamentoBackupId { get; set; }
         public EquipamentoBackup? EquipamentoBackup { get; set; }
@@ -70,9 +70,9 @@ namespace AssistenciaTech.Models
 
         // Propriedade Computada para Comissão
         [NotMapped]
-        public decimal ValorComissao 
+        public decimal ValorComissao
         {
-            get 
+            get
             {
                 if (TecnicoResponsavel != null)
                 {

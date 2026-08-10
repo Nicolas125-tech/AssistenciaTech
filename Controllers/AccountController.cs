@@ -72,8 +72,8 @@ namespace AssistenciaTech.Controllers
                 };
 
                 await HttpContext.SignInAsync(
-                    CookieAuthenticationDefaults.AuthenticationScheme, 
-                    new ClaimsPrincipal(claimsIdentity), 
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    new ClaimsPrincipal(claimsIdentity),
                     authProperties);
 
                 // Redireciona de volta para a URL que ele tentou acessar antes do login (ex: /Admin/Create)
@@ -81,7 +81,7 @@ namespace AssistenciaTech.Controllers
                 {
                     return Redirect(returnUrl);
                 }
-                
+
                 // Padrão: Redireciona para o Painel Administrativo
                 return RedirectToAction("Index", "Admin");
             }

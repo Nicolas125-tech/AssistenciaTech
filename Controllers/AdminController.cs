@@ -87,7 +87,7 @@ namespace AssistenciaTech.Controllers
                 _logger.LogError(ex, "DB_CONNECTION_ERROR (Admin/Index)");
                 // Log the exception in a real scenario
                 ViewBag.ErroBanco = "Erro ao conectar ao banco de dados. Por favor, tente novamente mais tarde.";
-                
+
                 // Zera os valores do Dashboard
                 ViewBag.TotalAbertas = 0;
                 ViewBag.EquipamentosProntos = 0;
@@ -135,7 +135,7 @@ namespace AssistenciaTech.Controllers
                     {
                         var retornoRecente = await _context.OrdensServico
                             .AnyAsync(o => o.NumeroSerie == ordemServico.NumeroSerie && o.Id != ordemServico.Id && o.DataEntrada >= DateTime.Now.AddDays(-30));
-                        
+
                         if (retornoRecente)
                         {
                             TempData["AlertaGarantia"] = $"ATENÇÃO: O equipamento com NS {ordemServico.NumeroSerie} já deu entrada na assistência nos últimos 30 dias. Verifique se é um retorno em garantia!";
@@ -172,7 +172,7 @@ namespace AssistenciaTech.Controllers
                                                  .Include(o => o.Evidencias)
                                                  .Include(o => o.Contrato)
                                                  .FirstOrDefaultAsync(m => m.Id == id);
-                
+
                 if (ordemServico == null) return NotFound();
 
                 ViewBag.Tecnicos = new SelectList(await _context.Tecnicos.Where(t => t.Ativo).ToListAsync(), "Id", "Nome");
@@ -201,7 +201,7 @@ namespace AssistenciaTech.Controllers
                 var ordemExistente = await _context.OrdensServico
                     .Include(o => o.Evidencias)
                     .FirstOrDefaultAsync(o => o.Id == id);
-                    
+
                 if (ordemExistente == null) return NotFound();
 
                 // Atualiza apenas os campos permitidos
@@ -244,10 +244,10 @@ namespace AssistenciaTech.Controllers
 
                     ordemExistente.EquipamentoBackupId = ordemServico.EquipamentoBackupId;
                 }
-                
+
                 string statusAnterior = ordemExistente.Status;
                 ordemExistente.Status = ordemServico.Status;
-                
+
                 ordemExistente.CustoPecas = ordemServico.CustoPecas;
                 ordemExistente.CustoMaoDeObra = ordemServico.CustoMaoDeObra;
                 ordemExistente.DescontoAplicado = ordemServico.DescontoAplicado;
@@ -274,7 +274,7 @@ namespace AssistenciaTech.Controllers
                         if (backup != null && backup.Disponivel == false)
                         {
                             ModelState.AddModelError(string.Empty, $"O status não pode ser 'Entregue' até que o equipamento '{backup.Descricao}' seja devolvido no sistema.");
-                            
+
                             ViewBag.Tecnicos = new SelectList(await _context.Tecnicos.Where(t => t.Ativo).ToListAsync(), "Id", "Nome", ordemServico.TecnicoId);
                             ViewBag.EquipamentosBackup = new SelectList(await _context.EquipamentosBackup.Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).ToListAsync(), "Id", "Descricao", ordemServico.EquipamentoBackupId);
                             ViewBag.Contratos = new SelectList(await _context.Contratos.Include(c => c.Cliente).Where(c => c.ClienteId == ordemServico.ClienteId).Select(c => new { c.Id, NomeDesc = "Contrato: SLA " + c.HorasSLA + "h - R$ " + c.ValorMensal }).ToListAsync(), "Id", "NomeDesc", ordemServico.ContratoId);
@@ -284,9 +284,9 @@ namespace AssistenciaTech.Controllers
 
                     // A garantia passa a valer a partir deste momento
                     ordemExistente.DataEntregaCliente = DateTime.Now;
-                    
+
                     // Garante que a data de conclusão também exista se pular direto
-                    if (ordemExistente.DataConclusao == null) 
+                    if (ordemExistente.DataConclusao == null)
                     {
                         ordemExistente.DataConclusao = DateTime.Now;
                         await _estoqueService.DeduzirEstoque(ordemExistente.Id);
@@ -322,7 +322,7 @@ namespace AssistenciaTech.Controllers
                             var currentFoto = foto;
                             async Task SaveFileAsync()
                             {
-                                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                                await using (var fileStream = new FileStream(filePath, FileMode.Create))
                                 {
                                     await currentFoto.CopyToAsync(fileStream);
                                 }
@@ -382,7 +382,7 @@ namespace AssistenciaTech.Controllers
         public async Task<IActionResult> ImprimirOs(int id)
         {
             var os = await _context.OrdensServico.Include(o => o.Cliente).FirstOrDefaultAsync(o => o.Id == id);
-            
+
             if (os == null) return NotFound();
 
             var pdfBytes = _pdfGeneratorService.GenerateOsPdf(os);
