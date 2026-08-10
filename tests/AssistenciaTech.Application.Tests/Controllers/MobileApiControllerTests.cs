@@ -100,12 +100,58 @@ namespace AssistenciaTech.Application.Tests.Controllers
             var resultObj = okResult.Value;
             resultObj.Should().NotBeNull();
 
-            // Check properties using reflection/dynamics or just assert it's an OkObjectResult
             var osInDb = await _context.OrdensServico.FindAsync(1);
             osInDb!.Status.Should().Be(WorkflowStatus.Concluido);
 
             var visitaInDb = await _context.VisitasCampo.FindAsync(1);
             visitaInDb!.CheckOut.Should().NotBeNull();
+        }
+
+        [Fact]
+        public async Task CheckIn_ReturnsForbid_WhenOrdemServicoTecnicoIdDoesNotMatchAuthenticatedUser()
+        {
+            // Arrange
+            var os = new OrdemServico { Id = 2, Equipamento = "Notebook", Status = WorkflowStatus.Recebido, TecnicoId = 10 };
+            _context.OrdensServico.Add(os);
+            await _context.SaveChangesAsync();
+
+            // Authenticate as a different technician (ID = 20)
+            SetUserContext(20);
+
+            var request = new MobileApiController.CheckInRequest { Latitude = 10m, Longitude = 20m };
+
+            // Act
+            var result = await _controller.CheckIn(2, request);
+
+            // Assert
+            result.Should().BeOfType<ForbidResult>();
+        }
+
+        [Fact]
+        public async Task CheckIn_ReturnsOk_WhenOrdemServicoTecnicoIdMatchesAuthenticatedUser()
+        {
+            // Arrange
+            var os = new OrdemServico { Id = 2, Equipamento = "Notebook", Status = WorkflowStatus.Recebido, TecnicoId = 10 };
+            _context.OrdensServico.Add(os);
+            await _context.SaveChangesAsync();
+
+            // Authenticate as the correct technician (ID = 10)
+            SetUserContext(10);
+
+            var request = new MobileApiController.CheckInRequest { Latitude = 10m, Longitude = 20m };
+
+            // Act
+            var result = await _controller.CheckIn(2, request);
+
+            // Assert
+            var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
+            okResult.Value.Should().NotBeNull();
+
+            var visita = await _context.VisitasCampo.FirstOrDefaultAsync(v => v.OrdemServicoId == 2);
+            visita.Should().NotBeNull();
+            visita!.TecnicoId.Should().Be(10);
+            visita.Latitude.Should().Be(10m);
+            visita.Longitude.Should().Be(20m);
         }
 
         public void Dispose()

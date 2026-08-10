@@ -39,6 +39,11 @@ namespace AssistenciaTech.Controllers
             var os = await _context.OrdensServico.FindAsync(id);
             if (os == null) return NotFound(new { error = "OS não encontrada" });
 
+            if (os.TecnicoId != tecnicoId)
+            {
+                return Forbid();
+            }
+
             var visita = new VisitaCampo
             {
                 OrdemServicoId = id,
