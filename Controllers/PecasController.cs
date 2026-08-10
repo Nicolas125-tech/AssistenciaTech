@@ -51,7 +51,7 @@ namespace AssistenciaTech.Controllers
 
             var peca = await _context.Pecas.FindAsync(id);
             if (peca == null) return NotFound();
-            
+
             return View(peca);
         }
 

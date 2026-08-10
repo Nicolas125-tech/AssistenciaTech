@@ -15,3 +15,4 @@ obj/
 
 agy.exe
 appsettings.Development.json
+perf_test/

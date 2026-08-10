@@ -61,7 +61,7 @@ namespace AssistenciaTech.Controllers
                         ordem = null;
                 }
             }
-            
+
             if (ordem == null)
             {
                 ViewBag.Erro = "Ordem de Serviço não encontrada ou CPF inválido.";

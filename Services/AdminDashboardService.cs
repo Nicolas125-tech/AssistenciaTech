@@ -47,7 +47,8 @@ namespace AssistenciaTech.Services
 
             // Executa a agregação no banco de dados para evitar o carregamento de todos os registros na memória
             var statusGroupDb = await query.GroupBy(o => o.Status)
-                .Select(g => new {
+                .Select(g => new
+                {
                     Status = g.Key,
                     Count = g.Count(),
                     TotalValor = g.Sum(x => x.ValorOrcamento)
