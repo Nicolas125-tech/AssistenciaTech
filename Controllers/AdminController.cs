@@ -40,16 +40,20 @@ namespace AssistenciaTech.Controllers
 
         // GET: Admin/Index
         [HttpGet]
-        public async Task<IActionResult> ExportarCsv()
+        public async Task ExportarCsv()
         {
             var todasOS = _context.OrdensServico.Include(o => o.Cliente).OrderByDescending(o => o.Id).AsAsyncEnumerable();
-            var csv = new System.Text.StringBuilder();
-            csv.AppendLine("Id,Cliente,Equipamento,Data Entrada,Status,Valor Orçamento");
+
+            Response.Clear();
+            Response.ContentType = "text/csv";
+            Response.Headers.Append("Content-Disposition", "attachment; filename=\"OrdensDeServico.csv\"");
+
+            await using var streamWriter = new StreamWriter(Response.Body, new System.Text.UTF8Encoding(false));
+            await streamWriter.WriteLineAsync("Id,Cliente,Equipamento,Data Entrada,Status,Valor Orçamento");
             await foreach (var os in todasOS)
             {
-                csv.AppendLine($"{os.Id},\"{os.Cliente?.Nome}\",\"{os.Equipamento}\",{os.DataEntrada:dd/MM/yyyy},{os.Status},{os.ValorOrcamento}");
+                await streamWriter.WriteLineAsync($"{os.Id},\"{os.Cliente?.Nome}\",\"{os.Equipamento}\",{os.DataEntrada:dd/MM/yyyy},{os.Status},{os.ValorOrcamento}");
             }
-            return File(System.Text.Encoding.UTF8.GetBytes(csv.ToString()), "text/csv", "OrdensDeServico.csv");
         }
 
         public async Task<IActionResult> Index(string searchString, string statusFilter)

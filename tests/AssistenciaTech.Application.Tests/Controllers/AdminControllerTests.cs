@@ -47,7 +47,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
         }
 
         [Fact]
-        public async Task ExportarCsv_DeveRetornarArquivoCsvComDadosDasOrdensDeServico()
+        public async Task ExportarCsv_DeveEscreverNoResponseBodyOArquivoCsvComDadosDasOrdensDeServico()
         {
             // Arrange
             var cliente = new Cliente { Id = 1, Nome = "Cliente Teste", Email = "teste@teste.com", Telefone = "12345678" };
@@ -83,15 +83,23 @@ namespace AssistenciaTech.Application.Tests.Controllers
             _context.OrdensServico.AddRange(os1, os2);
             await _context.SaveChangesAsync();
 
+            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+            var responseBody = new System.IO.MemoryStream();
+            httpContext.Response.Body = responseBody;
+
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = httpContext
+            };
+
             // Act
-            var result = await _controller.ExportarCsv();
+            await _controller.ExportarCsv();
 
             // Assert
-            var fileResult = result.Should().BeOfType<FileContentResult>().Subject;
-            fileResult.ContentType.Should().Be("text/csv");
-            fileResult.FileDownloadName.Should().Be("OrdensDeServico.csv");
+            httpContext.Response.ContentType.Should().Be("text/csv");
+            httpContext.Response.Headers["Content-Disposition"].ToString().Should().Be("attachment; filename=\"OrdensDeServico.csv\"");
 
-            var csvString = Encoding.UTF8.GetString(fileResult.FileContents);
+            var csvString = System.Text.Encoding.UTF8.GetString(responseBody.ToArray());
             var linhas = csvString.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
 
             linhas.Should().HaveCount(3); // Cabecalho + 2 OS
