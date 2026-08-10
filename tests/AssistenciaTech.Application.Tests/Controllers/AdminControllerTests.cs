@@ -10,6 +10,7 @@ using AssistenciaTech.Services;
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Microsoft.Extensions.Logging;
@@ -112,6 +113,54 @@ namespace AssistenciaTech.Application.Tests.Controllers
             // Ordem decrescente por ID
             linhas[1].Should().Contain("2,\"Cliente Teste\",\"Notebook\",05/10/2023,Concluído,200");
             linhas[2].Should().Contain("1,\"Cliente Teste\",\"PC Gamer\",01/10/2023,Orçamento,140");
+        }
+
+        [Fact]
+        public async Task Create_DeveConfigurarTempDataAlertaGarantia_QuandoOrdemComMesmoNumeroSerieExisteHaMenosDe30Dias()
+        {
+            // Arrange
+            var cliente = new Cliente { Id = 1, Nome = "Cliente Teste", Email = "teste@teste.com", Telefone = "12345678", Cpf = "12345678901" };
+            _context.Clientes.Add(cliente);
+
+            var osExistente = new OrdemServico
+            {
+                Id = 1,
+                ClienteId = 1,
+                Equipamento = "PC Gamer Antigo",
+                NumeroSerie = "SN123456",
+                DataEntrada = DateTime.Now.AddDays(-10), // Menos de 30 dias
+                Status = WorkflowStatus.Concluido,
+                ValorOrcamento = 100
+            };
+            _context.OrdensServico.Add(osExistente);
+            await _context.SaveChangesAsync();
+
+            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+            var tempData = new TempDataDictionary(httpContext, Mock.Of<ITempDataProvider>());
+
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = httpContext
+            };
+            _controller.TempData = tempData;
+
+            var novaOs = new OrdemServico
+            {
+                Id = 2,
+                ClienteId = 1,
+                Equipamento = "PC Gamer Novo",
+                NumeroSerie = "SN123456", // Mesmo número de série
+                CustoPecas = 100, CustoMaoDeObra = 100
+            };
+
+            // Act
+            var result = await _controller.Create(novaOs) as RedirectToActionResult;
+
+            // Assert
+            result.Should().NotBeNull();
+            result.ActionName.Should().Be("Index");
+            _controller.TempData.Should().ContainKey("AlertaGarantia");
+            _controller.TempData["AlertaGarantia"].ToString().Should().Contain("ATENÇÃO: O equipamento com NS SN123456 já deu entrada na assistência nos últimos 30 dias. Verifique se é um retorno em garantia!");
         }
 
         public void Dispose()
