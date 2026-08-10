@@ -64,11 +64,14 @@ namespace AssistenciaTech.Data
         {
             if (context == null || !_pendingAudits.Any()) return;
 
+            var audits = new List<AuditoriaOS>(_pendingAudits.Count);
             foreach (var pending in _pendingAudits)
             {
                 pending.Audit.OrdemServicoId = pending.OS.Id;
-                context.Add(pending.Audit);
+                audits.Add(pending.Audit);
             }
+            context.AddRange(audits);
+
             _pendingAudits.Clear();
             context.SaveChanges();
         }
@@ -77,11 +80,14 @@ namespace AssistenciaTech.Data
         {
             if (context == null || !_pendingAudits.Any()) return;
 
+            var audits = new List<AuditoriaOS>(_pendingAudits.Count);
             foreach (var pending in _pendingAudits)
             {
                 pending.Audit.OrdemServicoId = pending.OS.Id;
-                context.Add(pending.Audit);
+                audits.Add(pending.Audit);
             }
+            context.AddRange(audits);
+
             _pendingAudits.Clear();
             await context.SaveChangesAsync(cancellationToken);
         }
