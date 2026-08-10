@@ -58,20 +58,30 @@ namespace AssistenciaTech.Services
                 .OrderByDescending(o => o.DataEntrada)
                 .ToListAsync();
 
+            int totalAbertas = 0;
+            int equipamentosProntos = 0;
+            decimal faturamentoPrevisto = 0;
+
+            foreach (var g in statusGroupDb)
+            {
+                if (g.Status != WorkflowStatus.Concluido && g.Status != WorkflowStatus.Entregue)
+                    totalAbertas += g.Count;
+
+                if (g.Status == WorkflowStatus.Concluido)
+                    equipamentosProntos += g.Count;
+
+                if (g.Status != WorkflowStatus.Entregue && g.Status != "Cancelado")
+                    faturamentoPrevisto += g.TotalValor;
+            }
+
             return new DashboardDto
             {
                 Ordens = ordensOrdenadas,
                 ChartLabels = statusGroupDb.Select(g => g.Status).ToList(),
                 ChartData = statusGroupDb.Select(g => g.Count).ToList(),
-                TotalAbertas = statusGroupDb
-                    .Where(g => g.Status != WorkflowStatus.Concluido && g.Status != WorkflowStatus.Entregue)
-                    .Sum(g => g.Count),
-                EquipamentosProntos = statusGroupDb
-                    .Where(g => g.Status == WorkflowStatus.Concluido)
-                    .Sum(g => g.Count),
-                FaturamentoPrevisto = statusGroupDb
-                    .Where(g => g.Status != WorkflowStatus.Entregue && g.Status != "Cancelado")
-                    .Sum(g => g.TotalValor)
+                TotalAbertas = totalAbertas,
+                EquipamentosProntos = equipamentosProntos,
+                FaturamentoPrevisto = faturamentoPrevisto
             };
         }
     }
