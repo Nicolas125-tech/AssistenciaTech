@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AssistenciaTech.Data;
 using AssistenciaTech.Models;
+using AssistenciaTech.DTOs;
 using Microsoft.AspNetCore.Authorization;
 
 namespace AssistenciaTech.Controllers
@@ -30,15 +31,22 @@ namespace AssistenciaTech.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Nome,PercentualComissao,Ativo")] Tecnico tecnico)
+        public async Task<IActionResult> Create(TecnicoCreateDto tecnicoDto)
         {
             if (ModelState.IsValid)
             {
+                var tecnico = new Tecnico
+                {
+                    Nome = tecnicoDto.Nome,
+                    PercentualComissao = tecnicoDto.PercentualComissao,
+                    Ativo = tecnicoDto.Ativo
+                };
+
                 _context.Add(tecnico);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            return View(tecnico);
+            return View(tecnicoDto);
         }
 
         public async Task<IActionResult> Edit(int? id)
@@ -47,30 +55,46 @@ namespace AssistenciaTech.Controllers
 
             var tecnico = await _context.Tecnicos.FindAsync(id);
             if (tecnico == null) return NotFound();
-            return View(tecnico);
+
+            var tecnicoDto = new TecnicoUpdateDto
+            {
+                Id = tecnico.Id,
+                Nome = tecnico.Nome,
+                PercentualComissao = tecnico.PercentualComissao,
+                Ativo = tecnico.Ativo
+            };
+
+            return View(tecnicoDto);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Nome,PercentualComissao,Ativo")] Tecnico tecnico)
+        public async Task<IActionResult> Edit(int id, TecnicoUpdateDto tecnicoDto)
         {
-            if (id != tecnico.Id) return NotFound();
+            if (id != tecnicoDto.Id) return NotFound();
 
             if (ModelState.IsValid)
             {
                 try
                 {
-                    _context.Update(tecnico);
+                    var tecnico = await _context.Tecnicos.FindAsync(id);
+                    if (tecnico == null) return NotFound();
+
+                    tecnico.Nome = tecnicoDto.Nome;
+                    tecnico.PercentualComissao = tecnicoDto.PercentualComissao;
+                    tecnico.Ativo = tecnicoDto.Ativo;
+
+                    // _context.Update(tecnico); // Rely on automatic change tracking
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!TecnicoExists(tecnico.Id)) return NotFound();
+                    if (!TecnicoExists(tecnicoDto.Id)) return NotFound();
                     else throw;
                 }
                 return RedirectToAction(nameof(Index));
             }
-            return View(tecnico);
+            return View(tecnicoDto);
         }
 
         [HttpPost, ActionName("Delete")]
