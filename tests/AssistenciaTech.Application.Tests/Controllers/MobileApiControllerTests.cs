@@ -180,6 +180,21 @@ namespace AssistenciaTech.Application.Tests.Controllers
             visita.Longitude.Should().Be(20m);
         }
 
+        [Fact]
+        public async Task CheckIn_ReturnsNotFound_WhenOrdemServicoDoesNotExist()
+        {
+            // Arrange
+            SetUserContext(10);
+            var request = new MobileApiController.CheckInRequest { Latitude = 10m, Longitude = 20m };
+
+            // Act
+            var result = await _controller.CheckIn(999, request);
+
+            // Assert
+            var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
+            notFoundResult.Value.Should().BeEquivalentTo(new { error = "OS não encontrada" });
+        }
+
         public void Dispose()
         {
             _context.Database.EnsureDeleted();
