@@ -150,7 +150,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 ClienteId = 1,
                 Equipamento = "PC Gamer Novo",
                 NumeroSerie = "SN123456", // Mesmo número de série
-                CustoPecas = 100, CustoMaoDeObra = 100
+                CustoPecas = 100,
+                CustoMaoDeObra = 100
             };
 
             // Act

@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore;
+using AssistenciaTech.Models;
+using AssistenciaTech.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
@@ -11,10 +14,12 @@ namespace AssistenciaTech.Controllers
     public class AccountController : Controller
     {
         private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration;
+        private readonly AppDbContext _context;
 
-        public AccountController(Microsoft.Extensions.Configuration.IConfiguration configuration)
+        public AccountController(Microsoft.Extensions.Configuration.IConfiguration configuration, AppDbContext context)
         {
             _configuration = configuration;
+            _context = context;
         }
 
         // GET: /Account/Login
@@ -37,17 +42,15 @@ namespace AssistenciaTech.Controllers
         {
             ViewData["ReturnUrl"] = returnUrl;
 
-            // Validação Hardcoded simples para o MVP (Não recomendado para produção real sem hash/banco)
-
-            var configUser = _configuration["AdminCredentials:Username"];
-            var configPassHash = _configuration["AdminCredentials:PasswordHash"];
-
+            // Validação através do banco de dados (Seguro)
             bool isAuthenticated = false;
 
-            if (!string.IsNullOrEmpty(configUser) && !string.IsNullOrEmpty(configPassHash) && username == configUser)
+            var user = await _context.Usuarios.FirstOrDefaultAsync(u => u.Username == username);
+
+            if (user != null && !string.IsNullOrEmpty(user.PasswordHash))
             {
-                var hasher = new PasswordHasher<string>();
-                var result = hasher.VerifyHashedPassword(username, configPassHash, password);
+                var hasher = new PasswordHasher<Usuario>();
+                var result = hasher.VerifyHashedPassword(user, user.PasswordHash, password);
 
                 if (result == PasswordVerificationResult.Success || result == PasswordVerificationResult.SuccessRehashNeeded)
                 {
