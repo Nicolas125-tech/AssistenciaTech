@@ -78,8 +78,11 @@ namespace AssistenciaTech.Services
                                 if (os.DataEntregaCliente.HasValue)
                                 {
                                     c.Item().Text($"Data de Entrega: {os.DataEntregaCliente:dd/MM/yyyy HH:mm}");
-                                    if (os.GarantiaAtiva)
-                                        c.Item().Text($"Garantia Válida até: {os.DataVencimentoGarantia:dd/MM/yyyy}");
+                                }
+
+                                if (os.DataEntregaCliente.HasValue && os.GarantiaAtiva)
+                                {
+                                    c.Item().Text($"Garantia Válida até: {os.DataVencimentoGarantia:dd/MM/yyyy}");
                                 }
                             });
                         });
