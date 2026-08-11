@@ -35,7 +35,7 @@ namespace AssistenciaTech.Application.Tests
             var mockDashboardService = new Mock<IAdminDashboardService>();
 
             mockDashboardService
-                .Setup(s => s.GetDashboardDataAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .Setup(s => s.GetDashboardDataAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()))
                 .ThrowsAsync(new Exception("Database connection failed"));
 
             var mockLogger = new Mock<ILogger<AdminController>>();

@@ -15,11 +15,14 @@ namespace AssistenciaTech.Services
         public int TotalAbertas { get; set; }
         public int EquipamentosProntos { get; set; }
         public decimal FaturamentoPrevisto { get; set; }
+        public int TotalOrdens { get; set; }
+        public int CurrentPage { get; set; }
+        public int TotalPages { get; set; }
     }
 
     public interface IAdminDashboardService
     {
-        Task<DashboardDto> GetDashboardDataAsync(string searchString, string statusFilter);
+        Task<DashboardDto> GetDashboardDataAsync(string searchString, string statusFilter, int page = 1, int pageSize = 50);
     }
 
     public class AdminDashboardService : IAdminDashboardService
@@ -31,7 +34,7 @@ namespace AssistenciaTech.Services
             _context = context;
         }
 
-        public async Task<DashboardDto> GetDashboardDataAsync(string searchString, string statusFilter)
+        public async Task<DashboardDto> GetDashboardDataAsync(string searchString, string statusFilter, int page = 1, int pageSize = 50)
         {
             var query = _context.OrdensServico.Include(o => o.Cliente).AsQueryable();
 
@@ -55,8 +58,13 @@ namespace AssistenciaTech.Services
                 })
                 .ToListAsync();
 
+            int totalOrdens = await query.CountAsync();
+            int totalPages = (int)System.Math.Ceiling(totalOrdens / (double)pageSize);
+
             var ordensOrdenadas = await query
                 .OrderByDescending(o => o.DataEntrada)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
             int totalAbertas = 0;
@@ -82,7 +90,10 @@ namespace AssistenciaTech.Services
                 ChartData = statusGroupDb.Select(g => g.Count).ToList(),
                 TotalAbertas = totalAbertas,
                 EquipamentosProntos = equipamentosProntos,
-                FaturamentoPrevisto = faturamentoPrevisto
+                FaturamentoPrevisto = faturamentoPrevisto,
+                TotalOrdens = totalOrdens,
+                CurrentPage = page,
+                TotalPages = totalPages
             };
         }
     }
