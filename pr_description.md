@@ -1,5 +1,12 @@
-💡 **What:** Replaced the LINQ-based approach (`new string(cpf.Where(char.IsDigit).ToArray())`) with a zero-allocation `stackalloc Span<char>` helper method for extracting digits from CPFs.
+🧪 Add Unit Tests for PecasController.Create
 
-🎯 **Why:** The previous approach caused unnecessary heap allocations (enumerators, array, and the final string) and cpu overhead during iteration.
+🎯 **What:**
+The CRUD logic in `PecasController`, specifically the `Create` POST method, was previously untested. This PR adds unit tests to ensure that the method correctly handles both valid and invalid models.
 
-📊 **Measured Improvement:** Benchmarks show execution time dropped from ~176 ns to ~64 ns (a ~64% speedup) and allocations dropped from 152 B to 48 B (a ~68% reduction) per call. This reduces garbage collection pressure on high-traffic endpoints.
+📊 **Coverage:**
+- `Create_Post_ValidModel_ShouldAddPecaAndRedirectToIndex`: Verifies the happy path where a valid `Peca` model successfully adds a record to the database and redirects to the "Index" action.
+- `Create_Post_InvalidModel_ShouldReturnViewWithModel_AndNotSaveToDb`: Verifies that if `ModelState` is invalid, the `Create` action returns the view with the provided invalid model and does NOT save it to the database.
+- `Create_Get_ShouldReturnView`: Verifies that the initial GET request returns the expected `ViewResult`.
+
+✨ **Result:**
+Significant testing improvement. We now have a safety net for creating records in the Pecas entity, guaranteeing that core functionalities remain intact as we scale and refactor the application.
