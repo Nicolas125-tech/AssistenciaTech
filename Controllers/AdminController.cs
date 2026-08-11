@@ -319,7 +319,7 @@ namespace AssistenciaTech.Controllers
                 // Lógica de Upload de Evidências (Fotos)
                 if (fotos != null && fotos.Count > 0)
                 {
-                    string uploadsFolder = Path.Combine(_env.WebRootPath, "uploads", "evidencias");
+                    string uploadsFolder = Path.Combine(_env.ContentRootPath, "SecureUploads", "Evidencias");
                     Directory.CreateDirectory(uploadsFolder); // Garante que a pasta existe
                     var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".pdf" };
 
@@ -335,7 +335,12 @@ namespace AssistenciaTech.Controllers
                                 continue;
                             }
 
-                            string uniqueFileName = $"{Guid.NewGuid()}_{Path.GetFileName(foto.FileName)}";
+                            if (!IsValidFileSignature(foto, extension))
+                            {
+                                continue;
+                            }
+
+                            string uniqueFileName = $"{Guid.NewGuid()}{extension}";
                             string filePath = Path.Combine(uploadsFolder, uniqueFileName);
 
                             var currentFoto = foto;
@@ -351,7 +356,7 @@ namespace AssistenciaTech.Controllers
 
                             ordemExistente.Evidencias.Add(new Evidencia
                             {
-                                CaminhoArquivo = "/uploads/evidencias/" + uniqueFileName,
+                                CaminhoArquivo = $"/Admin/GetEvidencia?fileName={uniqueFileName}",
                                 DataUpload = DateTime.Now
                             });
                         }
@@ -408,5 +413,65 @@ namespace AssistenciaTech.Controllers
 
             return File(pdfBytes, "application/pdf", $"OS_{os.Id}_{os.Cliente?.Nome}.pdf");
         }
+        [HttpGet]
+        public IActionResult GetEvidencia(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName) || fileName.Contains("..") || fileName.Contains("/") || fileName.Contains("\\"))
+            {
+                return BadRequest();
+            }
+
+            var extension = Path.GetExtension(fileName).ToLowerInvariant();
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".pdf" };
+            if (!allowedExtensions.Contains(extension) || Path.GetFileName(fileName) != fileName)
+            {
+                return BadRequest();
+            }
+
+            string uploadsFolder = Path.Combine(_env.ContentRootPath, "SecureUploads", "Evidencias");
+            string filePath = Path.Combine(uploadsFolder, fileName);
+
+            if (!System.IO.File.Exists(filePath))
+            {
+                return NotFound();
+            }
+
+            string contentType = extension switch
+            {
+                ".jpg" => "image/jpeg",
+                ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".pdf" => "application/pdf",
+                _ => "application/octet-stream"
+            };
+
+            return PhysicalFile(filePath, contentType);
+        }
+
+        private static bool IsValidFileSignature(IFormFile file, string extension)
+        {
+            if (file == null || file.Length == 0) return false;
+
+            using var reader = new BinaryReader(file.OpenReadStream());
+            var signatures = new Dictionary<string, List<byte[]>>
+            {
+                { ".jpg", new List<byte[]> { new byte[] { 0xFF, 0xD8, 0xFF } } },
+                { ".jpeg", new List<byte[]> { new byte[] { 0xFF, 0xD8, 0xFF } } },
+                { ".png", new List<byte[]> { new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A } } },
+                { ".gif", new List<byte[]> { new byte[] { 0x47, 0x49, 0x46, 0x38 } } },
+                { ".pdf", new List<byte[]> { new byte[] { 0x25, 0x50, 0x44, 0x46, 0x2D } } }
+            };
+
+            if (!signatures.TryGetValue(extension, out var expectedSignatures))
+                return false;
+
+            var maxSignatureLength = expectedSignatures.Max(s => s.Length);
+            var headerBytes = reader.ReadBytes(maxSignatureLength);
+
+            return expectedSignatures.Any(signature =>
+                headerBytes.Take(signature.Length).SequenceEqual(signature));
+        }
+
     }
 }
