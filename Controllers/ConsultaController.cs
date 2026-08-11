@@ -3,6 +3,7 @@ using AssistenciaTech.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using System;
 
 namespace AssistenciaTech.Controllers
 {
@@ -41,7 +42,7 @@ namespace AssistenciaTech.Controllers
             }
 
             // Remove pontuação do CPF para consulta, caso o cliente digite formatado
-            string cpfLimpo = new string(cpf.Where(char.IsDigit).ToArray());
+            string cpfLimpo = ObterApenasNumeros(cpf);
 
             // Busca a Ordem de Serviço pelo número e verifica se o CPF do cliente está correto (ignorando pontuações salvas no banco)
             var ordem = await _context.OrdensServico
@@ -56,7 +57,7 @@ namespace AssistenciaTech.Controllers
                 }
                 else
                 {
-                    string cpfBancoLimpo = new string(ordem.Cliente.Cpf.Where(char.IsDigit).ToArray());
+                    string cpfBancoLimpo = ObterApenasNumeros(ordem.Cliente.Cpf);
                     if (cpfBancoLimpo != cpfLimpo)
                         ordem = null;
                 }
@@ -70,6 +71,19 @@ namespace AssistenciaTech.Controllers
 
             // Se encontrou, retorna uma View mostrando os detalhes e o status
             return View("Detalhes", ordem);
+        }
+
+        private static string ObterApenasNumeros(string? input)
+        {
+            if (string.IsNullOrEmpty(input)) return string.Empty;
+            Span<char> buffer = stackalloc char[input.Length];
+            int length = 0;
+            foreach (char c in input)
+            {
+                if (char.IsDigit(c))
+                    buffer[length++] = c;
+            }
+            return new string(buffer.Slice(0, length));
         }
     }
 }

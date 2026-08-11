@@ -40,6 +40,32 @@ namespace AssistenciaTech.Application.Tests.Controllers
             };
         }
 
+
+        [Fact]
+        public async Task FinalizarVisita_ReturnsNotFound_WhenOrdemServicoIsNotFound()
+        {
+            // Arrange
+            var visita = new VisitaCampo
+            {
+                Id = 1,
+                OrdemServicoId = 99, // Represents a non-existent OS
+                TecnicoId = 10,
+                CheckIn = DateTime.Now
+            };
+            _context.VisitasCampo.Add(visita);
+            await _context.SaveChangesAsync();
+
+            SetUserContext(10);
+
+            var request = new MobileApiController.FinalizarRequest { VisitaId = 1 };
+
+            // Act
+            var result = await _controller.FinalizarVisita(99, request);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
         [Fact]
         public async Task FinalizarVisita_ReturnsForbid_WhenVisitaTecnicoIdDoesNotMatchAuthenticatedUser()
         {

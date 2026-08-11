@@ -59,7 +59,7 @@ namespace AssistenciaTech.Controllers
             }
         }
 
-        public async Task<IActionResult> Index(string searchString, string statusFilter)
+        public async Task<IActionResult> Index(string searchString, string statusFilter, int page = 1)
         {
             if (TempData["ErroBanco"] != null)
             {
@@ -67,7 +67,7 @@ namespace AssistenciaTech.Controllers
             }
             try
             {
-                var dashboardData = await _dashboardService.GetDashboardDataAsync(searchString, statusFilter);
+                var dashboardData = await _dashboardService.GetDashboardDataAsync(searchString, statusFilter, page);
 
                 ViewBag.SearchString = searchString;
                 ViewBag.StatusFilter = statusFilter;
@@ -79,6 +79,10 @@ namespace AssistenciaTech.Controllers
                 ViewBag.TotalAbertas = dashboardData.TotalAbertas;
                 ViewBag.EquipamentosProntos = dashboardData.EquipamentosProntos;
                 ViewBag.FaturamentoPrevisto = dashboardData.FaturamentoPrevisto;
+
+                ViewBag.CurrentPage = dashboardData.CurrentPage;
+                ViewBag.TotalPages = dashboardData.TotalPages;
+                ViewBag.TotalOrdens = dashboardData.TotalOrdens;
 
                 return View(dashboardData.Ordens);
             }
