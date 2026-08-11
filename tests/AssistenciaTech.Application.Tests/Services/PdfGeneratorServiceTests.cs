@@ -127,5 +127,39 @@ namespace AssistenciaTech.Application.Tests.Services
             pdfBytes[3].Should().Be(0x46);
             pdfBytes[4].Should().Be(0x2D);
         }
+
+        [Fact]
+        public void GenerateOsPdf_ReturnsValidByteArray_WhenWarrantyIsActive()
+        {
+            // Arrange
+            var service = new PdfGeneratorService();
+            var os = new OrdemServico
+            {
+                Id = 4,
+                Equipamento = "Tablet",
+                ProblemaRelatado = "Bateria viciada",
+                Status = WorkflowStatus.Entregue,
+                DataEntrada = DateTime.Now.AddDays(-10),
+                DataConclusao = DateTime.Now.AddDays(-5),
+                DataEntregaCliente = DateTime.Now.AddDays(-2)
+                // Default warranty is usually 90 days from DataEntregaCliente,
+                // so GuarantiaAtiva should be true here since it's only 2 days ago.
+            };
+
+            // Act
+            var pdfBytes = service.GenerateOsPdf(os);
+
+            // Assert
+            pdfBytes.Should().NotBeNull();
+            pdfBytes.Should().NotBeEmpty();
+
+            // Check for PDF magic number (%PDF-)
+            pdfBytes.Length.Should().BeGreaterThan(5);
+            pdfBytes[0].Should().Be(0x25);
+            pdfBytes[1].Should().Be(0x50);
+            pdfBytes[2].Should().Be(0x44);
+            pdfBytes[3].Should().Be(0x46);
+            pdfBytes[4].Should().Be(0x2D);
+        }
     }
 }
