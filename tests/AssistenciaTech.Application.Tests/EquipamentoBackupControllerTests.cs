@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -70,6 +71,101 @@ namespace AssistenciaTech.Application.Tests
 
             // Assert
             await action.Should().ThrowAsync<DbUpdateConcurrencyException>();
+        }
+
+        [Fact]
+        public async Task Devolver_WhenEquipamentoExists_SetsDisponivelToTrueAndRedirectsToIndex()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var context = new AppDbContext(options);
+            var equipamento = new EquipamentoBackup { Id = 1, Descricao = "Test", NumeroSerie = "123", Disponivel = false };
+            context.EquipamentosBackup.Add(equipamento);
+            await context.SaveChangesAsync();
+            context.ChangeTracker.Clear();
+
+            var controller = new EquipamentoBackupController(context);
+
+            // Mock HttpContext to simulate missing Referer header
+            var httpContext = new DefaultHttpContext();
+            controller.ControllerContext = new ControllerContext()
+            {
+                HttpContext = httpContext
+            };
+
+            // Act
+            var result = await controller.Devolver(1);
+
+            // Assert
+            var savedEquipamento = await context.EquipamentosBackup.FindAsync(1);
+            savedEquipamento.Disponivel.Should().BeTrue();
+
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectResult.ActionName.Should().Be("Index");
+        }
+
+        [Fact]
+        public async Task Devolver_WhenEquipamentoExistsAndRefererPresent_RedirectsToReferer()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var context = new AppDbContext(options);
+            var equipamento = new EquipamentoBackup { Id = 1, Descricao = "Test", NumeroSerie = "123", Disponivel = false };
+            context.EquipamentosBackup.Add(equipamento);
+            await context.SaveChangesAsync();
+            context.ChangeTracker.Clear();
+
+            var controller = new EquipamentoBackupController(context);
+
+            // Mock HttpContext to simulate Referer header
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers["Referer"] = "https://example.com/somepage";
+            controller.ControllerContext = new ControllerContext()
+            {
+                HttpContext = httpContext
+            };
+
+            // Act
+            var result = await controller.Devolver(1);
+
+            // Assert
+            var savedEquipamento = await context.EquipamentosBackup.FindAsync(1);
+            savedEquipamento.Disponivel.Should().BeTrue();
+
+            var redirectResult = result.Should().BeOfType<RedirectResult>().Subject;
+            redirectResult.Url.Should().Be("https://example.com/somepage");
+        }
+
+        [Fact]
+        public async Task Devolver_WhenEquipamentoDoesNotExist_GracefullyRedirects()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var context = new AppDbContext(options);
+            var controller = new EquipamentoBackupController(context);
+
+            // Mock HttpContext
+            var httpContext = new DefaultHttpContext();
+            controller.ControllerContext = new ControllerContext()
+            {
+                HttpContext = httpContext
+            };
+
+            // Act
+            var result = await controller.Devolver(999);
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectResult.ActionName.Should().Be("Index");
         }
     }
 }
