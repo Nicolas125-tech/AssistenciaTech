@@ -1,10 +1,12 @@
-🧪 [Testing Improvement] Edge case test for Warranty Return Alert
+🧪 Add Unit Tests for PecasController.Create
 
-🎯 **What:** The testing gap addressed
-This PR addresses the lack of test coverage for the edge case in `AdminController.Create` where a newly registered service order (Ordem de Serviço) matches an existing order by serial number within a 30-day window.
+🎯 **What:**
+The CRUD logic in `PecasController`, specifically the `Create` POST method, was previously untested. This PR adds unit tests to ensure that the method correctly handles both valid and invalid models.
 
-📊 **Coverage:** What scenarios are now tested
-The test ensures that if a duplicated serial number is detected on an equipment that already gave entry to the shop in the past 30 days, the application sets the expected TempData attribute "AlertaGarantia".
+📊 **Coverage:**
+- `Create_Post_ValidModel_ShouldAddPecaAndRedirectToIndex`: Verifies the happy path where a valid `Peca` model successfully adds a record to the database and redirects to the "Index" action.
+- `Create_Post_InvalidModel_ShouldReturnViewWithModel_AndNotSaveToDb`: Verifies that if `ModelState` is invalid, the `Create` action returns the view with the provided invalid model and does NOT save it to the database.
+- `Create_Get_ShouldReturnView`: Verifies that the initial GET request returns the expected `ViewResult`.
 
-✨ **Result:** The improvement in test coverage
-Increased the robustness of the system by asserting that this specific workflow properly alerts the administrative user of a potential warranty return, preventing manual workarounds and ensuring TempData is correctly populated in an isolated manner.
+✨ **Result:**
+Significant testing improvement. We now have a safety net for creating records in the Pecas entity, guaranteeing that core functionalities remain intact as we scale and refactor the application.
