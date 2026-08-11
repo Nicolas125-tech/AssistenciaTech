@@ -82,5 +82,50 @@ namespace AssistenciaTech.Application.Tests.Services
             pdfBytes[3].Should().Be(0x46);
             pdfBytes[4].Should().Be(0x2D);
         }
+
+        [Fact]
+        public void GenerateOsPdf_ThrowsArgumentNullException_WhenOsIsNull()
+        {
+            // Arrange
+            var service = new PdfGeneratorService();
+
+            // Act
+            Action act = () => service.GenerateOsPdf(null!);
+
+            // Assert
+            act.Should().Throw<ArgumentNullException>().WithParameterName("os");
+        }
+
+        [Fact]
+        public void GenerateOsPdf_HandlesExpiredWarranty_AndEntregueStatus()
+        {
+            // Arrange
+            var service = new PdfGeneratorService();
+            var os = new OrdemServico
+            {
+                Id = 3,
+                Equipamento = "Smartphone",
+                ProblemaRelatado = "Tela quebrada",
+                Status = WorkflowStatus.Entregue,
+                DataEntrada = DateTime.Now.AddDays(-110),
+                DataConclusao = DateTime.Now.AddDays(-105),
+                DataEntregaCliente = DateTime.Now.AddDays(-100)
+            };
+
+            // Act
+            var pdfBytes = service.GenerateOsPdf(os);
+
+            // Assert
+            pdfBytes.Should().NotBeNull();
+            pdfBytes.Should().NotBeEmpty();
+
+            // Check for PDF magic number (%PDF-)
+            pdfBytes.Length.Should().BeGreaterThan(5);
+            pdfBytes[0].Should().Be(0x25);
+            pdfBytes[1].Should().Be(0x50);
+            pdfBytes[2].Should().Be(0x44);
+            pdfBytes[3].Should().Be(0x46);
+            pdfBytes[4].Should().Be(0x2D);
+        }
     }
 }

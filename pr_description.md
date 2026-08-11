@@ -1,12 +1,13 @@
-🧪 Add Unit Tests for PecasController.Create
+🧪 Add comprehensive tests and null check for PdfGeneratorService
 
 🎯 **What:**
-The CRUD logic in `PecasController`, specifically the `Create` POST method, was previously untested. This PR adds unit tests to ensure that the method correctly handles both valid and invalid models.
+- Added a `null` check on the `os` parameter in `PdfGeneratorService.GenerateOsPdf` to prevent unhandled `NullReferenceException` inside the PDF rendering delegate logic.
+- Added tests to cover the edge cases and missing paths inside `GenerateOsPdf`.
 
 📊 **Coverage:**
-- `Create_Post_ValidModel_ShouldAddPecaAndRedirectToIndex`: Verifies the happy path where a valid `Peca` model successfully adds a record to the database and redirects to the "Index" action.
-- `Create_Post_InvalidModel_ShouldReturnViewWithModel_AndNotSaveToDb`: Verifies that if `ModelState` is invalid, the `Create` action returns the view with the provided invalid model and does NOT save it to the database.
-- `Create_Get_ShouldReturnView`: Verifies that the initial GET request returns the expected `ViewResult`.
+- `GenerateOsPdf_ThrowsArgumentNullException_WhenOsIsNull`: Tests that the service properly guards against `null` input by throwing `ArgumentNullException`.
+- `GenerateOsPdf_HandlesExpiredWarranty_AndEntregueStatus`: Tests the condition where `Status` is `WorkflowStatus.Entregue` and `DataEntregaCliente` signifies an expired warranty (e.g. over 90 days), covering conditional text and color-styling branches inside the method.
 
 ✨ **Result:**
-Significant testing improvement. We now have a safety net for creating records in the Pecas entity, guaranteeing that core functionalities remain intact as we scale and refactor the application.
+- Increased robustness of the PDF generation service.
+- Improved unit test coverage for `PdfGeneratorService`.

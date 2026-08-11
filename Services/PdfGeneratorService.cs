@@ -15,6 +15,11 @@ namespace AssistenciaTech.Services
     {
         public byte[] GenerateOsPdf(OrdemServico os)
         {
+            if (os == null)
+            {
+                throw new ArgumentNullException(nameof(os));
+            }
+
             return Document.Create(container =>
             {
                 container.Page(page =>
