@@ -221,8 +221,8 @@
         document.addEventListener("DOMContentLoaded", function () {
             var ctx = document.getElementById('statusChart').getContext('2d');
 
-            var chartLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartLabels));
-            var chartData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ChartData));
+            var chartLabels = @Json.Serialize(ViewBag.ChartLabels);
+            var chartData = @Json.Serialize(ViewBag.ChartData);
 
             var myChart = new Chart(ctx, {
                 type: 'bar',
