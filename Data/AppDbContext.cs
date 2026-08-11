@@ -27,6 +27,7 @@ namespace AssistenciaTech.Data
         public DbSet<EquipamentoBackup> EquipamentosBackup { get; set; }
 
         // Nivel 3 Enterprise
+        public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<Contrato> Contratos { get; set; }
         public DbSet<Faturamento> Faturamentos { get; set; }
         public DbSet<VisitaCampo> VisitasCampo { get; set; }
