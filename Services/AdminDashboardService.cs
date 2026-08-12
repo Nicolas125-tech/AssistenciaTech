@@ -1,6 +1,8 @@
 using AssistenciaTech.Data;
 using AssistenciaTech.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -25,18 +27,32 @@ namespace AssistenciaTech.Services
         Task<DashboardDto> GetDashboardDataAsync(string searchString, string statusFilter, int page = 1, int pageSize = 50);
     }
 
+    public class StatusGroupDto
+    {
+        public string? Status { get; set; }
+        public int Count { get; set; }
+        public decimal TotalValor { get; set; }
+    }
+
     public class AdminDashboardService : IAdminDashboardService
     {
         private readonly AppDbContext _context;
+        private readonly IMemoryCache _cache;
+        private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
+        private const string CacheKeyStatusGroup = "AdminDashboard_StatusGroup";
+        private const string CacheKeyTotalOrdens = "AdminDashboard_TotalOrdens";
 
-        public AdminDashboardService(AppDbContext context)
+        public AdminDashboardService(AppDbContext context, IMemoryCache cache = null)
         {
             _context = context;
+            _cache = cache;
         }
 
         public async Task<DashboardDto> GetDashboardDataAsync(string searchString, string statusFilter, int page = 1, int pageSize = 50)
         {
             var query = _context.OrdensServico.Include(o => o.Cliente).AsQueryable();
+
+            bool hasFilters = !string.IsNullOrEmpty(searchString) || !string.IsNullOrEmpty(statusFilter);
 
             if (!string.IsNullOrEmpty(searchString))
             {
@@ -48,18 +64,47 @@ namespace AssistenciaTech.Services
                 query = query.Where(o => o.Status == statusFilter);
             }
 
-            // Executa a agregação no banco de dados para evitar o carregamento de todos os registros na memória
-            var statusGroupDb = await query.GroupBy(o => o.Status)
-                .Select(g => new
-                {
-                    Status = g.Key,
-                    Count = g.Count(),
-                    TotalValor = g.Sum(x => x.ValorOrcamento)
-                })
-                .ToListAsync();
+            List<StatusGroupDto>? statusGroupDb = null;
+            int totalOrdens;
 
-            int totalOrdens = await query.CountAsync();
-            int totalPages = (int)System.Math.Ceiling(totalOrdens / (double)pageSize);
+            if (!hasFilters && _cache != null)
+            {
+                if (!_cache.TryGetValue(CacheKeyStatusGroup, out statusGroupDb) || statusGroupDb == null)
+                {
+                    statusGroupDb = await _context.OrdensServico
+                        .GroupBy(o => o.Status)
+                        .Select(g => new StatusGroupDto
+                        {
+                            Status = g.Key,
+                            Count = g.Count(),
+                            TotalValor = g.Sum(x => x.ValorOrcamento)
+                        })
+                        .ToListAsync();
+
+                    _cache.Set(CacheKeyStatusGroup, statusGroupDb, CacheDuration);
+                }
+
+                if (!_cache.TryGetValue(CacheKeyTotalOrdens, out totalOrdens))
+                {
+                    totalOrdens = await _context.OrdensServico.CountAsync();
+                    _cache.Set(CacheKeyTotalOrdens, totalOrdens, CacheDuration);
+                }
+            }
+            else
+            {
+                statusGroupDb = await query.GroupBy(o => o.Status)
+                    .Select(g => new StatusGroupDto
+                    {
+                        Status = g.Key,
+                        Count = g.Count(),
+                        TotalValor = g.Sum(x => x.ValorOrcamento)
+                    })
+                    .ToListAsync();
+
+                totalOrdens = await query.CountAsync();
+            }
+
+            int totalPages = (int)Math.Ceiling(totalOrdens / (double)pageSize);
 
             var ordensOrdenadas = await query
                 .OrderByDescending(o => o.DataEntrada)
@@ -71,7 +116,7 @@ namespace AssistenciaTech.Services
             int equipamentosProntos = 0;
             decimal faturamentoPrevisto = 0;
 
-            foreach (var g in statusGroupDb)
+            if (statusGroupDb != null) foreach (var g in statusGroupDb)
             {
                 if (g.Status != WorkflowStatus.Concluido && g.Status != WorkflowStatus.Entregue)
                     totalAbertas += g.Count;
@@ -86,8 +131,8 @@ namespace AssistenciaTech.Services
             return new DashboardDto
             {
                 Ordens = ordensOrdenadas,
-                ChartLabels = statusGroupDb.Select(g => g.Status).ToList(),
-                ChartData = statusGroupDb.Select(g => g.Count).ToList(),
+                ChartLabels = (statusGroupDb ?? new List<StatusGroupDto>()).Select(g => g.Status!).ToList(),
+                ChartData = (statusGroupDb ?? new List<StatusGroupDto>()).Select(g => g.Count).ToList(),
                 TotalAbertas = totalAbertas,
                 EquipamentosProntos = equipamentosProntos,
                 FaturamentoPrevisto = faturamentoPrevisto,
