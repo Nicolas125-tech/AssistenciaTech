@@ -34,7 +34,7 @@ namespace AssistenciaTech.Controllers
         // POST: Clientes/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Cliente cliente)
+        public async Task<IActionResult> Create([Bind("Nome,Cpf,Telefone,Email")] Cliente cliente)
         {
             if (ModelState.IsValid)
             {
@@ -59,7 +59,7 @@ namespace AssistenciaTech.Controllers
         // POST: Clientes/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, Cliente cliente)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Nome,Cpf,Telefone,Email")] Cliente cliente)
         {
             if (id != cliente.Id) return NotFound();
 
@@ -67,7 +67,14 @@ namespace AssistenciaTech.Controllers
             {
                 try
                 {
-                    _context.Update(cliente);
+                    var clienteExistente = await _context.Clientes.FindAsync(id);
+                    if (clienteExistente == null) return NotFound();
+
+                    clienteExistente.Nome = cliente.Nome;
+                    clienteExistente.Cpf = cliente.Cpf;
+                    clienteExistente.Telefone = cliente.Telefone;
+                    clienteExistente.Email = cliente.Email;
+
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
