@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using AssistenciaTech.Data;
@@ -12,6 +13,20 @@ namespace AssistenciaTech.Controllers
         public HomeController(AppDbContext context)
         {
             _context = context;
+        }
+
+        public IActionResult TestDb()
+        {
+            try
+            {
+                _context.Database.OpenConnection();
+                _context.Database.CloseConnection();
+                return Content("Conexão com o banco de dados realizada com SUCESSO!");
+            }
+            catch (Exception)
+            {
+                return Content("ERRO: Não foi possível conectar ao banco de dados.");
+            }
         }
 
         // GET: / ou /Home/Index
