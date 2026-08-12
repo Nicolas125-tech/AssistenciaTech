@@ -30,7 +30,7 @@ namespace AssistenciaTech.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Descricao,NumeroSerie,Disponivel")] EquipamentoBackup equipamento)
+        public async Task<IActionResult> Create([Bind("Descricao,NumeroSerie,Disponivel")] EquipamentoBackup equipamento)
         {
             if (ModelState.IsValid)
             {

@@ -33,7 +33,7 @@ namespace AssistenciaTech.Controllers
         // POST: Pecas/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Nome,QuantidadeEstoque,ValorUnitario")] Peca peca)
+        public async Task<IActionResult> Create([Bind("Nome,QuantidadeEstoque,ValorUnitario")] Peca peca)
         {
             if (ModelState.IsValid)
             {
@@ -66,7 +66,13 @@ namespace AssistenciaTech.Controllers
             {
                 try
                 {
-                    _context.Update(peca);
+                    var pecaExistente = await _context.Pecas.FindAsync(id);
+                    if (pecaExistente == null) return NotFound();
+
+                    pecaExistente.Nome = peca.Nome;
+                    pecaExistente.QuantidadeEstoque = peca.QuantidadeEstoque;
+                    pecaExistente.ValorUnitario = peca.ValorUnitario;
+
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
