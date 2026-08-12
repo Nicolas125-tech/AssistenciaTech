@@ -250,6 +250,7 @@ using (var scope = app.Services.CreateScope())
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
         logger.LogError(ex, "Ocorreu um erro ao aplicar as migrations do banco de dados.");
+        throw;
     }
 }
 
