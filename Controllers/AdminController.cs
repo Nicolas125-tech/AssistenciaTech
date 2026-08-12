@@ -335,7 +335,7 @@ namespace AssistenciaTech.Controllers
                                 continue;
                             }
 
-                            if (!IsValidFileSignature(foto, extension))
+                            if (!await IsValidFileSignatureAsync(foto, extension))
                             {
                                 continue;
                             }
@@ -461,11 +461,11 @@ namespace AssistenciaTech.Controllers
             return PhysicalFile(fullFilePath, contentType);
         }
 
-        private static bool IsValidFileSignature(IFormFile file, string extension)
+        private static async Task<bool> IsValidFileSignatureAsync(IFormFile file, string extension)
         {
             if (file == null || file.Length == 0) return false;
 
-            using var reader = new BinaryReader(file.OpenReadStream());
+            await using var stream = file.OpenReadStream();
             var signatures = new Dictionary<string, List<byte[]>>
             {
                 { ".jpg", new List<byte[]> { new byte[] { 0xFF, 0xD8, 0xFF } } },
@@ -479,7 +479,12 @@ namespace AssistenciaTech.Controllers
                 return false;
 
             var maxSignatureLength = expectedSignatures.Max(s => s.Length);
-            var headerBytes = reader.ReadBytes(maxSignatureLength);
+            var headerBytes = new byte[maxSignatureLength];
+
+            int bytesRead = await stream.ReadAsync(headerBytes, 0, maxSignatureLength);
+            if (bytesRead < maxSignatureLength && bytesRead < expectedSignatures.Min(s => s.Length)) {
+                return false;
+            }
 
             return expectedSignatures.Any(signature =>
                 headerBytes.Take(signature.Length).SequenceEqual(signature));
