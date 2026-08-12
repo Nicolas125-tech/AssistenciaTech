@@ -25,6 +25,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
         private readonly AppDbContext _context;
         private readonly Mock<IConfiguration> _mockConfig;
         private readonly AccountController _controller;
+        private readonly Mock<IAuthenticationService> _mockAuthService;
 
         public AccountControllerTests()
         {
@@ -36,15 +37,18 @@ namespace AssistenciaTech.Application.Tests.Controllers
             _mockConfig = new Mock<IConfiguration>();
 
             var mockHttpContext = new Mock<HttpContext>();
-            var mockAuthService = new Mock<IAuthenticationService>();
+            _mockAuthService = new Mock<IAuthenticationService>();
 
-            mockAuthService
+            _mockAuthService
                 .Setup(x => x.SignInAsync(It.IsAny<HttpContext>(), It.IsAny<string>(), It.IsAny<ClaimsPrincipal>(), It.IsAny<AuthenticationProperties>()))
                 .Returns(Task.CompletedTask);
 
-            mockHttpContext.Setup(c => c.RequestServices.GetService(typeof(IAuthenticationService)))
-                .Returns(mockAuthService.Object);
+            _mockAuthService
+                .Setup(x => x.SignOutAsync(It.IsAny<HttpContext>(), It.IsAny<string>(), It.IsAny<AuthenticationProperties>()))
+                .Returns(Task.CompletedTask);
 
+            mockHttpContext.Setup(c => c.RequestServices.GetService(typeof(IAuthenticationService)))
+                .Returns(_mockAuthService.Object);
 
 
             var mockUrlHelper = new Mock<IUrlHelper>();
@@ -108,6 +112,19 @@ namespace AssistenciaTech.Application.Tests.Controllers
             // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
             ((string)_controller.ViewBag.Error).Should().Be("Usuário ou senha incorretos. Acesso negado.");
+        }
+
+        [Fact]
+        public async Task Logout_CallsSignOutAsyncAndRedirectsToHomeIndex()
+        {
+            // Act
+            var result = await _controller.Logout();
+
+            // Assert
+            _mockAuthService.Verify(x => x.SignOutAsync(It.IsAny<HttpContext>(), CookieAuthenticationDefaults.AuthenticationScheme, It.IsAny<AuthenticationProperties>()), Times.Once);
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectResult.ActionName.Should().Be("Index");
+            redirectResult.ControllerName.Should().Be("Home");
         }
 
         public void Dispose()
