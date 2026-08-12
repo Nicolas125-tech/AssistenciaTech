@@ -56,7 +56,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             // Assert
             var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
             objectResult.StatusCode.Should().Be(500);
-            objectResult.Value.Should().Be("Webhook secret is not configured.");
+            objectResult.Value.Should().Be("Internal server error.");
         }
 
         [Fact]
