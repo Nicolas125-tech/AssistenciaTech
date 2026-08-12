@@ -482,7 +482,8 @@ namespace AssistenciaTech.Controllers
             var headerBytes = new byte[maxSignatureLength];
 
             int bytesRead = await stream.ReadAsync(headerBytes, 0, maxSignatureLength);
-            if (bytesRead < maxSignatureLength && bytesRead < expectedSignatures.Min(s => s.Length)) {
+            if (bytesRead < maxSignatureLength && bytesRead < expectedSignatures.Min(s => s.Length))
+            {
                 return false;
             }
 
