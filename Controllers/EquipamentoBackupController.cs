@@ -52,7 +52,7 @@ namespace AssistenciaTech.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Descricao,NumeroSerie,Disponivel")] EquipamentoBackup equipamento)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Descricao,NumeroSerie")] EquipamentoBackup equipamento)
         {
             if (id != equipamento.Id) return NotFound();
 
@@ -60,7 +60,12 @@ namespace AssistenciaTech.Controllers
             {
                 try
                 {
-                    _context.Update(equipamento);
+                    var existingEquipamento = await _context.EquipamentosBackup.FindAsync(id);
+                    if (existingEquipamento == null) return NotFound();
+
+                    existingEquipamento.Descricao = equipamento.Descricao;
+                    existingEquipamento.NumeroSerie = equipamento.NumeroSerie;
+
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
