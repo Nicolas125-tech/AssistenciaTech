@@ -27,6 +27,24 @@ namespace AssistenciaTech.Application.Tests
         }
 
         [Fact]
+        public async Task Edit_WhenIdIsNull_ReturnsNotFound()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var context = new AppDbContext(options);
+            var controller = new EquipamentoBackupController(context);
+
+            // Act
+            var result = await controller.Edit((int?)null);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Fact]
         public async Task Edit_WhenConcurrencyExceptionAndEquipamentoDoesNotExist_ReturnsNotFound()
         {
             // Arrange
