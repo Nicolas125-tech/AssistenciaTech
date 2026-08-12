@@ -67,7 +67,7 @@ namespace AssistenciaTech.Controllers
             var webhookSecret = _configuration["WebhookSecret"];
             if (string.IsNullOrEmpty(webhookSecret))
             {
-                return StatusCode(500, "Webhook secret is not configured.");
+                return StatusCode(500, "Internal server error.");
             }
 
             if (!Request.Headers.TryGetValue("X-Webhook-Token", out var providedToken))
@@ -83,6 +83,7 @@ namespace AssistenciaTech.Controllers
                 return Unauthorized("Invalid or missing webhook token.");
             }
 
+            // Workaround: MVP implementation. A robust solution should use HMAC signature verification instead of static tokens.
             // Em produção real, este endpoint receberia o JSON do banco informando que o PIX foi pago.
             // Para o MVP, aceitaremos o txId via querystring ou body para simular.
             return Ok();
