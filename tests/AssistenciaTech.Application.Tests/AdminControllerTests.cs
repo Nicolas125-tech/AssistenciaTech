@@ -39,7 +39,8 @@ namespace AssistenciaTech.Application.Tests
                 .ThrowsAsync(new Exception("Database connection failed"));
 
             var mockLogger = new Mock<ILogger<AdminController>>();
-            var controller = new AdminController(context, mockEstoqueService.Object, mockEnv.Object, mockPdfService.Object, mockDashboardService.Object, mockLogger.Object);
+            var mockEquipamentoBackupService = new Mock<IEquipamentoBackupService>();
+            var controller = new AdminController(context, mockEstoqueService.Object, mockEnv.Object, mockPdfService.Object, mockDashboardService.Object, mockEquipamentoBackupService.Object, mockLogger.Object);
 
             // Set TempData
             var httpContext = new DefaultHttpContext();

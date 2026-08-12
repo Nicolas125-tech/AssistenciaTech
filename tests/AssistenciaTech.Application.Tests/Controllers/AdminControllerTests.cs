@@ -41,12 +41,14 @@ namespace AssistenciaTech.Application.Tests.Controllers
             _mockDashboardService = new Mock<IAdminDashboardService>();
             _mockLogger = new Mock<ILogger<AdminController>>();
 
+            var _mockEquipamentoBackupService = new Mock<IEquipamentoBackupService>();
             _controller = new AdminController(
                 _context,
                 _mockEstoqueService.Object,
                 _mockEnv.Object,
                 _mockPdfGeneratorService.Object,
                 _mockDashboardService.Object,
+                _mockEquipamentoBackupService.Object,
                 _mockLogger.Object
             );
         }
