@@ -42,6 +42,23 @@ namespace AssistenciaTech.Application.Tests.Controllers
             erro.Should().Be("Por favor, preencha o número da OS e o CPF.");
         }
 
+        [Fact]
+        public async Task Status_ComOrdemInexistente_DeveRetornarErro()
+        {
+            // Arrange
+            int numeroOS = 999;
+            string cpf = "12345678901";
+
+            // Act
+            var result = await _controller.Status(numeroOS, cpf);
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            viewResult.ViewName.Should().Be("Index");
+            string erro = _controller.ViewBag.Erro;
+            erro.Should().Be("Ordem de Serviço não encontrada ou CPF inválido.");
+        }
+
         public void Dispose()
         {
             _context.Database.EnsureDeleted();
