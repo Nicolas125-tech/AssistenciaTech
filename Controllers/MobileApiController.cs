@@ -79,6 +79,9 @@ namespace AssistenciaTech.Controllers
             if (visita == null || visita.OrdemServicoId != id)
                 return NotFound(new { error = "Visita não encontrada ou não pertence a esta OS" });
 
+            if (visita.CheckOut.HasValue)
+                return BadRequest(new { error = "Visita já finalizada" });
+
             var os = await _context.OrdensServico.FindAsync(id);
             if (os == null) return NotFound();
 

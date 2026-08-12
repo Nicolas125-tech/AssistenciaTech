@@ -134,6 +134,37 @@ namespace AssistenciaTech.Application.Tests.Controllers
         }
 
         [Fact]
+        public async Task FinalizarVisita_ReturnsBadRequest_WhenVisitaAlreadyFinalized()
+        {
+            // Arrange
+            var os = new OrdemServico { Id = 1, Equipamento = "PC", Status = WorkflowStatus.EmAnalise };
+            _context.OrdensServico.Add(os);
+
+            var visita = new VisitaCampo
+            {
+                Id = 1,
+                OrdemServicoId = 1,
+                TecnicoId = 10, // The authenticated technician
+                CheckIn = DateTime.Now.AddHours(-1),
+                CheckOut = DateTime.Now // Already finalized
+            };
+            _context.VisitasCampo.Add(visita);
+            await _context.SaveChangesAsync();
+
+            // Authenticate as the correct technician (ID = 10)
+            SetUserContext(10);
+
+            var request = new MobileApiController.FinalizarRequest { VisitaId = 1 };
+
+            // Act
+            var result = await _controller.FinalizarVisita(1, request);
+
+            // Assert
+            var badRequestResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
+            badRequestResult.Value.Should().BeEquivalentTo(new { error = "Visita já finalizada" });
+        }
+
+        [Fact]
         public async Task CheckIn_ReturnsForbid_WhenOrdemServicoTecnicoIdDoesNotMatchAuthenticatedUser()
         {
             // Arrange
