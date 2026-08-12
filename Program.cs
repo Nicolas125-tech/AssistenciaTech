@@ -93,6 +93,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(System.Net.IPAddress.Parse("192.168.0.0"), 16));
 });
 
+builder.Services.AddMemoryCache();
 var app = builder.Build();
 
 app.UseForwardedHeaders(); // Movido para o topo do pipeline
