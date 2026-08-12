@@ -30,15 +30,17 @@ namespace AssistenciaTech.Controllers
         private readonly IWebHostEnvironment _env;
         private readonly IPdfGeneratorService _pdfGeneratorService;
         private readonly IAdminDashboardService _dashboardService;
+        private readonly IEquipamentoBackupService _equipamentoBackupService;
         private readonly ILogger<AdminController> _logger;
 
-        public AdminController(AppDbContext context, IEstoqueService estoqueService, IWebHostEnvironment env, IPdfGeneratorService pdfGeneratorService, IAdminDashboardService dashboardService, ILogger<AdminController> logger)
+        public AdminController(AppDbContext context, IEstoqueService estoqueService, IWebHostEnvironment env, IPdfGeneratorService pdfGeneratorService, IAdminDashboardService dashboardService, IEquipamentoBackupService equipamentoBackupService, ILogger<AdminController> logger)
         {
             _context = context;
             _estoqueService = estoqueService;
             _env = env;
             _pdfGeneratorService = pdfGeneratorService;
             _dashboardService = dashboardService;
+            _equipamentoBackupService = equipamentoBackupService;
             _logger = logger;
         }
 
@@ -232,24 +234,8 @@ namespace AssistenciaTech.Controllers
                 ordemExistente.ContadorPaginasFinal = ordemServico.ContadorPaginasFinal;
 
                 // Lógica do Equipamento de Backup
-                if (ordemExistente.EquipamentoBackupId != ordemServico.EquipamentoBackupId)
-                {
-                    // Se ele tinha um antes e tirou, marcamos o antigo como disponivel
-                    if (ordemExistente.EquipamentoBackupId is int antigoId)
-                    {
-                        var backupAntigo = await _context.EquipamentosBackup.FindAsync(antigoId);
-                        if (backupAntigo != null) backupAntigo.Disponivel = true;
-                    }
-
-                    // Se ele atrelou um novo, marcamos como indisponível
-                    if (ordemServico.EquipamentoBackupId is int novoId)
-                    {
-                        var backupNovo = await _context.EquipamentosBackup.FindAsync(novoId);
-                        if (backupNovo != null) backupNovo.Disponivel = false;
-                    }
-
-                    ordemExistente.EquipamentoBackupId = ordemServico.EquipamentoBackupId;
-                }
+                await _equipamentoBackupService.ProcessarTrocaEquipamentoAsync(ordemExistente.EquipamentoBackupId, ordemServico.EquipamentoBackupId);
+                ordemExistente.EquipamentoBackupId = ordemServico.EquipamentoBackupId;
 
                 string statusAnterior = ordemExistente.Status;
                 ordemExistente.Status = ordemServico.Status;
