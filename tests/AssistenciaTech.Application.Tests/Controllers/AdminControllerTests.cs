@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -164,6 +165,93 @@ namespace AssistenciaTech.Application.Tests.Controllers
             result.ActionName.Should().Be("Index");
             _controller.TempData.Should().ContainKey("AlertaGarantia");
             _controller.TempData["AlertaGarantia"].ToString().Should().Contain("ATENÇÃO: O equipamento com NS SN123456 já deu entrada na assistência nos últimos 30 dias. Verifique se é um retorno em garantia!");
+        }
+
+
+        [Fact]
+        public void GetEvidencia_ValidFile_ReturnsPhysicalFileResult()
+        {
+            // Arrange
+            var tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            var uploadsFolder = Path.Combine(tempPath, "SecureUploads", "Evidencias");
+            Directory.CreateDirectory(uploadsFolder);
+            var fileName = "test.jpg";
+            var filePath = Path.Combine(uploadsFolder, fileName);
+            System.IO.File.WriteAllText(filePath, "dummy content");
+
+            _mockEnv.Setup(e => e.ContentRootPath).Returns(tempPath);
+
+            // Act
+            var result = _controller.GetEvidencia(fileName) as PhysicalFileResult;
+
+            // Assert
+            result.Should().NotBeNull();
+            result.ContentType.Should().Be("image/jpeg");
+            result.FileName.Should().Be(filePath);
+
+            // Cleanup
+            Directory.Delete(tempPath, true);
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData(null)]
+        public void GetEvidencia_NullOrEmptyFileName_ReturnsBadRequest(string fileName)
+        {
+            // Act
+            var result = _controller.GetEvidencia(fileName);
+
+            // Assert
+            result.Should().BeOfType<BadRequestResult>();
+        }
+
+        [Theory]
+        [InlineData("..file.jpg")]
+        [InlineData("file/name.jpg")]
+        [InlineData("file\\name.jpg")]
+        public void GetEvidencia_InvalidCharactersInFileName_ReturnsBadRequest(string fileName)
+        {
+            // Act
+            var result = _controller.GetEvidencia(fileName);
+
+            // Assert
+            result.Should().BeOfType<BadRequestResult>();
+        }
+
+        [Theory]
+        [InlineData("test.txt")]
+        [InlineData("test.exe")]
+        [InlineData("test")]
+        public void GetEvidencia_InvalidExtension_ReturnsBadRequest(string fileName)
+        {
+            // Act
+            var result = _controller.GetEvidencia(fileName);
+
+            // Assert
+            result.Should().BeOfType<BadRequestResult>();
+        }
+
+        [Fact]
+        public void GetEvidencia_FileDoesNotExist_ReturnsNotFound()
+        {
+            // Arrange
+            var tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            _mockEnv.Setup(e => e.ContentRootPath).Returns(tempPath);
+
+            // To ensure the path checks pass (directory separator, starts with), we need the uploads directory to exist
+            var uploadsFolder = Path.Combine(tempPath, "SecureUploads", "Evidencias");
+            Directory.CreateDirectory(uploadsFolder);
+
+            var fileName = "not_found.jpg";
+
+            // Act
+            var result = _controller.GetEvidencia(fileName);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+
+            // Cleanup
+            Directory.Delete(tempPath, true);
         }
 
         public void Dispose()
