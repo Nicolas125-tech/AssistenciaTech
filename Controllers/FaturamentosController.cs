@@ -75,10 +75,15 @@ namespace AssistenciaTech.Controllers
                 return Unauthorized("Invalid or missing webhook token.");
             }
 
-            // Constant-time string comparison to prevent timing attacks
-            if (!CryptographicOperations.FixedTimeEquals(
-                System.Text.Encoding.UTF8.GetBytes(providedToken.ToString()),
-                System.Text.Encoding.UTF8.GetBytes(webhookSecret)))
+            // Hash both values before comparison to ensure constant length
+            // preventing length-based timing attacks
+            byte[] providedTokenBytes = System.Text.Encoding.UTF8.GetBytes(providedToken.ToString());
+            byte[] webhookSecretBytes = System.Text.Encoding.UTF8.GetBytes(webhookSecret);
+
+            byte[] providedHash = SHA256.HashData(providedTokenBytes);
+            byte[] secretHash = SHA256.HashData(webhookSecretBytes);
+
+            if (!CryptographicOperations.FixedTimeEquals(providedHash, secretHash))
             {
                 return Unauthorized("Invalid or missing webhook token.");
             }
