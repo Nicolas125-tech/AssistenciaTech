@@ -14,21 +14,6 @@ namespace AssistenciaTech.Controllers
             _context = context;
         }
 
-        // GET: /Home/TestDb
-        public IActionResult TestDb()
-        {
-            try
-            {
-                _context.Database.OpenConnection();
-                _context.Database.CloseConnection();
-                return Content("Conexão com o banco de dados realizada com SUCESSO!");
-            }
-            catch (Exception)
-            {
-                return Content("ERRO: Não foi possível conectar ao banco de dados.");
-            }
-        }
-
         // GET: / ou /Home/Index
         public IActionResult Index()
         {
