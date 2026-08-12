@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using AssistenciaTech.Data;
 using AssistenciaTech.Models;
@@ -62,7 +63,7 @@ namespace AssistenciaTech.Controllers
         // Simulação de Webhook (Callback do Banco)
         [HttpPost("api/faturamentos/webhook-pix")]
         [AllowAnonymous]
-        public async Task<IActionResult> WebhookPix([FromBody] dynamic payload)
+        public async Task<IActionResult> WebhookPix()
         {
             var webhookSecret = _configuration["WebhookSecret"];
             if (string.IsNullOrEmpty(webhookSecret))
@@ -70,25 +71,39 @@ namespace AssistenciaTech.Controllers
                 return StatusCode(500, "Internal server error.");
             }
 
-            if (!Request.Headers.TryGetValue("X-Webhook-Token", out var providedToken))
+            if (!Request.Headers.TryGetValue("X-Webhook-Signature", out var providedSignature))
             {
-                return Unauthorized("Invalid or missing webhook token.");
+                return Unauthorized("Invalid or missing webhook signature.");
             }
 
-            // Hash both values before comparison to ensure constant length
-            // preventing length-based timing attacks
-            byte[] providedTokenBytes = System.Text.Encoding.UTF8.GetBytes(providedToken.ToString());
-            byte[] webhookSecretBytes = System.Text.Encoding.UTF8.GetBytes(webhookSecret);
+            // Read the request body
+            Request.EnableBuffering();
+            Request.Body.Position = 0;
+            using var reader = new System.IO.StreamReader(Request.Body);
+            var payload = await reader.ReadToEndAsync();
+            Request.Body.Position = 0; // Reset for potential downstream readers
 
-            byte[] providedHash = SHA256.HashData(providedTokenBytes);
-            byte[] secretHash = SHA256.HashData(webhookSecretBytes);
+            // Compute HMAC
+            byte[] secretBytes = System.Text.Encoding.UTF8.GetBytes(webhookSecret);
+            byte[] payloadBytes = System.Text.Encoding.UTF8.GetBytes(payload);
+            using var hmac = new HMACSHA256(secretBytes);
+            byte[] computedHashBytes = hmac.ComputeHash(payloadBytes);
+            string computedSignature = Convert.ToHexString(computedHashBytes).ToLowerInvariant();
+
+            // Hash both string values (hex strings) before FixedTimeEquals comparison to ensure constant length
+            // (Even though they should be 64 chars, this is defensive against length-based timing attacks)
+            byte[] providedSignatureBytes = System.Text.Encoding.UTF8.GetBytes(providedSignature.ToString());
+            byte[] computedSignatureBytes = System.Text.Encoding.UTF8.GetBytes(computedSignature);
+
+            byte[] providedHash = SHA256.HashData(providedSignatureBytes);
+            byte[] secretHash = SHA256.HashData(computedSignatureBytes);
 
             if (!CryptographicOperations.FixedTimeEquals(providedHash, secretHash))
             {
-                return Unauthorized("Invalid or missing webhook token.");
+                return Unauthorized("Invalid or missing webhook signature.");
             }
 
-            // Workaround: MVP implementation. A robust solution should use HMAC signature verification instead of static tokens.
+            // Workaround: MVP implementation.
             // Em produção real, este endpoint receberia o JSON do banco informando que o PIX foi pago.
             // Para o MVP, aceitaremos o txId via querystring ou body para simular.
             return Ok();
