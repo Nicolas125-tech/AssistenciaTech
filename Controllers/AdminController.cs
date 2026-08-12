@@ -431,7 +431,19 @@ namespace AssistenciaTech.Controllers
             string uploadsFolder = Path.Combine(_env.ContentRootPath, "SecureUploads", "Evidencias");
             string filePath = Path.Combine(uploadsFolder, fileName);
 
-            if (!System.IO.File.Exists(filePath))
+            var fullUploadsFolder = Path.GetFullPath(uploadsFolder);
+            if (!fullUploadsFolder.EndsWith(Path.DirectorySeparatorChar.ToString()))
+            {
+                fullUploadsFolder += Path.DirectorySeparatorChar;
+            }
+
+            var fullFilePath = Path.GetFullPath(filePath);
+            if (!fullFilePath.StartsWith(fullUploadsFolder, StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest();
+            }
+
+            if (!System.IO.File.Exists(fullFilePath))
             {
                 return NotFound();
             }
@@ -446,7 +458,7 @@ namespace AssistenciaTech.Controllers
                 _ => "application/octet-stream"
             };
 
-            return PhysicalFile(filePath, contentType);
+            return PhysicalFile(fullFilePath, contentType);
         }
 
         private static bool IsValidFileSignature(IFormFile file, string extension)
