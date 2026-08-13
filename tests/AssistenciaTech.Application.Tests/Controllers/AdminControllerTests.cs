@@ -197,7 +197,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
         [Theory]
         [InlineData("")]
         [InlineData(null)]
-        public void GetEvidencia_NullOrEmptyFileName_ReturnsBadRequest(string fileName)
+        public void GetEvidencia_NullOrEmptyFileName_ReturnsBadRequest(string? fileName)
         {
             // Act
             var result = _controller.GetEvidencia(fileName);
@@ -343,10 +343,12 @@ namespace AssistenciaTech.Application.Tests.Controllers
         public void Dispose()
         {
             // We might have disposed the context in the test above, so we handle it gracefully
-            try {
+            try
+            {
                 _context.Database.EnsureDeleted();
                 _context.Dispose();
-            } catch { }
+            }
+            catch { }
             _controller.Dispose();
         }
     }
