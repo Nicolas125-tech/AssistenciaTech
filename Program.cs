@@ -18,6 +18,8 @@ builder.Services.AddScoped<IEstoqueService, EstoqueService>();
 builder.Services.AddScoped<IPdfGeneratorService, PdfGeneratorService>();
 builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
 builder.Services.AddScoped<IEquipamentoBackupService, EquipamentoBackupService>();
+builder.Services.AddScoped<IEvidenciaUploadService, EvidenciaUploadService>();
+builder.Services.AddScoped<IOrdemServicoWorkflowService, OrdemServicoWorkflowService>();
 
 // Registrando o contexto do banco de dados PostgreSQL
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");

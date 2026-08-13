@@ -40,7 +40,7 @@ namespace AssistenciaTech.Application.Tests
 
             var mockLogger = new Mock<ILogger<AdminController>>();
             var mockEquipamentoBackupService = new Mock<IEquipamentoBackupService>();
-            var controller = new AdminController(context, mockEstoqueService.Object, mockEnv.Object, mockPdfService.Object, mockDashboardService.Object, mockEquipamentoBackupService.Object, mockLogger.Object);
+            var controller = new AdminController(context, mockEstoqueService.Object, mockEnv.Object, mockPdfService.Object, mockDashboardService.Object, mockEquipamentoBackupService.Object, new Mock<IEvidenciaUploadService>().Object, new Mock<IOrdemServicoWorkflowService>().Object, mockLogger.Object);
 
             // Set TempData
             var httpContext = new DefaultHttpContext();

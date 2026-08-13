@@ -51,6 +51,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 _mockPdfGeneratorService.Object,
                 _mockDashboardService.Object,
                 _mockEquipamentoBackupService.Object,
+                new Mock<IEvidenciaUploadService>().Object,
+                new Mock<IOrdemServicoWorkflowService>().Object,
                 _mockLogger.Object
             );
         }
