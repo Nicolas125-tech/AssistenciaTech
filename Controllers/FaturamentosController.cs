@@ -1,6 +1,7 @@
 using System;
 using System.Security.Cryptography;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
@@ -103,10 +104,53 @@ namespace AssistenciaTech.Controllers
                 return Unauthorized("Invalid or missing webhook signature.");
             }
 
-            // Workaround: MVP implementation.
-            // Em produção real, este endpoint receberia o JSON do banco informando que o PIX foi pago.
-            // Para o MVP, aceitaremos o txId via querystring ou body para simular.
-            return Ok();
+            try
+            {
+                using var jsonDoc = JsonDocument.Parse(payload);
+                string txId = null;
+
+                // Try BACEN standard format (array of pix objects)
+                if (jsonDoc.RootElement.TryGetProperty("pix", out var pixElement) && pixElement.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var pix in pixElement.EnumerateArray())
+                    {
+                        if (pix.TryGetProperty("txid", out var txidElement))
+                        {
+                            txId = txidElement.GetString();
+                            if (!string.IsNullOrEmpty(txId))
+                            {
+                                await ProcessarPagamentoTxIdAsync(txId);
+                            }
+                        }
+                    }
+                }
+                // Fallback to simple format
+                else if (jsonDoc.RootElement.TryGetProperty("txid", out var txidElement))
+                {
+                    txId = txidElement.GetString();
+                    if (!string.IsNullOrEmpty(txId))
+                    {
+                        await ProcessarPagamentoTxIdAsync(txId);
+                    }
+                }
+
+                return Ok();
+            }
+            catch (JsonException)
+            {
+                return BadRequest("Invalid JSON payload.");
+            }
+        }
+
+        private async Task ProcessarPagamentoTxIdAsync(string txId)
+        {
+            var faturamento = await _context.Faturamentos.FirstOrDefaultAsync(f => f.TxIdPix == txId);
+            if (faturamento != null && faturamento.StatusPagamento != PagamentoStatus.Pago_Total)
+            {
+                faturamento.StatusPagamento = PagamentoStatus.Pago_Total;
+                _context.Update(faturamento);
+                await _context.SaveChangesAsync();
+            }
         }
 
         [HttpPost]
