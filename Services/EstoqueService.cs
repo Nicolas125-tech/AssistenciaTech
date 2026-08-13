@@ -23,24 +23,29 @@ namespace AssistenciaTech.Services
 
         public async Task<bool> DeduzirEstoque(int ordemServicoId)
         {
-            var pecasUtilizadas = await _context.OrdemServicoPecas
-                .Include(op => op.Peca)
+            var agrupado = await _context.OrdemServicoPecas
                 .Where(op => op.OrdemServicoId == ordemServicoId)
+                .GroupBy(op => op.PecaId)
+                .Select(g => new { PecaId = g.Key, QuantidadeTotal = g.Sum(x => x.Quantidade) })
                 .ToListAsync();
 
-            if (!pecasUtilizadas.Any()) return true; // Nada a deduzir
+            if (!agrupado.Any()) return true; // Nada a deduzir
 
-            foreach (var item in pecasUtilizadas)
+            var pecaIds = agrupado.Select(a => a.PecaId).ToList();
+            var pecas = await _context.Pecas.Where(p => pecaIds.Contains(p.Id)).ToListAsync();
+            var quantidadesDict = agrupado.ToDictionary(a => a.PecaId, a => a.QuantidadeTotal);
+
+            foreach (var peca in pecas)
             {
-                if (item.Peca != null)
+                if (quantidadesDict.TryGetValue(peca.Id, out var qtdSolicitada))
                 {
-                    // Regra: Impede estoque de ficar negativo (conforme aprovação implícita)
-                    if (item.Peca.QuantidadeEstoque < item.Quantidade)
+                    // Regra: Impede estoque de ficar negativo
+                    if (peca.QuantidadeEstoque < qtdSolicitada)
                     {
-                        throw new InvalidOperationException($"Estoque insuficiente para a peça: {item.Peca.Nome}. Disponível: {item.Peca.QuantidadeEstoque}, Solicitado: {item.Quantidade}");
+                        throw new InvalidOperationException($"Estoque insuficiente para a peça: {peca.Nome}. Disponível: {peca.QuantidadeEstoque}, Solicitado: {qtdSolicitada}");
                     }
 
-                    item.Peca.QuantidadeEstoque -= item.Quantidade;
+                    peca.QuantidadeEstoque -= qtdSolicitada;
                 }
             }
 
@@ -50,18 +55,23 @@ namespace AssistenciaTech.Services
 
         public async Task<bool> RestaurarEstoque(int ordemServicoId)
         {
-            var pecasUtilizadas = await _context.OrdemServicoPecas
-                .Include(op => op.Peca)
+            var agrupado = await _context.OrdemServicoPecas
                 .Where(op => op.OrdemServicoId == ordemServicoId)
+                .GroupBy(op => op.PecaId)
+                .Select(g => new { PecaId = g.Key, QuantidadeTotal = g.Sum(x => x.Quantidade) })
                 .ToListAsync();
 
-            if (!pecasUtilizadas.Any()) return true;
+            if (!agrupado.Any()) return true;
 
-            foreach (var item in pecasUtilizadas)
+            var pecaIds = agrupado.Select(a => a.PecaId).ToList();
+            var pecas = await _context.Pecas.Where(p => pecaIds.Contains(p.Id)).ToListAsync();
+            var quantidadesDict = agrupado.ToDictionary(a => a.PecaId, a => a.QuantidadeTotal);
+
+            foreach (var peca in pecas)
             {
-                if (item.Peca != null)
+                if (quantidadesDict.TryGetValue(peca.Id, out var qtdRestaurar))
                 {
-                    item.Peca.QuantidadeEstoque += item.Quantidade;
+                    peca.QuantidadeEstoque += qtdRestaurar;
                 }
             }
 
