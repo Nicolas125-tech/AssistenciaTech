@@ -76,14 +76,38 @@ namespace AssistenciaTech.Controllers
         private static string ObterApenasNumeros(string? input)
         {
             if (string.IsNullOrEmpty(input)) return string.Empty;
-            Span<char> buffer = stackalloc char[input.Length];
-            int length = 0;
-            foreach (char c in input)
+
+            ReadOnlySpan<char> span = input.AsSpan();
+
+            // Fast path: find first non-digit
+            int firstNonDigit = span.IndexOfAnyExceptInRange('0', '9');
+
+            // If string only has digits, return it directly! Zero allocation.
+            if (firstNonDigit < 0) return input;
+
+            // Need to allocate and filter.
+            // First count how many digits to allocate exact string length
+            int digitCount = firstNonDigit;
+            for (int i = firstNonDigit + 1; i < span.Length; i++)
             {
-                if (char.IsDigit(c))
-                    buffer[length++] = c;
+                if ((uint)(span[i] - '0') <= 9) digitCount++;
             }
-            return new string(buffer.Slice(0, length));
+
+            if (digitCount == 0) return string.Empty;
+
+            return string.Create(digitCount, input, (buffer, state) =>
+            {
+                ReadOnlySpan<char> stateSpan = state.AsSpan();
+                int index = 0;
+                for (int i = 0; i < stateSpan.Length; i++)
+                {
+                    char c = stateSpan[i];
+                    if ((uint)(c - '0') <= 9)
+                    {
+                        buffer[index++] = c;
+                    }
+                }
+            });
         }
     }
 }
