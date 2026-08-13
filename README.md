@@ -90,4 +90,4 @@ Você pode gerar este arquivo automaticamente utilizando o script incluso:
 
 Isto configurará o ambiente com as seguintes credenciais padrão:
 - **Usuário:** `admin`
-- **Senha:** `Admin@123`
+- **Senha:** Senha informada durante o setup (ou uma senha aleatória gerada e exibida no terminal, caso deixado em branco)
