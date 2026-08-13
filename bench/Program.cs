@@ -92,32 +92,43 @@ public class EstoqueBenchmark
     }
 
     [Benchmark]
-    public async Task EFCoreTracking_OptimizedNoInclude()
+    public async Task ExecuteUpdate_Optimized_Batched()
     {
-        var pecasUtilizadas = await _context.OrdemServicoPecas
+        var pecasInfo = await _context.OrdemServicoPecas
             .Where(op => op.OrdemServicoId == 1)
+            .Select(op => new { op.PecaId, op.Quantidade, PecaEstoque = op.Peca.QuantidadeEstoque, op.Peca.Nome })
             .ToListAsync();
 
-        if (!pecasUtilizadas.Any()) return;
+        if (!pecasInfo.Any()) return;
 
-        var pecasIds = pecasUtilizadas.Select(p => p.PecaId).ToList();
-
-        var pecas = await _context.Pecas
-            .Where(p => pecasIds.Contains(p.Id))
-            .ToDictionaryAsync(p => p.Id);
-
-        foreach (var item in pecasUtilizadas)
+        foreach (var item in pecasInfo)
         {
-            if (pecas.TryGetValue(item.PecaId, out var peca))
-            {
-                if (peca.QuantidadeEstoque < item.Quantidade)
-                    throw new InvalidOperationException("Estoque insuficiente");
-
-                peca.QuantidadeEstoque -= item.Quantidade;
-            }
+            if (item.PecaEstoque < item.Quantidade)
+                throw new InvalidOperationException($"Estoque insuficiente");
         }
 
-        await _context.SaveChangesAsync();
+        // Instead of looping, maybe a bulk update using SQL?
+        // SQLite:
+        /*
+        UPDATE Pecas
+        SET QuantidadeEstoque = QuantidadeEstoque - (SELECT Quantidade FROM OrdemServicoPecas WHERE PecaId = Pecas.Id AND OrdemServicoId = 1)
+        WHERE Id IN (SELECT PecaId FROM OrdemServicoPecas WHERE OrdemServicoId = 1);
+        */
+
+        // Let's do raw SQL
+        await _context.Database.ExecuteSqlInterpolatedAsync($@"
+            UPDATE Pecas
+            SET QuantidadeEstoque = QuantidadeEstoque - (
+                SELECT op.Quantidade
+                FROM OrdemServicoPecas op
+                WHERE op.PecaId = Pecas.Id AND op.OrdemServicoId = {1}
+            )
+            WHERE Id IN (
+                SELECT op2.PecaId
+                FROM OrdemServicoPecas op2
+                WHERE op2.OrdemServicoId = {1}
+            );
+        ");
     }
 }
 
