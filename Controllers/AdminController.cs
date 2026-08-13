@@ -57,9 +57,18 @@ namespace AssistenciaTech.Controllers
             await using var streamWriter = new StreamWriter(Response.Body, new System.Text.UTF8Encoding(false));
             await streamWriter.WriteLineAsync("Id,Cliente,Equipamento,Data Entrada,Status,Valor Orçamento");
 
+            var sb = new System.Text.StringBuilder();
             await foreach (var os in todasOS)
             {
-                await streamWriter.WriteLineAsync($"{os.Id},\"{os.Cliente?.Nome}\",\"{os.Equipamento}\",{os.DataEntrada:dd/MM/yyyy},{os.Status},{os.ValorOrcamento}");
+                sb.Append(os.Id).Append(",\"")
+                  .Append(os.Cliente?.Nome).Append("\",\"")
+                  .Append(os.Equipamento).Append("\",")
+                  .Append(os.DataEntrada.ToString("dd/MM/yyyy")).Append(',')
+                  .Append(os.Status).Append(',')
+                  .Append(os.ValorOrcamento);
+
+                await streamWriter.WriteLineAsync(sb.ToString());
+                sb.Clear();
             }
         }
 
