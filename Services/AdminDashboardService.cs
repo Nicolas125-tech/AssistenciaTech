@@ -116,23 +116,33 @@ namespace AssistenciaTech.Services
             int equipamentosProntos = 0;
             decimal faturamentoPrevisto = 0;
 
-            if (statusGroupDb != null) foreach (var g in statusGroupDb)
+            var count = statusGroupDb?.Count ?? 0;
+            var chartLabels = new List<string>(count);
+            var chartData = new List<int>(count);
+
+            if (statusGroupDb != null)
             {
-                if (g.Status != WorkflowStatus.Concluido && g.Status != WorkflowStatus.Entregue)
-                    totalAbertas += g.Count;
+                foreach (var g in statusGroupDb)
+                {
+                    if (g.Status != WorkflowStatus.Concluido && g.Status != WorkflowStatus.Entregue)
+                        totalAbertas += g.Count;
 
-                if (g.Status == WorkflowStatus.Concluido)
-                    equipamentosProntos += g.Count;
+                    if (g.Status == WorkflowStatus.Concluido)
+                        equipamentosProntos += g.Count;
 
-                if (g.Status != WorkflowStatus.Entregue && g.Status != "Cancelado")
-                    faturamentoPrevisto += g.TotalValor;
+                    if (g.Status != WorkflowStatus.Entregue && g.Status != "Cancelado")
+                        faturamentoPrevisto += g.TotalValor;
+
+                    chartLabels.Add(g.Status!);
+                    chartData.Add(g.Count);
+                }
             }
 
             return new DashboardDto
             {
                 Ordens = ordensOrdenadas,
-                ChartLabels = (statusGroupDb ?? new List<StatusGroupDto>()).Select(g => g.Status!).ToList(),
-                ChartData = (statusGroupDb ?? new List<StatusGroupDto>()).Select(g => g.Count).ToList(),
+                ChartLabels = chartLabels,
+                ChartData = chartData,
                 TotalAbertas = totalAbertas,
                 EquipamentosProntos = equipamentosProntos,
                 FaturamentoPrevisto = faturamentoPrevisto,
