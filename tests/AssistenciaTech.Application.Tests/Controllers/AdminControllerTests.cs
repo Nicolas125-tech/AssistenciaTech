@@ -11,6 +11,7 @@ using AssistenciaTech.Services;
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.EntityFrameworkCore;
 using Moq;
@@ -254,10 +255,98 @@ namespace AssistenciaTech.Application.Tests.Controllers
             Directory.Delete(tempPath, true);
         }
 
+        [Fact]
+        public async Task Edit_Get_ReturnsNotFound_WhenIdIsNull()
+        {
+            // Act
+            var result = await _controller.Edit((int?)null);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Fact]
+        public async Task Edit_Get_ReturnsNotFound_WhenOrdemServicoDoesNotExist()
+        {
+            // Act
+            var result = await _controller.Edit(999);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Fact]
+        public async Task Edit_Get_ReturnsViewResult_WithOrdemServico_WhenIdExists()
+        {
+            // Arrange
+            var cliente = new Cliente { Nome = "Cliente Teste", Email = "teste@teste.com", Telefone = "12345678", Cpf = "12345678901" };
+            _context.Clientes.Add(cliente);
+            await _context.SaveChangesAsync();
+
+            var os = new OrdemServico { ClienteId = cliente.Id, Status = "Orçamento", Equipamento = "PC" };
+            _context.OrdensServico.Add(os);
+
+            var tecnico = new Tecnico { Nome = "Tecnico 1", Ativo = true };
+            _context.Tecnicos.Add(tecnico);
+
+            var equipamentoBackup = new EquipamentoBackup { Descricao = "Backup 1", Disponivel = true };
+            _context.EquipamentosBackup.Add(equipamentoBackup);
+
+            var contrato = new Contrato { ClienteId = cliente.Id, HorasSLA = 10, ValorMensal = 100 };
+            _context.Contratos.Add(contrato);
+
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _controller.Edit(os.Id);
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            var model = viewResult.Model.Should().BeAssignableTo<OrdemServico>().Subject;
+            model.Id.Should().Be(os.Id);
+
+            // Verify ViewBags
+            var viewData = viewResult.ViewData;
+            viewData["Tecnicos"].Should().BeOfType<SelectList>();
+            viewData["EquipamentosBackup"].Should().BeOfType<SelectList>();
+            viewData["Contratos"].Should().BeOfType<SelectList>();
+        }
+
+        [Fact]
+        public async Task Edit_Get_ReturnsRedirectToIndex_WhenDatabaseFails()
+        {
+            // Arrange
+            // We set up a new controller where TempData throws to simulate an issue, but wait,
+            // the exception is caught in the controller
+            // The catch block uses TempData. We need TempData to be initialized!
+            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+            var tempData = new TempDataDictionary(httpContext, Mock.Of<ITempDataProvider>());
+
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = httpContext
+            };
+            _controller.TempData = tempData;
+
+            // We dispose the context so that accessing the DB throws an exception
+            _context.Dispose();
+
+            // Act
+            var result = await _controller.Edit(1) as RedirectToActionResult;
+
+            // Assert
+            result.Should().NotBeNull();
+            result.ActionName.Should().Be("Index");
+            _controller.TempData["ErroBanco"].Should().Be("Não foi possível carregar a tela de edição. O banco de dados está inacessível.");
+        }
+
         public void Dispose()
         {
-            _context.Database.EnsureDeleted();
-            _context.Dispose();
+            // We might have disposed the context in the test above, so we handle it gracefully
+            try {
+                _context.Database.EnsureDeleted();
+                _context.Dispose();
+            } catch { }
             _controller.Dispose();
         }
     }
