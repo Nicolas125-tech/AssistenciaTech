@@ -84,6 +84,49 @@ namespace AssistenciaTech.Application.Tests.Controllers
             result.Should().BeOfType<ViewResult>();
         }
 
+        [Fact]
+        public async Task Edit_Get_NullId_ShouldReturnNotFound()
+        {
+            // Act
+            var result = await _controller.Edit((int?)null);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Fact]
+        public async Task Edit_Get_InvalidId_ShouldReturnNotFound()
+        {
+            // Act
+            var result = await _controller.Edit(999);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Fact]
+        public async Task Edit_Get_ValidId_ShouldReturnViewWithPeca()
+        {
+            // Arrange
+            var peca = new Peca
+            {
+                Nome = "Processador",
+                QuantidadeEstoque = 5,
+                ValorUnitario = 1500.00m
+            };
+            _context.Pecas.Add(peca);
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _controller.Edit(peca.Id);
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            var model = viewResult.Model.Should().BeAssignableTo<Peca>().Subject;
+            model.Id.Should().Be(peca.Id);
+            model.Nome.Should().Be(peca.Nome);
+        }
+
         public void Dispose()
         {
             _context.Database.EnsureDeleted();
