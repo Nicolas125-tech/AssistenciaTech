@@ -15,6 +15,7 @@ using QuestPDF.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using System.IO;
+using System.Data.Common;
 using Microsoft.Extensions.Logging;
 
 namespace AssistenciaTech.Controllers
@@ -109,7 +110,7 @@ namespace AssistenciaTech.Controllers
 
                 return View(dashboardData.Ordens);
             }
-            catch (Exception ex)
+            catch (DbException ex)
             {
                 _logger.LogError(ex, "DB_CONNECTION_ERROR (Admin/Index)");
                 // Log the exception in a real scenario

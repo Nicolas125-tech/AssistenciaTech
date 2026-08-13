@@ -15,6 +15,8 @@ using Microsoft.Extensions.Logging;
 using FluentAssertions;
 using Xunit;
 
+using System.Data.Common;
+
 namespace AssistenciaTech.Application.Tests
 {
     public class AdminControllerTests
@@ -36,7 +38,7 @@ namespace AssistenciaTech.Application.Tests
 
             mockDashboardService
                 .Setup(s => s.GetDashboardDataAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()))
-                .ThrowsAsync(new Exception("Database connection failed"));
+                .ThrowsAsync(new TestDbException("Database connection failed"));
 
             var mockLogger = new Mock<ILogger<AdminController>>();
             var mockEquipamentoBackupService = new Mock<IEquipamentoBackupService>();
@@ -68,5 +70,10 @@ namespace AssistenciaTech.Application.Tests
             decimal faturamentoPrevisto = viewBag.FaturamentoPrevisto;
             faturamentoPrevisto.Should().Be(0m);
         }
+    }
+
+    public class TestDbException : DbException
+    {
+        public TestDbException(string message) : base(message) { }
     }
 }
