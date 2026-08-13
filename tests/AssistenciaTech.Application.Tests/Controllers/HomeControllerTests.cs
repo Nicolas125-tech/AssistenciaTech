@@ -8,6 +8,7 @@ using AssistenciaTech.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Logging;
 
 namespace AssistenciaTech.Application.Tests.Controllers
 {
@@ -28,7 +29,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             using (var context = new AppDbContext(options))
             {
                 context.Database.EnsureCreated();
-                var controller = new HomeController(context);
+                var controller = new HomeController(context, Mock.Of<ILogger<HomeController>>());
 
                 // Act
                 var result = controller.TestDb();
@@ -50,7 +51,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
 
             using (var context = new AppDbContext(options))
             {
-                var controller = new HomeController(context);
+                var controller = new HomeController(context, Mock.Of<ILogger<HomeController>>());
 
                 // Act
                 var result = controller.TestDb();
