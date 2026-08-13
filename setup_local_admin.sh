@@ -1,12 +1,16 @@
 #!/bin/bash
 
 # Prompt for the admin password
-echo -n "Enter local admin password (input hidden) [Default: Admin@123]: "
+echo -n "Enter local admin password (input hidden) [Leave blank to auto-generate]: "
 read -s PASSWORD
 echo ""
 
 if [ -z "$PASSWORD" ]; then
-    PASSWORD="Admin@123"
+    PASSWORD=$(openssl rand -base64 12)
+    AUTO_GENERATED=true
+    echo "No password provided. Auto-generated a secure password."
+
+
 fi
 
 echo "Generating hash for password..."
@@ -60,4 +64,8 @@ JSON_EOF
 
 echo "✅ Created appsettings.Development.json with local admin credentials."
 echo "Username: admin"
-echo "Password: (as entered)"
+if [ "$AUTO_GENERATED" = true ]; then
+    echo "Password: $PASSWORD"
+else
+    echo "Password: (as entered)"
+fi
