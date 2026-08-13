@@ -165,6 +165,46 @@ namespace AssistenciaTech.Application.Tests.Controllers
         }
 
         [Fact]
+        public async Task CheckIn_ReturnsUnauthorized_WhenUserIsNotAuthenticated()
+        {
+            // Arrange
+            // Do not set the user context, so User.FindFirst(ClaimTypes.NameIdentifier) returns null
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext() // User is unauthenticated
+            };
+
+            var request = new MobileApiController.CheckInRequest { Latitude = 10m, Longitude = 20m };
+
+            // Act
+            var result = await _controller.CheckIn(1, request);
+
+            // Assert
+            var unauthorizedResult = result.Should().BeOfType<UnauthorizedObjectResult>().Subject;
+            unauthorizedResult.Value.Should().BeEquivalentTo(new { error = "Técnico não autenticado." });
+        }
+
+        [Fact]
+        public async Task FinalizarVisita_ReturnsUnauthorized_WhenUserIsNotAuthenticated()
+        {
+            // Arrange
+            // Do not set the user context
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext() // User is unauthenticated
+            };
+
+            var request = new MobileApiController.FinalizarRequest { VisitaId = 1 };
+
+            // Act
+            var result = await _controller.FinalizarVisita(1, request);
+
+            // Assert
+            var unauthorizedResult = result.Should().BeOfType<UnauthorizedObjectResult>().Subject;
+            unauthorizedResult.Value.Should().BeEquivalentTo(new { error = "Técnico não autenticado." });
+        }
+
+        [Fact]
         public async Task CheckIn_ReturnsForbid_WhenOrdemServicoTecnicoIdDoesNotMatchAuthenticatedUser()
         {
             // Arrange
