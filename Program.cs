@@ -100,6 +100,31 @@ using (var scope = app.Services.CreateScope())
         context.Database.EnsureCreated();
 
         // Migração manual: Adiciona novas colunas caso o banco já tenha sido criado antes (pois o EnsureCreated não altera tabelas existentes)
+        // --- SEED ADMIN USER ---
+        var config = services.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
+        var adminUser = config["AdminCredentials:Username"] ?? "admin";
+        var adminHash = config["AdminCredentials:PasswordHash"];
+
+        if (string.IsNullOrEmpty(adminHash))
+        {
+            var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<AssistenciaTech.Models.Usuario>();
+            adminHash = hasher.HashPassword(new AssistenciaTech.Models.Usuario(), "Admin@123");
+        }
+
+        if (!context.Usuarios.Any(u => u.Username == adminUser))
+        {
+            context.Usuarios.Add(new AssistenciaTech.Models.Usuario
+            {
+                Username = adminUser,
+                PasswordHash = adminHash,
+                Role = "Administrador"
+            });
+            context.SaveChanges();
+            var logger = services.GetRequiredService<ILogger<Program>>();
+            logger.LogInformation("Usuário administrador padrão criado com sucesso.");
+        }
+        // -----------------------
+
         context.Database.ExecuteSqlRaw(@"
             ALTER TABLE ""OrdensServico"" ADD COLUMN IF NOT EXISTS ""CustoPecas"" numeric NOT NULL DEFAULT 0;
             ALTER TABLE ""OrdensServico"" ADD COLUMN IF NOT EXISTS ""CustoMaoDeObra"" numeric NOT NULL DEFAULT 0;
