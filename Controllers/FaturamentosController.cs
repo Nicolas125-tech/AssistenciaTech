@@ -1,5 +1,6 @@
 using System;
 using System.Security.Cryptography;
+using System.Text.Json;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -103,9 +104,33 @@ namespace AssistenciaTech.Controllers
                 return Unauthorized("Invalid or missing webhook signature.");
             }
 
-            // Workaround: MVP implementation.
-            // Em produção real, este endpoint receberia o JSON do banco informando que o PIX foi pago.
-            // Para o MVP, aceitaremos o txId via querystring ou body para simular.
+            try
+            {
+                using var jsonDoc = JsonDocument.Parse(payload);
+                if (jsonDoc.RootElement.TryGetProperty("txId", out var txIdElement))
+                {
+                    string? txId = txIdElement.GetString();
+                    if (!string.IsNullOrEmpty(txId))
+                    {
+                        var faturamento = await _context.Faturamentos.FirstOrDefaultAsync(f => f.TxIdPix == txId);
+                        if (faturamento != null && faturamento.StatusPagamento != PagamentoStatus.Pago_Total)
+                        {
+                            faturamento.StatusPagamento = PagamentoStatus.Pago_Total;
+                            _context.Update(faturamento);
+                            await _context.SaveChangesAsync();
+                        }
+                    }
+                }
+            }
+            catch (JsonException)
+            {
+                // Invalid JSON payload, but signature was valid.
+                // Depending on the webhook provider, we might want to return BadRequest,
+                // but returning Ok() prevents the webhook provider from retrying infinitely
+                // for a payload we can't parse.
+                return BadRequest("Invalid JSON payload.");
+            }
+
             return Ok();
         }
 

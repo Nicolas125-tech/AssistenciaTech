@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using AssistenciaTech.Controllers;
 using AssistenciaTech.Data;
+using AssistenciaTech.Models;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -117,6 +118,53 @@ namespace AssistenciaTech.Application.Tests.Controllers
 
             // Assert
             result.Should().BeOfType<OkResult>();
+        }
+
+
+        [Fact]
+        public async Task WebhookPix_UpdatesFaturamentoStatus_WhenPayloadIsValid()
+        {
+            // Arrange
+            string secret = "my-secret";
+            string txId = Guid.NewGuid().ToString("N");
+            string payload = $"{{\"txId\": \"{txId}\"}}";
+
+            _mockConfiguration.Setup(c => c["WebhookSecret"]).Returns(secret);
+
+            var faturamento = new Faturamento
+            {
+                OrdemServicoId = 1,
+                ValorTotal = 100.00m,
+                DataVencimento = DateTime.Now.AddDays(3),
+                StatusPagamento = PagamentoStatus.Pendente,
+                TxIdPix = txId,
+                QrCodePayload = "dummy_payload"
+            };
+
+            _context.Faturamentos.Add(faturamento);
+            await _context.SaveChangesAsync();
+
+            // Detach to ensure we fetch fresh from db in controller
+            _context.Entry(faturamento).State = EntityState.Detached;
+
+            // Generate valid signature
+            byte[] secretBytes = System.Text.Encoding.UTF8.GetBytes(secret);
+            byte[] payloadBytes = System.Text.Encoding.UTF8.GetBytes(payload);
+            using var hmac = new System.Security.Cryptography.HMACSHA256(secretBytes);
+            byte[] hash = hmac.ComputeHash(payloadBytes);
+            string signature = Convert.ToHexString(hash).ToLowerInvariant();
+
+            SetHttpContext(signature, payload);
+
+            // Act
+            var result = await _controller.WebhookPix();
+
+            // Assert
+            result.Should().BeOfType<OkResult>();
+
+            var updatedFaturamento = await _context.Faturamentos.FirstOrDefaultAsync(f => f.TxIdPix == txId);
+            updatedFaturamento.Should().NotBeNull();
+            updatedFaturamento!.StatusPagamento.Should().Be(PagamentoStatus.Pago_Total);
         }
 
         public void Dispose()
