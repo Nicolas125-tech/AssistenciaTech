@@ -84,6 +84,62 @@ namespace AssistenciaTech.Application.Tests.Controllers
             result.Should().BeOfType<ViewResult>();
         }
 
+
+        [Fact]
+        public async Task DeleteConfirmed_ValidId_ShouldRemovePecaAndRedirectToIndex()
+        {
+            // Arrange
+            var peca = new Peca
+            {
+                Nome = "Memória RAM 8GB",
+                QuantidadeEstoque = 5,
+                ValorUnitario = 150.00m
+            };
+            _context.Pecas.Add(peca);
+            await _context.SaveChangesAsync();
+
+            // Clear tracker to ensure FindAsync fetches from "DB"
+            _context.ChangeTracker.Clear();
+
+            // Act
+            var result = await _controller.DeleteConfirmed(peca.Id);
+
+            // Assert
+            var redirectToActionResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectToActionResult.ActionName.Should().Be("Index");
+
+            var pecaInDb = await _context.Pecas.FindAsync(peca.Id);
+            pecaInDb.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task DeleteConfirmed_InvalidId_ShouldNotRemoveAnythingAndRedirectToIndex()
+        {
+            // Arrange
+            int invalidId = 999;
+            var peca = new Peca
+            {
+                Nome = "HD 1TB",
+                QuantidadeEstoque = 2,
+                ValorUnitario = 200.00m
+            };
+            _context.Pecas.Add(peca);
+            await _context.SaveChangesAsync();
+
+            var initialCount = await _context.Pecas.CountAsync();
+
+            _context.ChangeTracker.Clear();
+
+            // Act
+            var result = await _controller.DeleteConfirmed(invalidId);
+
+            // Assert
+            var redirectToActionResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectToActionResult.ActionName.Should().Be("Index");
+
+            var currentCount = await _context.Pecas.CountAsync();
+            currentCount.Should().Be(initialCount);
+        }
         public void Dispose()
         {
             _context.Database.EnsureDeleted();
