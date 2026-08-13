@@ -3,16 +3,19 @@ using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using AssistenciaTech.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace AssistenciaTech.Controllers
 {
     public class HomeController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly ILogger<HomeController> _logger;
 
-        public HomeController(AppDbContext context)
+        public HomeController(AppDbContext context, ILogger<HomeController> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         public IActionResult TestDb()
@@ -23,8 +26,9 @@ namespace AssistenciaTech.Controllers
                 _context.Database.CloseConnection();
                 return Content("Conexão com o banco de dados realizada com SUCESSO!");
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "ERRO: Não foi possível conectar ao banco de dados.");
                 return Content("ERRO: Não foi possível conectar ao banco de dados.");
             }
         }
