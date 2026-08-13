@@ -124,8 +124,9 @@ namespace AssistenciaTech.Controllers
                 ViewBag.Clientes = new SelectList(_context.Clientes.Select(c => new { Id = c.Id, Descricao = $"{c.Nome} - CPF: {c.Cpf} - Tel: {c.Telefone}" }), "Id", "Descricao");
                 return View();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "DB_CONNECTION_ERROR_CREATE");
                 TempData["ErroBanco"] = "Não foi possível carregar a tela de criação. O banco de dados está inacessível.";
                 return RedirectToAction(nameof(Index));
             }
@@ -198,8 +199,9 @@ namespace AssistenciaTech.Controllers
 
                 return View(ordemServico);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "DB_CONNECTION_ERROR_EDIT");
                 TempData["ErroBanco"] = "Não foi possível carregar a tela de edição. O banco de dados está inacessível.";
                 return RedirectToAction(nameof(Index));
             }
@@ -352,8 +354,9 @@ namespace AssistenciaTech.Controllers
 
                 return RedirectToAction(nameof(Index));
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "DB_UPDATE_ERROR_EDIT");
                 ModelState.AddModelError(string.Empty, "Ocorreu um erro ao atualizar os dados.");
                 return View(ordemServico);
             }
@@ -376,8 +379,9 @@ namespace AssistenciaTech.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "DB_DELETE_ERROR");
                 // Tratar caso a OS tenha dependências impeditivas (raro neste escopo)
                 return RedirectToAction(nameof(Index), new { erro = "Não foi possível excluir a OS." });
             }
