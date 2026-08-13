@@ -113,10 +113,8 @@ namespace AssistenciaTech.Data
             {
                 if (entry.State == EntityState.Modified)
                 {
-                    foreach (var prop in entry.Properties)
+                    foreach (var prop in entry.Properties.Where(p => p.IsModified))
                     {
-                        if (prop.IsModified)
-                        {
                             var oldValue = prop.OriginalValue?.ToString();
                             var newValue = prop.CurrentValue?.ToString();
 
@@ -132,9 +130,8 @@ namespace AssistenciaTech.Data
                                 ValorAntigo = oldValue,
                                 ValorNovo = newValue
                             };
-
                             context.Add(auditoria);
-                        }
+
                     }
                 }
                 else if (entry.State == EntityState.Added)
