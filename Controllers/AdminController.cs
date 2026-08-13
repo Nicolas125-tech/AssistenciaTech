@@ -15,6 +15,7 @@ using QuestPDF.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using System.IO;
+using System.Data.Common;
 using Microsoft.Extensions.Logging;
 
 namespace AssistenciaTech.Controllers
@@ -58,6 +59,7 @@ namespace AssistenciaTech.Controllers
             await streamWriter.WriteLineAsync("Id,Cliente,Equipamento,Data Entrada,Status,Valor Orçamento");
 
             var sb = new System.Text.StringBuilder();
+            int batchCount = 0;
             await foreach (var os in todasOS)
             {
                 sb.Append(os.Id).Append(",\"")
@@ -65,10 +67,19 @@ namespace AssistenciaTech.Controllers
                   .Append(os.Equipamento).Append("\",")
                   .Append(os.DataEntrada.ToString("dd/MM/yyyy")).Append(',')
                   .Append(os.Status).Append(',')
-                  .Append(os.ValorOrcamento);
+                  .Append(os.ValorOrcamento).AppendLine();
 
-                await streamWriter.WriteLineAsync(sb.ToString());
-                sb.Clear();
+                batchCount++;
+                if (batchCount >= 100)
+                {
+                    await streamWriter.WriteAsync(sb, default);
+                    sb.Clear();
+                    batchCount = 0;
+                }
+            }
+            if (sb.Length > 0)
+            {
+                await streamWriter.WriteAsync(sb, default);
             }
         }
 
@@ -99,7 +110,7 @@ namespace AssistenciaTech.Controllers
 
                 return View(dashboardData.Ordens);
             }
-            catch (Exception ex)
+            catch (DbException ex)
             {
                 _logger.LogError(ex, "DB_CONNECTION_ERROR (Admin/Index)");
                 // Log the exception in a real scenario
