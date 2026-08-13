@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using AssistenciaTech.Controllers;
 using AssistenciaTech.Data;
+using AssistenciaTech.Models;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -96,11 +97,26 @@ namespace AssistenciaTech.Application.Tests.Controllers
         }
 
         [Fact]
-        public async Task WebhookPix_ReturnsOk_WhenWebhookSignatureIsValid()
+        public async Task WebhookPix_ReturnsOk_WhenWebhookSignatureIsValid_AndUpdatesFaturamento()
         {
             // Arrange
+            string txId = Guid.NewGuid().ToString("N").Substring(0, 25);
+
+            var faturamento = new Faturamento
+            {
+                OrdemServicoId = 1,
+                ValorTotal = 100m,
+                DataVencimento = DateTime.Now.AddDays(3),
+                StatusPagamento = PagamentoStatus.Pendente,
+                TxIdPix = txId
+            };
+
+            _context.Faturamentos.Add(faturamento);
+            await _context.SaveChangesAsync();
+            _context.ChangeTracker.Clear();
+
             string secret = "my-secret";
-            string payload = "{}";
+            string payload = $"{{\"pix\":[{{\"txid\":\"{txId}\"}}]}}";
             _mockConfiguration.Setup(c => c["WebhookSecret"]).Returns(secret);
 
             // Generate valid signature
@@ -117,6 +133,35 @@ namespace AssistenciaTech.Application.Tests.Controllers
 
             // Assert
             result.Should().BeOfType<OkResult>();
+
+            var updatedFaturamento = await _context.Faturamentos.FindAsync(faturamento.Id);
+            updatedFaturamento.Should().NotBeNull();
+            updatedFaturamento!.StatusPagamento.Should().Be(PagamentoStatus.Pago_Total);
+        }
+
+        [Fact]
+        public async Task WebhookPix_ReturnsBadRequest_WhenJsonIsInvalid()
+        {
+            // Arrange
+            string secret = "my-secret";
+            string payload = "invalid-json";
+            _mockConfiguration.Setup(c => c["WebhookSecret"]).Returns(secret);
+
+            // Generate valid signature
+            byte[] secretBytes = System.Text.Encoding.UTF8.GetBytes(secret);
+            byte[] payloadBytes = System.Text.Encoding.UTF8.GetBytes(payload);
+            using var hmac = new System.Security.Cryptography.HMACSHA256(secretBytes);
+            byte[] hash = hmac.ComputeHash(payloadBytes);
+            string signature = Convert.ToHexString(hash).ToLowerInvariant();
+
+            SetHttpContext(signature, payload);
+
+            // Act
+            var result = await _controller.WebhookPix();
+
+            // Assert
+            var badRequestResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
+            badRequestResult.Value.Should().Be("Invalid JSON payload.");
         }
 
         public void Dispose()
