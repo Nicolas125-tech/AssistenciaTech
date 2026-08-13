@@ -84,7 +84,6 @@ namespace AssistenciaTech.Controllers
                     tecnico.PercentualComissao = tecnicoDto.PercentualComissao;
                     tecnico.Ativo = tecnicoDto.Ativo;
 
-                    // _context.Update(tecnico); // Rely on automatic change tracking
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
