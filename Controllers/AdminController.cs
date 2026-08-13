@@ -58,6 +58,7 @@ namespace AssistenciaTech.Controllers
             await streamWriter.WriteLineAsync("Id,Cliente,Equipamento,Data Entrada,Status,Valor Orçamento");
 
             var sb = new System.Text.StringBuilder();
+            int batchCount = 0;
             await foreach (var os in todasOS)
             {
                 sb.Append(os.Id).Append(",\"")
@@ -65,10 +66,19 @@ namespace AssistenciaTech.Controllers
                   .Append(os.Equipamento).Append("\",")
                   .Append(os.DataEntrada.ToString("dd/MM/yyyy")).Append(',')
                   .Append(os.Status).Append(',')
-                  .Append(os.ValorOrcamento);
+                  .Append(os.ValorOrcamento).AppendLine();
 
-                await streamWriter.WriteLineAsync(sb.ToString());
-                sb.Clear();
+                batchCount++;
+                if (batchCount >= 100)
+                {
+                    await streamWriter.WriteAsync(sb, default);
+                    sb.Clear();
+                    batchCount = 0;
+                }
+            }
+            if (sb.Length > 0)
+            {
+                await streamWriter.WriteAsync(sb, default);
             }
         }
 
