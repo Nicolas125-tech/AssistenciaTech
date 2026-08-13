@@ -225,138 +225,26 @@ namespace AssistenciaTech.Controllers
 
             try
             {
-                // Busca a OS existente no banco
                 var ordemExistente = await _context.OrdensServico
                     .Include(o => o.Evidencias)
                     .FirstOrDefaultAsync(o => o.Id == id);
 
                 if (ordemExistente == null) return NotFound();
 
-                // Atualiza apenas os campos permitidos
-                ordemExistente.Equipamento = ordemServico.Equipamento;
-                ordemExistente.NumeroSerie = ordemServico.NumeroSerie;
-                ordemExistente.ProblemaRelatado = ordemServico.ProblemaRelatado;
-                ordemExistente.AvariasPreExistentes = ordemServico.AvariasPreExistentes;
-
-                // Acesso restrito ao Laudo Técnico (Simulado usando a lógica de Admin - Pode ser melhorado com Claims no futuro)
-                ordemExistente.LaudoTecnico = ordemServico.LaudoTecnico;
-
-                // Relacionamentos e RMA
-                ordemExistente.TecnicoId = ordemServico.TecnicoId;
-                ordemExistente.EnviadoParaTerceiro = ordemServico.EnviadoParaTerceiro;
-                ordemExistente.NomeParceiro = ordemServico.NomeParceiro;
-                ordemExistente.CustoTerceirizado = ordemServico.CustoTerceirizado;
-                ordemExistente.PrevisaoRetornoParceiro = ordemServico.PrevisaoRetornoParceiro;
-
-                // Contratos e SLAs (Impressoras)
-                ordemExistente.ContratoId = ordemServico.ContratoId;
-                ordemExistente.ContadorPaginasInicial = ordemServico.ContadorPaginasInicial;
-                ordemExistente.ContadorPaginasFinal = ordemServico.ContadorPaginasFinal;
-
-                // Lógica do Equipamento de Backup
-                await _equipamentoBackupService.ProcessarTrocaEquipamentoAsync(ordemExistente.EquipamentoBackupId, ordemServico.EquipamentoBackupId);
-                ordemExistente.EquipamentoBackupId = ordemServico.EquipamentoBackupId;
-
                 string statusAnterior = ordemExistente.Status;
-                ordemExistente.Status = ordemServico.Status;
 
-                ordemExistente.CustoPecas = ordemServico.CustoPecas;
-                ordemExistente.CustoMaoDeObra = ordemServico.CustoMaoDeObra;
-                ordemExistente.DescontoAplicado = ordemServico.DescontoAplicado;
-                ordemExistente.ValorOrcamento = ordemExistente.ValorTotalCalculado;
+                await _equipamentoBackupService.ProcessarTrocaEquipamentoAsync(ordemExistente.EquipamentoBackupId, ordemServico.EquipamentoBackupId);
 
-                // Fluxo de Trabalho (Workflow Restrito e Datas Automáticas)
-                if (ordemExistente.Status == WorkflowStatus.Concluido && ordemExistente.DataConclusao == null)
+                UpdateOrdemServicoProperties(ordemExistente, ordemServico);
+
+                bool canProceed = await ProcessWorkflowRulesAsync(ordemExistente, statusAnterior, ordemServico);
+                if (!canProceed)
                 {
-                    ordemExistente.DataConclusao = DateTime.Now;
-                    await _estoqueService.DeduzirEstoque(ordemExistente.Id);
-                }
-                else if (statusAnterior == WorkflowStatus.Concluido && ordemExistente.Status != WorkflowStatus.Concluido && ordemExistente.Status != WorkflowStatus.Entregue)
-                {
-                    ordemExistente.DataConclusao = null; // Caso retroceda
-                    await _estoqueService.RestaurarEstoque(ordemExistente.Id);
+                    await PopulateViewBagsForEditAsync(ordemServico);
+                    return View(ordemExistente);
                 }
 
-                if (ordemExistente.Status == WorkflowStatus.Entregue && ordemExistente.DataEntregaCliente == null)
-                {
-                    // BLOQUEIO EMPRESARIAL: Equipamento de Backup precisa ser devolvido primeiro
-                    if (ordemExistente.EquipamentoBackupId.HasValue)
-                    {
-                        var backup = await _context.EquipamentosBackup.FindAsync(ordemExistente.EquipamentoBackupId);
-                        if (backup != null && backup.Disponivel == false)
-                        {
-                            ModelState.AddModelError(string.Empty, $"O status não pode ser 'Entregue' até que o equipamento '{backup.Descricao}' seja devolvido no sistema.");
-
-                            ViewBag.Tecnicos = new SelectList(await _context.Tecnicos.Where(t => t.Ativo).ToListAsync(), "Id", "Nome", ordemServico.TecnicoId);
-                            ViewBag.EquipamentosBackup = new SelectList(await _context.EquipamentosBackup.Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).ToListAsync(), "Id", "Descricao", ordemServico.EquipamentoBackupId);
-                            ViewBag.Contratos = new SelectList(await _context.Contratos.Include(c => c.Cliente).Where(c => c.ClienteId == ordemServico.ClienteId).Select(c => new { c.Id, NomeDesc = "Contrato: SLA " + c.HorasSLA + "h - R$ " + c.ValorMensal }).ToListAsync(), "Id", "NomeDesc", ordemServico.ContratoId);
-                            return View(ordemExistente); // Retorna a view impedindo o salvamento
-                        }
-                    }
-
-                    // A garantia passa a valer a partir deste momento
-                    ordemExistente.DataEntregaCliente = DateTime.Now;
-
-                    // Garante que a data de conclusão também exista se pular direto
-                    if (ordemExistente.DataConclusao == null)
-                    {
-                        ordemExistente.DataConclusao = DateTime.Now;
-                        await _estoqueService.DeduzirEstoque(ordemExistente.Id);
-                    }
-                }
-                else if (ordemExistente.Status != WorkflowStatus.Entregue)
-                {
-                    ordemExistente.DataEntregaCliente = null; // Anula garantia se retroceder
-                }
-
-                // Lógica de Upload de Evidências (Fotos)
-                if (fotos != null && fotos.Count > 0)
-                {
-                    string uploadsFolder = Path.Combine(_env.ContentRootPath, "SecureUploads", "Evidencias");
-                    Directory.CreateDirectory(uploadsFolder); // Garante que a pasta existe
-                    var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".pdf" };
-
-                    var uploadTasks = new List<Task>();
-
-                    foreach (var foto in fotos)
-                    {
-                        if (foto.Length > 0)
-                        {
-                            var extension = Path.GetExtension(foto.FileName).ToLowerInvariant();
-                            if (!allowedExtensions.Contains(extension))
-                            {
-                                continue;
-                            }
-
-                            if (!await IsValidFileSignatureAsync(foto, extension))
-                            {
-                                continue;
-                            }
-
-                            string uniqueFileName = $"{Guid.NewGuid()}{extension}";
-                            string filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                            var currentFoto = foto;
-                            async Task SaveFileAsync()
-                            {
-                                await using (var fileStream = new FileStream(filePath, FileMode.Create))
-                                {
-                                    await currentFoto.CopyToAsync(fileStream);
-                                }
-                            }
-
-                            uploadTasks.Add(SaveFileAsync());
-
-                            ordemExistente.Evidencias.Add(new Evidencia
-                            {
-                                CaminhoArquivo = $"/Admin/GetEvidencia?fileName={uniqueFileName}",
-                                DataUpload = DateTime.Now
-                            });
-                        }
-                    }
-
-                    await Task.WhenAll(uploadTasks);
-                }
+                await ProcessEvidenciaUploadsAsync(ordemExistente, fotos);
 
                 _context.Update(ordemExistente);
                 await _context.SaveChangesAsync();
@@ -484,5 +372,126 @@ namespace AssistenciaTech.Controllers
                 headerBytes.Take(signature.Length).SequenceEqual(signature));
         }
 
+
+        private void UpdateOrdemServicoProperties(OrdemServico ordemExistente, OrdemServico ordemServico)
+        {
+            ordemExistente.Equipamento = ordemServico.Equipamento;
+            ordemExistente.NumeroSerie = ordemServico.NumeroSerie;
+            ordemExistente.ProblemaRelatado = ordemServico.ProblemaRelatado;
+            ordemExistente.AvariasPreExistentes = ordemServico.AvariasPreExistentes;
+            ordemExistente.LaudoTecnico = ordemServico.LaudoTecnico;
+            ordemExistente.TecnicoId = ordemServico.TecnicoId;
+            ordemExistente.EnviadoParaTerceiro = ordemServico.EnviadoParaTerceiro;
+            ordemExistente.NomeParceiro = ordemServico.NomeParceiro;
+            ordemExistente.CustoTerceirizado = ordemServico.CustoTerceirizado;
+            ordemExistente.PrevisaoRetornoParceiro = ordemServico.PrevisaoRetornoParceiro;
+            ordemExistente.ContratoId = ordemServico.ContratoId;
+            ordemExistente.ContadorPaginasInicial = ordemServico.ContadorPaginasInicial;
+            ordemExistente.ContadorPaginasFinal = ordemServico.ContadorPaginasFinal;
+            ordemExistente.EquipamentoBackupId = ordemServico.EquipamentoBackupId;
+            ordemExistente.Status = ordemServico.Status;
+            ordemExistente.CustoPecas = ordemServico.CustoPecas;
+            ordemExistente.CustoMaoDeObra = ordemServico.CustoMaoDeObra;
+            ordemExistente.DescontoAplicado = ordemServico.DescontoAplicado;
+            ordemExistente.ValorOrcamento = ordemExistente.ValorTotalCalculado;
+        }
+
+        private async Task<bool> ProcessWorkflowRulesAsync(OrdemServico ordemExistente, string statusAnterior, OrdemServico ordemServico)
+        {
+            if (ordemExistente.Status == WorkflowStatus.Concluido && ordemExistente.DataConclusao == null)
+            {
+                ordemExistente.DataConclusao = DateTime.Now;
+                await _estoqueService.DeduzirEstoque(ordemExistente.Id);
+            }
+            else if (statusAnterior == WorkflowStatus.Concluido && ordemExistente.Status != WorkflowStatus.Concluido && ordemExistente.Status != WorkflowStatus.Entregue)
+            {
+                ordemExistente.DataConclusao = null;
+                await _estoqueService.RestaurarEstoque(ordemExistente.Id);
+            }
+
+            if (ordemExistente.Status == WorkflowStatus.Entregue && ordemExistente.DataEntregaCliente == null)
+            {
+                if (ordemExistente.EquipamentoBackupId.HasValue)
+                {
+                    var backup = await _context.EquipamentosBackup.FindAsync(ordemExistente.EquipamentoBackupId);
+                    if (backup != null && backup.Disponivel == false)
+                    {
+                        ModelState.AddModelError(string.Empty, $"O status não pode ser 'Entregue' até que o equipamento '{backup.Descricao}' seja devolvido no sistema.");
+                        return false;
+                    }
+                }
+
+                ordemExistente.DataEntregaCliente = DateTime.Now;
+
+                if (ordemExistente.DataConclusao == null)
+                {
+                    ordemExistente.DataConclusao = DateTime.Now;
+                    await _estoqueService.DeduzirEstoque(ordemExistente.Id);
+                }
+            }
+            else if (ordemExistente.Status != WorkflowStatus.Entregue)
+            {
+                ordemExistente.DataEntregaCliente = null;
+            }
+            return true;
+        }
+
+        private async Task PopulateViewBagsForEditAsync(OrdemServico ordemServico)
+        {
+            ViewBag.Tecnicos = new SelectList(await _context.Tecnicos.Where(t => t.Ativo).ToListAsync(), "Id", "Nome", ordemServico.TecnicoId);
+            ViewBag.EquipamentosBackup = new SelectList(await _context.EquipamentosBackup.Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).ToListAsync(), "Id", "Descricao", ordemServico.EquipamentoBackupId);
+            ViewBag.Contratos = new SelectList(await _context.Contratos.Include(c => c.Cliente).Where(c => c.ClienteId == ordemServico.ClienteId).Select(c => new { c.Id, NomeDesc = "Contrato: SLA " + c.HorasSLA + "h - R$ " + c.ValorMensal }).ToListAsync(), "Id", "NomeDesc", ordemServico.ContratoId);
+        }
+
+        private async Task ProcessEvidenciaUploadsAsync(OrdemServico ordemExistente, IFormFileCollection fotos)
+        {
+            if (fotos != null && fotos.Count > 0)
+            {
+                string uploadsFolder = Path.Combine(_env.ContentRootPath, "SecureUploads", "Evidencias");
+                Directory.CreateDirectory(uploadsFolder);
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".pdf" };
+
+                var uploadTasks = new List<Task>();
+
+                foreach (var foto in fotos)
+                {
+                    if (foto.Length > 0)
+                    {
+                        var extension = Path.GetExtension(foto.FileName).ToLowerInvariant();
+                        if (!allowedExtensions.Contains(extension))
+                        {
+                            continue;
+                        }
+
+                        if (!await IsValidFileSignatureAsync(foto, extension))
+                        {
+                            continue;
+                        }
+
+                        string uniqueFileName = $"{Guid.NewGuid()}{extension}";
+                        string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                        var currentFoto = foto;
+                        async Task SaveFileAsync()
+                        {
+                            await using (var fileStream = new FileStream(filePath, FileMode.Create))
+                            {
+                                await currentFoto.CopyToAsync(fileStream);
+                            }
+                        }
+
+                        uploadTasks.Add(SaveFileAsync());
+
+                        ordemExistente.Evidencias.Add(new Evidencia
+                        {
+                            CaminhoArquivo = $"/Admin/GetEvidencia?fileName={uniqueFileName}",
+                            DataUpload = DateTime.Now
+                        });
+                    }
+                }
+
+                await Task.WhenAll(uploadTasks);
+            }
+        }
     }
 }
