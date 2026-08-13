@@ -112,7 +112,7 @@ namespace AssistenciaTech.Controllers
             try
             {
                 // Popula o dropdown de clientes
-                ViewBag.Clientes = new SelectList(_context.Clientes.Select(c => new { Id = c.Id, Descricao = c.Nome + " - CPF: " + c.Cpf + " - Tel: " + c.Telefone }), "Id", "Descricao");
+                ViewBag.Clientes = new SelectList(_context.Clientes.Select(c => new { Id = c.Id, Descricao = $"{c.Nome} - CPF: {c.Cpf} - Tel: {c.Telefone}" }), "Id", "Descricao");
                 return View();
             }
             catch (Exception)
@@ -157,12 +157,12 @@ namespace AssistenciaTech.Controllers
             {
                 // Em um ambiente real, faríamos um log (ex: Serilog)
                 string errorMsg = ex.Message;
-                if (ex.InnerException != null) errorMsg += " | Inner: " + ex.InnerException.Message;
+                if (ex.InnerException != null) errorMsg = $"{errorMsg} | Inner: {ex.InnerException.Message}";
                 ModelState.AddModelError(string.Empty, $"Erro ao salvar a Ordem de Serviço: {errorMsg}");
             }
 
             // Se falhou, retorna os dados para o formulário
-            ViewBag.Clientes = new SelectList(_context.Clientes.Select(c => new { Id = c.Id, Descricao = c.Nome + " - CPF: " + c.Cpf + " - Tel: " + c.Telefone }), "Id", "Descricao", ordemServico.ClienteId);
+            ViewBag.Clientes = new SelectList(_context.Clientes.Select(c => new { Id = c.Id, Descricao = $"{c.Nome} - CPF: {c.Cpf} - Tel: {c.Telefone}" }), "Id", "Descricao", ordemServico.ClienteId);
             return View(ordemServico);
         }
 
