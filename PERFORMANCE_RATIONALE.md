@@ -264,3 +264,31 @@ A focused benchmark script simulating 50,000 rows was executed.
 - **Improvement:** ~6.32 ms (29.1% faster), 41% less memory allocation
 
 By batching in-memory concatenations using `StringBuilder` and executing `WriteAsync` less frequently (only once per 100 rows), we avoid the enormous overhead associated with the async state machine. We also bypass allocating intermediate strings continuously via `.ToString()`. This decreases execution time and memory allocations significantly, ensuring scaling and speed optimization for the CSV generation endpoint.
+
+# Performance Rationale: Disabling Entity Framework Tracking for Read-Only Streaming
+
+## Issue
+The `ExportarCsv` method in `Controllers/AdminController.cs` was fetching data using `.AsAsyncEnumerable()` to stream records, but leaving Entity Framework Core's default change tracking enabled:
+
+```csharp
+var todasOS = _context.OrdensServico.Include(o => o.Cliente).OrderByDescending(o => o.Id).AsAsyncEnumerable();
+```
+
+## Problem
+When streaming large amounts of data out of the database (like for generating a CSV), change tracking is unnecessary because the entities will not be modified or saved back. Leaving tracking enabled forces EF Core to keep references to all materialized entities in its `ChangeTracker`, resulting in high memory allocations and CPU overhead to attach those entities to the context. This reduces the benefits of asynchronous streaming and can lead to memory exhaustion when processing tens of thousands of records.
+
+## Solution
+We added `.AsNoTracking()` to the query before `.AsAsyncEnumerable()`. This explicitly tells EF Core to bypass the Change Tracker entirely.
+
+```csharp
+var todasOS = _context.OrdensServico.Include(o => o.Cliente).OrderByDescending(o => o.Id).AsNoTracking().AsAsyncEnumerable();
+```
+
+## Measured Improvement & Impact
+A focused benchmark script (`EFBench`) was created using BenchmarkDotNet and EF Core SQLite to simulate fetching and enumerating 50,000 records.
+
+- **With Change Tracking:** ~597.5 ms, 137.31 MB allocated
+- **With `.AsNoTracking()`:** ~142.0 ms, 77.68 MB allocated
+- **Improvement:** ~455.5 ms (76.2% faster), 59.63 MB (43.4%) less memory allocation
+
+By disabling change tracking for read-only operations, we significantly reduce the CPU workload required to materialize objects and the memory footprint retained by the DbContext. This makes the CSV generation much faster and far more scalable for huge datasets, preventing potential out-of-memory errors on the server.

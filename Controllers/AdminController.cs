@@ -49,7 +49,7 @@ namespace AssistenciaTech.Controllers
         [HttpGet]
         public async Task ExportarCsv()
         {
-            var todasOS = _context.OrdensServico.Include(o => o.Cliente).OrderByDescending(o => o.Id).AsAsyncEnumerable();
+            var todasOS = _context.OrdensServico.Include(o => o.Cliente).OrderByDescending(o => o.Id).AsNoTracking().AsAsyncEnumerable();
 
             Response.Clear();
             Response.ContentType = "text/csv";
