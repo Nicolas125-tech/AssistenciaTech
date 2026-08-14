@@ -107,7 +107,7 @@ namespace AssistenciaTech.Controllers
             try
             {
                 using var jsonDoc = JsonDocument.Parse(payload);
-                string txId = null;
+                var txIds = new System.Collections.Generic.List<string>();
 
                 // Try BACEN standard format (array of pix objects)
                 if (jsonDoc.RootElement.TryGetProperty("pix", out var pixElement) && pixElement.ValueKind == JsonValueKind.Array)
@@ -116,10 +116,10 @@ namespace AssistenciaTech.Controllers
                     {
                         if (pix.TryGetProperty("txid", out var txidElement))
                         {
-                            txId = txidElement.GetString();
+                            string txId = txidElement.GetString();
                             if (!string.IsNullOrEmpty(txId))
                             {
-                                await ProcessarPagamentoTxIdAsync(txId);
+                                txIds.Add(txId);
                             }
                         }
                     }
@@ -127,10 +127,29 @@ namespace AssistenciaTech.Controllers
                 // Fallback to simple format
                 else if (jsonDoc.RootElement.TryGetProperty("txid", out var txidElement))
                 {
-                    txId = txidElement.GetString();
+                    string txId = txidElement.GetString();
                     if (!string.IsNullOrEmpty(txId))
                     {
-                        await ProcessarPagamentoTxIdAsync(txId);
+                        txIds.Add(txId);
+                    }
+                }
+
+                if (txIds.Count > 0)
+                {
+                    // Fetch only faturamentos that match the txids and are not already paid
+                    var faturamentosToUpdate = await _context.Faturamentos
+                        .Where(f => txIds.Contains(f.TxIdPix) && f.StatusPagamento != PagamentoStatus.Pago_Total)
+                        .ToListAsync();
+
+                    if (faturamentosToUpdate.Count > 0)
+                    {
+                        foreach (var faturamento in faturamentosToUpdate)
+                        {
+                            faturamento.StatusPagamento = PagamentoStatus.Pago_Total;
+                        }
+
+                        _context.UpdateRange(faturamentosToUpdate);
+                        await _context.SaveChangesAsync();
                     }
                 }
 
@@ -139,17 +158,6 @@ namespace AssistenciaTech.Controllers
             catch (JsonException)
             {
                 return BadRequest("Invalid JSON payload.");
-            }
-        }
-
-        private async Task ProcessarPagamentoTxIdAsync(string txId)
-        {
-            var faturamento = await _context.Faturamentos.FirstOrDefaultAsync(f => f.TxIdPix == txId);
-            if (faturamento != null && faturamento.StatusPagamento != PagamentoStatus.Pago_Total)
-            {
-                faturamento.StatusPagamento = PagamentoStatus.Pago_Total;
-                _context.Update(faturamento);
-                await _context.SaveChangesAsync();
             }
         }
 
