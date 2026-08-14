@@ -140,6 +140,26 @@ namespace AssistenciaTech.Application.Tests.Controllers
             var currentCount = await _context.Pecas.CountAsync();
             currentCount.Should().Be(initialCount);
         }
+
+        [Fact]
+        public async Task Edit_Post_IdMismatch_ShouldReturnNotFound()
+        {
+            // Arrange
+            int urlId = 1;
+            var peca = new Peca
+            {
+                Id = 2,
+                Nome = "Placa de Vídeo",
+                QuantidadeEstoque = 5,
+                ValorUnitario = 1500.00m
+            };
+
+            // Act
+            var result = await _controller.Edit(urlId, peca);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
         public void Dispose()
         {
             _context.Database.EnsureDeleted();
