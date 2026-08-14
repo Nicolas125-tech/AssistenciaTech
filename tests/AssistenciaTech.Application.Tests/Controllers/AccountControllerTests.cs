@@ -127,6 +127,63 @@ namespace AssistenciaTech.Application.Tests.Controllers
             redirectResult.ControllerName.Should().Be("Home");
         }
 
+        [Fact]
+        public async Task Login_ReturnsRedirectResult_WhenCredentialsAreValidAndReturnUrlIsLocal()
+        {
+            // Arrange
+            var hasher = new PasswordHasher<Usuario>();
+            var user = new Usuario
+            {
+                Username = "admin",
+                Role = "Administrador"
+            };
+            user.PasswordHash = hasher.HashPassword(user, "senha123");
+
+            _context.Usuarios.Add(user);
+            await _context.SaveChangesAsync();
+            _context.ChangeTracker.Clear();
+
+            var returnUrl = "/Admin/Create";
+            var mockUrlHelper = Mock.Get(_controller.Url);
+            mockUrlHelper.Setup(x => x.IsLocalUrl(returnUrl)).Returns(true);
+
+            // Act
+            var result = await _controller.Login("admin", "senha123", returnUrl);
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectResult>().Subject;
+            redirectResult.Url.Should().Be(returnUrl);
+        }
+
+        [Fact]
+        public async Task Login_ReturnsRedirectToActionResult_WhenCredentialsAreValidAndReturnUrlIsNotLocal()
+        {
+            // Arrange
+            var hasher = new PasswordHasher<Usuario>();
+            var user = new Usuario
+            {
+                Username = "admin",
+                Role = "Administrador"
+            };
+            user.PasswordHash = hasher.HashPassword(user, "senha123");
+
+            _context.Usuarios.Add(user);
+            await _context.SaveChangesAsync();
+            _context.ChangeTracker.Clear();
+
+            var returnUrl = "http://malicious-site.com";
+            var mockUrlHelper = Mock.Get(_controller.Url);
+            mockUrlHelper.Setup(x => x.IsLocalUrl(returnUrl)).Returns(false);
+
+            // Act
+            var result = await _controller.Login("admin", "senha123", returnUrl);
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectResult.ActionName.Should().Be("Index");
+            redirectResult.ControllerName.Should().Be("Admin");
+        }
+
         public void Dispose()
         {
             _context.Database.EnsureDeleted();
