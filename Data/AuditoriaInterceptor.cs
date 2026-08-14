@@ -60,9 +60,9 @@ namespace AssistenciaTech.Data
             return base.SaveChangesFailedAsync(eventData, cancellationToken);
         }
 
-        private void ProcessPendingAudits(DbContext? context)
+        private List<AuditoriaOS>? PreparePendingAudits(DbContext? context)
         {
-            if (context == null || !_pendingAudits.Any()) return;
+            if (context == null || !_pendingAudits.Any()) return null;
 
             var audits = new List<AuditoriaOS>(_pendingAudits.Count);
             foreach (var pending in _pendingAudits)
@@ -73,22 +73,18 @@ namespace AssistenciaTech.Data
             context.AddRange(audits);
 
             _pendingAudits.Clear();
+            return audits;
+        }
+
+        private void ProcessPendingAudits(DbContext? context)
+        {
+            if (context == null || PreparePendingAudits(context) == null) return;
             context.SaveChanges();
         }
 
         private async Task ProcessPendingAuditsAsync(DbContext? context, CancellationToken cancellationToken)
         {
-            if (context == null || !_pendingAudits.Any()) return;
-
-            var audits = new List<AuditoriaOS>(_pendingAudits.Count);
-            foreach (var pending in _pendingAudits)
-            {
-                pending.Audit.OrdemServicoId = pending.OS.Id;
-                audits.Add(pending.Audit);
-            }
-            context.AddRange(audits);
-
-            _pendingAudits.Clear();
+            if (context == null || PreparePendingAudits(context) == null) return;
             await context.SaveChangesAsync(cancellationToken);
         }
 
