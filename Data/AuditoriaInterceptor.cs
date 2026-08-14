@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using AssistenciaTech.Models;
@@ -109,40 +110,49 @@ namespace AssistenciaTech.Data
             {
                 if (entry.State == EntityState.Modified)
                 {
-                    foreach (var prop in entry.Properties.Where(p => p.IsModified))
-                    {
-                        var oldValue = prop.OriginalValue?.ToString();
-                        var newValue = prop.CurrentValue?.ToString();
-
-                        // Evita logar se o valor for nulo nas duas pontas ou idêntico
-                        if (oldValue == newValue) continue;
-
-                        var auditoria = new AuditoriaOS
-                        {
-                            OrdemServicoId = entry.Entity.Id,
-                            Usuario = usuario,
-                            DataAlteracao = DateTime.Now,
-                            CampoAlterado = prop.Metadata.Name,
-                            ValorAntigo = oldValue,
-                            ValorNovo = newValue
-                        };
-                        context.Add(auditoria);
-
-                    }
+                    AuditModifiedEntry(context, entry, usuario);
                 }
                 else if (entry.State == EntityState.Added)
                 {
-                    var auditoria = new AuditoriaOS
-                    {
-                        Usuario = usuario,
-                        DataAlteracao = DateTime.Now,
-                        CampoAlterado = "CRIACAO_OS",
-                        ValorAntigo = "",
-                        ValorNovo = "OS Criada"
-                    };
-                    _pendingAudits.Add((auditoria, entry.Entity));
+                    AuditAddedEntry(entry, usuario);
                 }
             }
+        }
+
+        private void AuditModifiedEntry(DbContext context, EntityEntry<OrdemServico> entry, string usuario)
+        {
+            foreach (var prop in entry.Properties.Where(p => p.IsModified))
+            {
+                var oldValue = prop.OriginalValue?.ToString();
+                var newValue = prop.CurrentValue?.ToString();
+
+                // Evita logar se o valor for nulo nas duas pontas ou idêntico
+                if (oldValue == newValue) continue;
+
+                var auditoria = new AuditoriaOS
+                {
+                    OrdemServicoId = entry.Entity.Id,
+                    Usuario = usuario,
+                    DataAlteracao = DateTime.Now,
+                    CampoAlterado = prop.Metadata.Name,
+                    ValorAntigo = oldValue,
+                    ValorNovo = newValue
+                };
+                context.Add(auditoria);
+            }
+        }
+
+        private void AuditAddedEntry(EntityEntry<OrdemServico> entry, string usuario)
+        {
+            var auditoria = new AuditoriaOS
+            {
+                Usuario = usuario,
+                DataAlteracao = DateTime.Now,
+                CampoAlterado = "CRIACAO_OS",
+                ValorAntigo = "",
+                ValorNovo = "OS Criada"
+            };
+            _pendingAudits.Add((auditoria, entry.Entity));
         }
     }
 }
