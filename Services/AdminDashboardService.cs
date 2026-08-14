@@ -50,7 +50,7 @@ namespace AssistenciaTech.Services
 
         public async Task<DashboardDto> GetDashboardDataAsync(string searchString, string statusFilter, int page = 1, int pageSize = 50)
         {
-            var query = _context.OrdensServico.Include(o => o.Cliente).AsQueryable();
+            var query = _context.OrdensServico.Include(o => o.Cliente).AsNoTracking().AsQueryable();
 
             bool hasFilters = !string.IsNullOrEmpty(searchString) || !string.IsNullOrEmpty(statusFilter);
 

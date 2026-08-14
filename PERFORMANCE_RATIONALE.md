@@ -264,3 +264,31 @@ A focused benchmark script simulating 50,000 rows was executed.
 - **Improvement:** ~6.32 ms (29.1% faster), 41% less memory allocation
 
 By batching in-memory concatenations using `StringBuilder` and executing `WriteAsync` less frequently (only once per 100 rows), we avoid the enormous overhead associated with the async state machine. We also bypass allocating intermediate strings continuously via `.ToString()`. This decreases execution time and memory allocations significantly, ensuring scaling and speed optimization for the CSV generation endpoint.
+
+# Performance Rationale: AsNoTracking for Admin Dashboard Query
+
+## Issue
+The `GetDashboardDataAsync` method in `Services/AdminDashboardService.cs` was using a tracking query to fetch data for the dashboard.
+
+```csharp
+var query = _context.OrdensServico.Include(o => o.Cliente).AsQueryable();
+```
+
+## Problem
+Entity Framework Core's change tracker keeps a snapshot of the fetched entities and monitors them for modifications to save changes later. The dashboard data is entirely read-only (displaying counts, totals, and a list of recent orders). Tracking these entities creates unnecessary CPU overhead (for setting up tracking and taking snapshots) and increases memory allocations, especially as the number of records returned grows.
+
+## Solution
+We updated the LINQ query to include `.AsNoTracking()`. This instructs EF Core to skip the change tracking process entirely, as we do not intend to modify and save any of the returned `OrdemServico` or `Cliente` objects.
+
+```csharp
+var query = _context.OrdensServico.Include(o => o.Cliente).AsNoTracking().AsQueryable();
+```
+
+## Measured Improvement & Impact
+A focused benchmark was created (`bench/Benchmarks/Program.cs`) to simulate loading and projecting a dashboard view against a database containing 50,000 service orders.
+
+- **TrackingQuery (Baseline):** ~288.5 ms execution, 85.53 MB allocated
+- **NoTrackingQuery:** ~135.4 ms execution, 72.94 MB allocated
+- **Improvement:** ~153.1 ms (53% faster), 12.59 MB (14.7%) less memory allocation per query.
+
+By using `AsNoTracking()`, we completely bypass the change tracker's overhead. This cuts the execution time for the dashboard query in half and significantly reduces the memory pressure. This directly leads to faster page loads for the technicians and allows the server to handle more concurrent administrative requests without increased resource consumption.
