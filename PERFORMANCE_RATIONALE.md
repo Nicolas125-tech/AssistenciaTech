@@ -292,3 +292,23 @@ A focused benchmark script (`EFBench`) was created using BenchmarkDotNet and EF 
 - **Improvement:** ~455.5 ms (76.2% faster), 59.63 MB (43.4%) less memory allocation
 
 By disabling change tracking for read-only operations, we significantly reduce the CPU workload required to materialize objects and the memory footprint retained by the DbContext. This makes the CSV generation much faster and far more scalable for huge datasets, preventing potential out-of-memory errors on the server.
+
+# Performance Rationale: Batching Database Updates in Webhook Processing
+
+## Issue
+The `WebhookPix` method in `Controllers/FaturamentosController.cs` was processing a JSON payload containing an array of PIX transactions. For each transaction, it called `ProcessarPagamentoTxIdAsync(string txId)`, which executed a `SELECT` query to find the `Faturamento` and then updated it with a subsequent `SaveChanges` call. This resulted in an N+1 query problem, making 100 queries and 100 save operations for a payload of 100 transactions.
+
+## Problem
+Calling the database sequentially inside a loop (the N+1 issue) introduces massive networking and database overhead. The database connection needs to process each command individually, and EF Core needs to process each query tracking cycle separately. This causes the application to scale very poorly as the number of webhook items increases, tying up connections and CPU cycles.
+
+## Solution
+We updated the `WebhookPix` method to first collect all `txId` strings from the JSON payload into a list in memory. Once all IDs are collected, we execute a single EF Core query using `.Where(f => txIds.Contains(f.TxIdPix))` to fetch all relevant `Faturamento` records in one round-trip. We then iterate through these records in memory, update their status, and call `await _context.SaveChangesAsync()` exactly once to persist all changes in a single database transaction.
+
+## Measured Improvement & Impact
+A focused benchmark script (`bench_webhook/Program.cs`) was created to simulate processing a payload of 1,000 transactions.
+
+- **Sequential processing (N+1):** ~8253 ms
+- **Batched processing (1 query, 1 save):** ~27 ms
+- **Improvement:** ~8226 ms (99.6% faster)
+
+By batching the IDs and performing a single read and write, we eliminated the N+1 database round-trips. This fundamentally transforms the scalability of the webhook endpoint, reducing execution time from several seconds to a few milliseconds under heavy loads, saving significant database resources and improving overall application throughput.
