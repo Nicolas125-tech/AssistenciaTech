@@ -115,22 +115,22 @@ namespace AssistenciaTech.Data
                 {
                     foreach (var prop in entry.Properties.Where(p => p.IsModified))
                     {
-                            var oldValue = prop.OriginalValue?.ToString();
-                            var newValue = prop.CurrentValue?.ToString();
+                        var oldValue = prop.OriginalValue?.ToString();
+                        var newValue = prop.CurrentValue?.ToString();
 
-                            // Evita logar se o valor for nulo nas duas pontas ou idêntico
-                            if (oldValue == newValue) continue;
+                        // Evita logar se o valor for nulo nas duas pontas ou idêntico
+                        if (oldValue == newValue) continue;
 
-                            var auditoria = new AuditoriaOS
-                            {
-                                OrdemServicoId = entry.Entity.Id,
-                                Usuario = usuario,
-                                DataAlteracao = DateTime.Now,
-                                CampoAlterado = prop.Metadata.Name,
-                                ValorAntigo = oldValue,
-                                ValorNovo = newValue
-                            };
-                            context.Add(auditoria);
+                        var auditoria = new AuditoriaOS
+                        {
+                            OrdemServicoId = entry.Entity.Id,
+                            Usuario = usuario,
+                            DataAlteracao = DateTime.Now,
+                            CampoAlterado = prop.Metadata.Name,
+                            ValorAntigo = oldValue,
+                            ValorNovo = newValue
+                        };
+                        context.Add(auditoria);
 
                     }
                 }
