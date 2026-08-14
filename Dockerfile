@@ -20,11 +20,14 @@ ENV ASPNETCORE_URLS=http://+:8080
 ENV DOTNET_hostBuilder__reloadConfigOnChange=false
 EXPOSE 8080
 
-# Cria o diretório para mapear o banco de dados via Volume
-RUN mkdir /app/data
+# Cria o diretório para mapear o banco de dados via Volume e ajusta as permissões para o usuário app (não-root)
+RUN mkdir -p /app/data && chown -R app:app /app/data
 
-# Copia os artefatos gerados no estágio de Build para o estágio final
-COPY --from=build /app/publish .
+# Copia os artefatos gerados no estágio de Build para o estágio final definindo a propriedade do usuário app
+COPY --from=build --chown=app:app /app/publish .
+
+# Define o usuário não-root para a execução da aplicação
+USER app
 
 # Define o comando de inicialização
 ENTRYPOINT ["dotnet", "AssistenciaTech.dll"]
