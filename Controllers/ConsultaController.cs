@@ -46,6 +46,7 @@ namespace AssistenciaTech.Controllers
 
             // Busca a Ordem de Serviço pelo número e verifica se o CPF do cliente está correto (ignorando pontuações salvas no banco)
             var ordem = await _context.OrdensServico
+                                .AsNoTracking()
                                 .Include(o => o.Cliente) // Faz o JOIN com a tabela de Clientes
                                 .FirstOrDefaultAsync(o => o.Id == numeroOS);
 
