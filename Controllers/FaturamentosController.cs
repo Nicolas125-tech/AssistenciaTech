@@ -84,22 +84,7 @@ namespace AssistenciaTech.Controllers
             var payload = await reader.ReadToEndAsync();
             Request.Body.Position = 0; // Reset for potential downstream readers
 
-            // Compute HMAC
-            byte[] secretBytes = System.Text.Encoding.UTF8.GetBytes(webhookSecret);
-            byte[] payloadBytes = System.Text.Encoding.UTF8.GetBytes(payload);
-            using var hmac = new HMACSHA256(secretBytes);
-            byte[] computedHashBytes = hmac.ComputeHash(payloadBytes);
-            string computedSignature = Convert.ToHexString(computedHashBytes).ToLowerInvariant();
-
-            // Hash both string values (hex strings) before FixedTimeEquals comparison to ensure constant length
-            // (Even though they should be 64 chars, this is defensive against length-based timing attacks)
-            byte[] providedSignatureBytes = System.Text.Encoding.UTF8.GetBytes(providedSignature.ToString());
-            byte[] computedSignatureBytes = System.Text.Encoding.UTF8.GetBytes(computedSignature);
-
-            byte[] providedHash = SHA256.HashData(providedSignatureBytes);
-            byte[] secretHash = SHA256.HashData(computedSignatureBytes);
-
-            if (!CryptographicOperations.FixedTimeEquals(providedHash, secretHash))
+            if (!IsSignatureValid(payload, providedSignature.ToString(), webhookSecret))
             {
                 return Unauthorized("Invalid or missing webhook signature.");
             }
@@ -107,50 +92,11 @@ namespace AssistenciaTech.Controllers
             try
             {
                 using var jsonDoc = JsonDocument.Parse(payload);
-                var txIds = new System.Collections.Generic.List<string>();
-
-                // Try BACEN standard format (array of pix objects)
-                if (jsonDoc.RootElement.TryGetProperty("pix", out var pixElement) && pixElement.ValueKind == JsonValueKind.Array)
-                {
-                    foreach (var pix in pixElement.EnumerateArray())
-                    {
-                        if (pix.TryGetProperty("txid", out var txidElement))
-                        {
-                            string txId = txidElement.GetString();
-                            if (!string.IsNullOrEmpty(txId))
-                            {
-                                txIds.Add(txId);
-                            }
-                        }
-                    }
-                }
-                // Fallback to simple format
-                else if (jsonDoc.RootElement.TryGetProperty("txid", out var txidElement))
-                {
-                    string txId = txidElement.GetString();
-                    if (!string.IsNullOrEmpty(txId))
-                    {
-                        txIds.Add(txId);
-                    }
-                }
+                var txIds = ExtractTxIds(jsonDoc);
 
                 if (txIds.Count > 0)
                 {
-                    // Fetch only faturamentos that match the txids and are not already paid
-                    var faturamentosToUpdate = await _context.Faturamentos
-                        .Where(f => txIds.Contains(f.TxIdPix) && f.StatusPagamento != PagamentoStatus.Pago_Total)
-                        .ToListAsync();
-
-                    if (faturamentosToUpdate.Count > 0)
-                    {
-                        foreach (var faturamento in faturamentosToUpdate)
-                        {
-                            faturamento.StatusPagamento = PagamentoStatus.Pago_Total;
-                        }
-
-                        _context.UpdateRange(faturamentosToUpdate);
-                        await _context.SaveChangesAsync();
-                    }
+                    await ProcessarPagamentosPixAsync(txIds);
                 }
 
                 return Ok();
@@ -158,6 +104,74 @@ namespace AssistenciaTech.Controllers
             catch (JsonException)
             {
                 return BadRequest("Invalid JSON payload.");
+            }
+        }
+
+        private bool IsSignatureValid(string payload, string providedSignature, string webhookSecret)
+        {
+            byte[] secretBytes = System.Text.Encoding.UTF8.GetBytes(webhookSecret);
+            byte[] payloadBytes = System.Text.Encoding.UTF8.GetBytes(payload);
+            using var hmac = new HMACSHA256(secretBytes);
+            byte[] computedHashBytes = hmac.ComputeHash(payloadBytes);
+            string computedSignature = Convert.ToHexString(computedHashBytes).ToLowerInvariant();
+
+            byte[] providedSignatureBytes = System.Text.Encoding.UTF8.GetBytes(providedSignature);
+            byte[] computedSignatureBytes = System.Text.Encoding.UTF8.GetBytes(computedSignature);
+
+            byte[] providedHash = SHA256.HashData(providedSignatureBytes);
+            byte[] secretHash = SHA256.HashData(computedSignatureBytes);
+
+            return CryptographicOperations.FixedTimeEquals(providedHash, secretHash);
+        }
+
+        private System.Collections.Generic.List<string> ExtractTxIds(JsonDocument jsonDoc)
+        {
+            var txIds = new System.Collections.Generic.List<string>();
+
+            // Try BACEN standard format (array of pix objects)
+            if (jsonDoc.RootElement.TryGetProperty("pix", out var pixElement) && pixElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var pix in pixElement.EnumerateArray())
+                {
+                    if (pix.TryGetProperty("txid", out var txidElement))
+                    {
+                        string txId = txidElement.GetString();
+                        if (!string.IsNullOrEmpty(txId))
+                        {
+                            txIds.Add(txId);
+                        }
+                    }
+                }
+            }
+            // Fallback to simple format
+            else if (jsonDoc.RootElement.TryGetProperty("txid", out var txidElement))
+            {
+                string txId = txidElement.GetString();
+                if (!string.IsNullOrEmpty(txId))
+                {
+                    txIds.Add(txId);
+                }
+            }
+
+            return txIds;
+        }
+
+        private async Task ProcessarPagamentosPixAsync(System.Collections.Generic.List<string> txIds)
+        {
+            // Fetch only faturamentos that match the txids and are not already paid
+            var faturamentosToUpdate = await _context.Faturamentos
+                .Where(f => txIds.Contains(f.TxIdPix) && f.StatusPagamento != PagamentoStatus.Pago_Total)
+                .ToListAsync();
+
+            if (faturamentosToUpdate.Count > 0)
+            {
+                foreach (var faturamento in faturamentosToUpdate)
+                {
+                    faturamento.StatusPagamento = PagamentoStatus.Pago_Total;
+                }
+
+                _context.UpdateRange(faturamentosToUpdate);
+                await _context.SaveChangesAsync();
             }
         }
 
