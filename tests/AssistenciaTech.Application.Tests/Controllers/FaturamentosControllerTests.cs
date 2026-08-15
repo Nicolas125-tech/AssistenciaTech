@@ -164,6 +164,57 @@ namespace AssistenciaTech.Application.Tests.Controllers
             badRequestResult.Value.Should().Be("Invalid JSON payload.");
         }
 
+
+        [Fact]
+        public async Task GerarDaOS_ReturnsNotFound_WhenOsDoesNotExist()
+        {
+            // Arrange
+            int invalidOsId = 999;
+
+            // Act
+            var result = await _controller.GerarDaOS(invalidOsId);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Fact]
+        public async Task GerarDaOS_CreatesFaturamentoAndRedirects_WhenOsExists()
+        {
+            // Arrange
+            var cliente = new Cliente { Nome = "João", Email = "joao@example.com", Telefone = "11999999999" };
+            _context.Clientes.Add(cliente);
+            await _context.SaveChangesAsync();
+
+            var os = new AssistenciaTech.Models.OrdemServico
+            {
+                ClienteId = cliente.Id,
+                Equipamento = "PC",
+                ProblemaRelatado = "Não liga",
+                Status = "Em Andamento",
+                CustoPecas = 150m,
+                CustoMaoDeObra = 200m,
+                DescontoAplicado = 50m
+            };
+            _context.OrdensServico.Add(os);
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _controller.GerarDaOS(os.Id);
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Which;
+            redirectResult.ActionName.Should().Be(nameof(FaturamentosController.Index));
+
+            var faturamento = await _context.Faturamentos.FirstOrDefaultAsync(f => f.OrdemServicoId == os.Id);
+            faturamento.Should().NotBeNull();
+            faturamento!.ValorTotal.Should().Be(300m); // 150 + 200 - 50
+            faturamento.StatusPagamento.Should().Be(PagamentoStatus.Pendente);
+            faturamento.TxIdPix.Should().NotBeNullOrEmpty();
+            faturamento.QrCodePayload.Should().NotBeNullOrEmpty();
+            faturamento.DataVencimento.Date.Should().Be(DateTime.Now.AddDays(3).Date);
+        }
+
         public void Dispose()
         {
             _context.Database.EnsureDeleted();
