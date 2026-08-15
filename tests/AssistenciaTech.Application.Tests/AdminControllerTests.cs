@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Caching.Memory;
 using FluentAssertions;
 using Xunit;
 
@@ -42,7 +43,7 @@ namespace AssistenciaTech.Application.Tests
 
             var mockLogger = new Mock<ILogger<AdminController>>();
             var mockEquipamentoBackupService = new Mock<IEquipamentoBackupService>();
-            var controller = new AdminController(context, mockEstoqueService.Object, mockEnv.Object, mockPdfService.Object, mockDashboardService.Object, mockEquipamentoBackupService.Object, mockLogger.Object);
+            var controller = new AdminController(context, mockEstoqueService.Object, mockEnv.Object, mockPdfService.Object, mockDashboardService.Object, mockEquipamentoBackupService.Object, mockLogger.Object, new MemoryCache(new MemoryCacheOptions()));
 
             // Set TempData
             var httpContext = new DefaultHttpContext();

@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Caching.Memory;
 using Xunit;
 
 namespace AssistenciaTech.Application.Tests.Controllers
@@ -28,6 +29,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
         private readonly Mock<IPdfGeneratorService> _mockPdfGeneratorService;
         private readonly Mock<IAdminDashboardService> _mockDashboardService;
         private readonly Mock<ILogger<AdminController>> _mockLogger;
+        private readonly IMemoryCache _mockCache;
         private readonly AdminController _controller;
 
         public AdminControllerTests()
@@ -41,7 +43,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
             _mockEnv = new Mock<IWebHostEnvironment>();
             _mockPdfGeneratorService = new Mock<IPdfGeneratorService>();
             _mockDashboardService = new Mock<IAdminDashboardService>();
-            _mockLogger = new Mock<ILogger<AdminController>>();
+                        _mockLogger = new Mock<ILogger<AdminController>>();
+            _mockCache = new MemoryCache(new MemoryCacheOptions());
 
             var _mockEquipamentoBackupService = new Mock<IEquipamentoBackupService>();
             _controller = new AdminController(
@@ -51,7 +54,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 _mockPdfGeneratorService.Object,
                 _mockDashboardService.Object,
                 _mockEquipamentoBackupService.Object,
-                _mockLogger.Object
+                _mockLogger.Object,
+                _mockCache
             );
         }
 

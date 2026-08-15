@@ -8,6 +8,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Text;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.AspNetCore.Authorization;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -33,8 +34,9 @@ namespace AssistenciaTech.Controllers
         private readonly IAdminDashboardService _dashboardService;
         private readonly IEquipamentoBackupService _equipamentoBackupService;
         private readonly ILogger<AdminController> _logger;
+        private readonly Microsoft.Extensions.Caching.Memory.IMemoryCache _cache;
 
-        public AdminController(AppDbContext context, IEstoqueService estoqueService, IWebHostEnvironment env, IPdfGeneratorService pdfGeneratorService, IAdminDashboardService dashboardService, IEquipamentoBackupService equipamentoBackupService, ILogger<AdminController> logger)
+        public AdminController(AppDbContext context, IEstoqueService estoqueService, IWebHostEnvironment env, IPdfGeneratorService pdfGeneratorService, IAdminDashboardService dashboardService, IEquipamentoBackupService equipamentoBackupService, ILogger<AdminController> logger, Microsoft.Extensions.Caching.Memory.IMemoryCache cache)
         {
             _context = context;
             _estoqueService = estoqueService;
@@ -43,6 +45,7 @@ namespace AssistenciaTech.Controllers
             _dashboardService = dashboardService;
             _equipamentoBackupService = equipamentoBackupService;
             _logger = logger;
+            _cache = cache;
         }
 
         // GET: Admin/Index
@@ -199,7 +202,12 @@ namespace AssistenciaTech.Controllers
 
                 if (ordemServico == null) return NotFound();
 
-                ViewBag.Tecnicos = new SelectList(await _context.Tecnicos.Where(t => t.Ativo).ToListAsync(), "Id", "Nome");
+                if (!_cache.TryGetValue("TecnicosAtivos", out List<Tecnico> tecnicos))
+                {
+                    tecnicos = await _context.Tecnicos.Where(t => t.Ativo).ToListAsync();
+                    _cache.Set("TecnicosAtivos", tecnicos, TimeSpan.FromMinutes(10));
+                }
+                ViewBag.Tecnicos = new SelectList(tecnicos, "Id", "Nome");
                 ViewBag.EquipamentosBackup = new SelectList(await _context.EquipamentosBackup.Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).ToListAsync(), "Id", "Descricao");
                 ViewBag.Contratos = new SelectList(await _context.Contratos.Include(c => c.Cliente).Where(c => c.ClienteId == ordemServico.ClienteId).Select(c => new { c.Id, NomeDesc = "Contrato: SLA " + c.HorasSLA + "h - R$ " + c.ValorMensal }).ToListAsync(), "Id", "NomeDesc");
 
@@ -437,7 +445,13 @@ namespace AssistenciaTech.Controllers
 
         private async Task PopulateViewBagsForEditAsync(OrdemServico ordemServico)
         {
-            ViewBag.Tecnicos = new SelectList(await _context.Tecnicos.Where(t => t.Ativo).ToListAsync(), "Id", "Nome", ordemServico.TecnicoId);
+            if (!_cache.TryGetValue("TecnicosAtivos", out List<Tecnico> tecnicos))
+            {
+                tecnicos = await _context.Tecnicos.Where(t => t.Ativo).ToListAsync();
+                _cache.Set("TecnicosAtivos", tecnicos, TimeSpan.FromMinutes(10));
+            }
+            ViewBag.Tecnicos = new SelectList(tecnicos, "Id", "Nome", ordemServico.TecnicoId);
+
             ViewBag.EquipamentosBackup = new SelectList(await _context.EquipamentosBackup.Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).ToListAsync(), "Id", "Descricao", ordemServico.EquipamentoBackupId);
             ViewBag.Contratos = new SelectList(await _context.Contratos.Include(c => c.Cliente).Where(c => c.ClienteId == ordemServico.ClienteId).Select(c => new { c.Id, NomeDesc = "Contrato: SLA " + c.HorasSLA + "h - R$ " + c.ValorMensal }).ToListAsync(), "Id", "NomeDesc", ordemServico.ContratoId);
         }
