@@ -1,0 +1,3 @@
+🧹 Remove commented code in Program.cs
+
+- Removed `// Fix para erro de timezone no PostgreSQL...` comment in Program.cs as it was dead code.

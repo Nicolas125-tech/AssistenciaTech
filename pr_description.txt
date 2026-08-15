@@ -1,9 +1,7 @@
-💡 **What:** Replaced multiple `StringBuilder.Append()` calls with a single `StringBuilder.AppendLine()` using string interpolation for the CSV export logic in `Controllers/AdminController.cs`.
+💡 **What:** Removed a dead/commented line in `Program.cs` (`// Fix para erro de timezone no PostgreSQL...`).
 
-🎯 **Why:** The previous code created intermediate string allocations by explicitly calling `date.ToString("dd/MM/yyyy")` inside a loop. By leveraging C# 10 interpolated string handlers for `StringBuilder`, values are formatted directly into the buffer, reducing GC pressure and execution time.
+🎯 **Why:** Removing dead code and unnecessary comments improves code readability and reduces noise, making it easier for developers to understand the active code.
 
-📊 **Measured Improvement:**
-BenchmarkDotNet testing with 1000 items on a mock CSV format loop showed:
-*   Original method: 160.19 KB memory allocation, ~216.8 us execution time
-*   Interpolated string method: 113.32 KB memory allocation, ~196.1 us execution time
-*   **Improvement**: A ~30% reduction in memory allocations and a ~10% reduction in execution time for the string building part of the CSV export loop.
+✅ **Verification:** Ran `dotnet build` and `dotnet test AssistenciaTech.sln` to ensure no functionality was broken. All tests passed.
+
+✨ **Result:** A cleaner and more maintainable `Program.cs` file without changing any application behavior.
