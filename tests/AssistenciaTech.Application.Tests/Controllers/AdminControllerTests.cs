@@ -340,6 +340,43 @@ namespace AssistenciaTech.Application.Tests.Controllers
             _controller.TempData["ErroBanco"].Should().Be("Não foi possível carregar a tela de edição. O banco de dados está inacessível.");
         }
 
+
+        [Fact]
+        public async Task ImprimirOs_ReturnsNotFound_WhenOrdemServicoDoesNotExist()
+        {
+            // Act
+            var result = await _controller.ImprimirOs(999);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Fact]
+        public async Task ImprimirOs_ReturnsFileResult_WithPdf_WhenOrdemServicoExists()
+        {
+            // Arrange
+            var cliente = new Cliente { Nome = "Cliente Teste", Email = "teste@teste.com", Telefone = "12345678", Cpf = "12345678901" };
+            _context.Clientes.Add(cliente);
+            await _context.SaveChangesAsync();
+
+            var os = new OrdemServico { ClienteId = cliente.Id, Status = "Orçamento", Equipamento = "PC" };
+            _context.OrdensServico.Add(os);
+            await _context.SaveChangesAsync();
+
+            var dummyPdfBytes = new byte[] { 1, 2, 3 };
+            _mockPdfGeneratorService.Setup(s => s.GenerateOsPdf(It.IsAny<OrdemServico>()))
+                                    .Returns(dummyPdfBytes);
+
+            // Act
+            var result = await _controller.ImprimirOs(os.Id);
+
+            // Assert
+            var fileResult = result.Should().BeOfType<FileContentResult>().Subject;
+            fileResult.ContentType.Should().Be("application/pdf");
+            fileResult.FileDownloadName.Should().Be($"OS_{os.Id}_{cliente.Nome}.pdf");
+            fileResult.FileContents.Should().BeEquivalentTo(dummyPdfBytes);
+        }
+
         public void Dispose()
         {
             // We might have disposed the context in the test above, so we handle it gracefully
