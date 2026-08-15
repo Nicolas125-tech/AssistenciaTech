@@ -62,12 +62,7 @@ namespace AssistenciaTech.Controllers
             int batchCount = 0;
             await foreach (var os in todasOS)
             {
-                sb.Append(os.Id).Append(",\"")
-                  .Append(os.Cliente?.Nome).Append("\",\"")
-                  .Append(os.Equipamento).Append("\",")
-                  .Append(os.DataEntrada.ToString("dd/MM/yyyy")).Append(',')
-                  .Append(os.Status).Append(',')
-                  .Append(os.ValorOrcamento).AppendLine();
+                sb.AppendLine($"{os.Id},\"{os.Cliente?.Nome}\",\"{os.Equipamento}\",{os.DataEntrada:dd/MM/yyyy},{os.Status},{os.ValorOrcamento}");
 
                 batchCount++;
                 if (batchCount >= 100)
