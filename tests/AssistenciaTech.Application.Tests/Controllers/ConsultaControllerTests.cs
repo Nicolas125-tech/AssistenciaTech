@@ -25,6 +25,19 @@ namespace AssistenciaTech.Application.Tests.Controllers
         }
 
         [Fact]
+        public void Index_DeveRetornarViewResult()
+        {
+            // Arrange
+
+            // Act
+            var result = _controller.Index();
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Which;
+            viewResult.ViewName.Should().BeNull(); // Returns default view
+        }
+
+        [Fact]
         public async Task Status_ComCpfMuitoLongo_DeveRetornarErroDeValidacao_PrevenindoDoS()
         {
             // Arrange
