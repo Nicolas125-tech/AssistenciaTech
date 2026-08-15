@@ -301,8 +301,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
             var result = await _controller.Edit(os.Id);
 
             // Assert
-            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
-            var model = viewResult.Model.Should().BeAssignableTo<OrdemServico>().Subject;
+            var viewResult = result.Should().BeOfType<ViewResult>().Which;
+            var model = viewResult.Model.Should().BeAssignableTo<OrdemServico>().Which;
             model.Id.Should().Be(os.Id);
 
             // Verify ViewBags
@@ -338,6 +338,60 @@ namespace AssistenciaTech.Application.Tests.Controllers
             result.Should().NotBeNull();
             result.ActionName.Should().Be("Index");
             _controller.TempData["ErroBanco"].Should().Be("Não foi possível carregar a tela de edição. O banco de dados está inacessível.");
+        }
+
+
+        [Fact]
+        public async Task Delete_Post_WhenIdExists_RemovesFromDatabaseAndRedirectsToIndex()
+        {
+            // Arrange
+            var cliente = new Cliente { Nome = "Cliente Teste", Email = "teste@teste.com", Telefone = "12345678", Cpf = "12345678901" };
+            _context.Clientes.Add(cliente);
+            await _context.SaveChangesAsync();
+
+            var os = new OrdemServico { ClienteId = cliente.Id, Status = "Orçamento", Equipamento = "PC" };
+            _context.OrdensServico.Add(os);
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _controller.Delete(os.Id);
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Which;
+            redirectResult.ActionName.Should().Be("Index");
+
+            var osInDb = await _context.OrdensServico.FindAsync(os.Id);
+            osInDb.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task Delete_Post_WhenIdDoesNotExist_RedirectsToIndexWithoutError()
+        {
+            // Arrange
+            var idInexistente = 999;
+
+            // Act
+            var result = await _controller.Delete(idInexistente);
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Which;
+            redirectResult.ActionName.Should().Be("Index");
+        }
+
+        [Fact]
+        public async Task Delete_Post_WhenDatabaseThrowsException_LogsErrorAndRedirectsToIndexWithError()
+        {
+            // Arrange
+            _context.Dispose();
+
+            // Act
+            var result = await _controller.Delete(1);
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Which;
+            redirectResult.ActionName.Should().Be("Index");
+            redirectResult.RouteValues.Should().NotBeNull();
+            redirectResult.RouteValues["erro"].Should().Be("Não foi possível excluir a OS.");
         }
 
         public void Dispose()
