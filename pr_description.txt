@@ -1,9 +1,10 @@
-💡 **What:** Replaced multiple `StringBuilder.Append()` calls with a single `StringBuilder.AppendLine()` using string interpolation for the CSV export logic in `Controllers/AdminController.cs`.
+🔒 [security fix] Fix Open Redirect in EquipamentoBackupController
 
-🎯 **Why:** The previous code created intermediate string allocations by explicitly calling `date.ToString("dd/MM/yyyy")` inside a loop. By leveraging C# 10 interpolated string handlers for `StringBuilder`, values are formatted directly into the buffer, reducing GC pressure and execution time.
+🎯 **What:** The vulnerability fixed
+The `EquipamentoBackupController.Devolver` method used the `Referer` header from incoming requests and passed it directly to the `Redirect()` method without validation.
 
-📊 **Measured Improvement:**
-BenchmarkDotNet testing with 1000 items on a mock CSV format loop showed:
-*   Original method: 160.19 KB memory allocation, ~216.8 us execution time
-*   Interpolated string method: 113.32 KB memory allocation, ~196.1 us execution time
-*   **Improvement**: A ~30% reduction in memory allocations and a ~10% reduction in execution time for the string building part of the CSV export loop.
+⚠️ **Risk:** The potential impact if left unfixed
+This allowed an Open Redirect vulnerability where attackers could trick users into clicking a legitimate-looking link pointing to the application, which then redirects them to a malicious site. This can be used for phishing attacks, credential theft, or malware distribution.
+
+🛡️ **Solution:** How the fix addresses the vulnerability
+The solution uses `Url.IsLocalUrl(referer)` to validate that the redirect URL is a local path within the application before calling `Redirect()`. This prevents the application from redirecting to external or untrusted domains. We also updated the unit tests to correctly mock the `IUrlHelper` interface with `IsLocalUrl`.

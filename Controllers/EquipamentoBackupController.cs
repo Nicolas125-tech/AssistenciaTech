@@ -105,7 +105,7 @@ namespace AssistenciaTech.Controllers
             }
             // Retorna para a página anterior, pode ser a OS ou o próprio index
             string referer = Request.Headers["Referer"].ToString();
-            if (!string.IsNullOrEmpty(referer))
+            if (!string.IsNullOrEmpty(referer) && Url.IsLocalUrl(referer))
             {
                 return Redirect(referer);
             }

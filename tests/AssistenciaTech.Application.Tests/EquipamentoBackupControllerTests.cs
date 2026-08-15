@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FluentAssertions;
 using Xunit;
+using Moq;
+using Microsoft.AspNetCore.Mvc.Routing;
 
 namespace AssistenciaTech.Application.Tests
 {
@@ -36,6 +38,9 @@ namespace AssistenciaTech.Application.Tests
 
             using var context = new AppDbContext(options);
             var controller = new EquipamentoBackupController(context);
+            var urlHelperMock = new Mock<IUrlHelper>();
+            urlHelperMock.Setup(x => x.IsLocalUrl(It.IsAny<string>())).Returns(true);
+            controller.Url = urlHelperMock.Object;
 
             // Act
             var result = await controller.Edit((int?)null);
@@ -54,6 +59,9 @@ namespace AssistenciaTech.Application.Tests
 
             using var context = new ConcurrencyThrowingDbContext(options);
             var controller = new EquipamentoBackupController(context);
+            var urlHelperMock = new Mock<IUrlHelper>();
+            urlHelperMock.Setup(x => x.IsLocalUrl(It.IsAny<string>())).Returns(true);
+            controller.Url = urlHelperMock.Object;
 
             var equipamento = new EquipamentoBackup { Id = 1, Descricao = "Test", NumeroSerie = "123", Disponivel = true };
 
@@ -82,6 +90,9 @@ namespace AssistenciaTech.Application.Tests
             context.ChangeTracker.Clear();
 
             var controller = new EquipamentoBackupController(context);
+            var urlHelperMock = new Mock<IUrlHelper>();
+            urlHelperMock.Setup(x => x.IsLocalUrl(It.IsAny<string>())).Returns(true);
+            controller.Url = urlHelperMock.Object;
             var equipamento = new EquipamentoBackup { Id = 1, Descricao = "New", NumeroSerie = "123", Disponivel = true };
 
             // Act
@@ -106,6 +117,9 @@ namespace AssistenciaTech.Application.Tests
             context.ChangeTracker.Clear();
 
             var controller = new EquipamentoBackupController(context);
+            var urlHelperMock = new Mock<IUrlHelper>();
+            urlHelperMock.Setup(x => x.IsLocalUrl(It.IsAny<string>())).Returns(true);
+            controller.Url = urlHelperMock.Object;
 
             // Mock HttpContext to simulate missing Referer header
             var httpContext = new DefaultHttpContext();
@@ -140,10 +154,13 @@ namespace AssistenciaTech.Application.Tests
             context.ChangeTracker.Clear();
 
             var controller = new EquipamentoBackupController(context);
+            var urlHelperMock = new Mock<IUrlHelper>();
+            urlHelperMock.Setup(x => x.IsLocalUrl(It.IsAny<string>())).Returns(true);
+            controller.Url = urlHelperMock.Object;
 
             // Mock HttpContext to simulate Referer header
             var httpContext = new DefaultHttpContext();
-            httpContext.Request.Headers["Referer"] = "https://example.com/somepage";
+            httpContext.Request.Headers["Referer"] = "/some-local-page";
             controller.ControllerContext = new ControllerContext()
             {
                 HttpContext = httpContext
@@ -157,7 +174,7 @@ namespace AssistenciaTech.Application.Tests
             savedEquipamento.Disponivel.Should().BeTrue();
 
             var redirectResult = result.Should().BeOfType<RedirectResult>().Subject;
-            redirectResult.Url.Should().Be("https://example.com/somepage");
+            redirectResult.Url.Should().Be("/some-local-page");
         }
 
         [Fact]
@@ -170,6 +187,9 @@ namespace AssistenciaTech.Application.Tests
 
             using var context = new AppDbContext(options);
             var controller = new EquipamentoBackupController(context);
+            var urlHelperMock = new Mock<IUrlHelper>();
+            urlHelperMock.Setup(x => x.IsLocalUrl(It.IsAny<string>())).Returns(true);
+            controller.Url = urlHelperMock.Object;
 
             // Mock HttpContext
             var httpContext = new DefaultHttpContext();
