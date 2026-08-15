@@ -164,6 +164,49 @@ namespace AssistenciaTech.Application.Tests.Controllers
             badRequestResult.Value.Should().Be("Invalid JSON payload.");
         }
 
+
+        [Fact]
+        public async Task MarcarPago_ReturnsRedirectToIndex_AndUpdatesStatus_WhenFaturamentoExists()
+        {
+            // Arrange
+            var faturamento = new Faturamento
+            {
+                OrdemServicoId = 1,
+                ValorTotal = 150m,
+                DataVencimento = DateTime.Now.AddDays(5),
+                StatusPagamento = PagamentoStatus.Pendente
+            };
+
+            _context.Faturamentos.Add(faturamento);
+            await _context.SaveChangesAsync();
+            _context.ChangeTracker.Clear();
+
+            // Act
+            var result = await _controller.MarcarPago(faturamento.Id);
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Which;
+            redirectResult.ActionName.Should().Be(nameof(FaturamentosController.Index));
+
+            var updatedFaturamento = await _context.Faturamentos.FindAsync(faturamento.Id);
+            updatedFaturamento.Should().NotBeNull();
+            updatedFaturamento!.StatusPagamento.Should().Be(PagamentoStatus.Pago_Total);
+        }
+
+        [Fact]
+        public async Task MarcarPago_ReturnsRedirectToIndex_WhenFaturamentoDoesNotExist()
+        {
+            // Arrange
+            int nonExistentId = 999;
+
+            // Act
+            var result = await _controller.MarcarPago(nonExistentId);
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Which;
+            redirectResult.ActionName.Should().Be(nameof(FaturamentosController.Index));
+        }
+
         public void Dispose()
         {
             _context.Database.EnsureDeleted();
