@@ -21,7 +21,7 @@ namespace AssistenciaTech.Controllers
         // GET: Pecas
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Pecas.ToListAsync());
+            return View(await _context.Pecas.AsNoTracking().ToListAsync());
         }
 
         // GET: Pecas/Create
