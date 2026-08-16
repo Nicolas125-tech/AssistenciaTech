@@ -207,6 +207,57 @@ namespace AssistenciaTech.Application.Tests.Controllers
             redirectResult.ActionName.Should().Be(nameof(FaturamentosController.Index));
         }
 
+
+        [Fact]
+        public async Task GerarDaOS_ReturnsRedirectToIndex_AndCreatesFaturamento_WhenOsExists()
+        {
+            // Arrange
+            var os = new OrdemServico
+            {
+                ClienteId = 1,
+                Equipamento = "PC Gamer",
+                ProblemaRelatado = "Não liga",
+                Status = "Concluído",
+                CustoPecas = 100m,
+                CustoMaoDeObra = 200m,
+                DescontoAplicado = 50m
+            };
+
+            _context.OrdensServico.Add(os);
+            await _context.SaveChangesAsync();
+            _context.ChangeTracker.Clear();
+
+            // Act
+            var result = await _controller.GerarDaOS(os.Id);
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Which;
+            redirectResult.ActionName.Should().Be(nameof(FaturamentosController.Index));
+
+            var faturamento = await _context.Faturamentos.FirstOrDefaultAsync(f => f.OrdemServicoId == os.Id);
+            faturamento.Should().NotBeNull();
+
+            // Expected total = (100 + 200) - 50 = 250
+            faturamento!.ValorTotal.Should().Be(250m);
+            faturamento.StatusPagamento.Should().Be(PagamentoStatus.Pendente);
+            faturamento.TxIdPix.Should().NotBeNullOrEmpty();
+            faturamento.QrCodePayload.Should().NotBeNullOrEmpty();
+            faturamento.DataVencimento.Date.Should().Be(DateTime.Now.AddDays(3).Date);
+        }
+
+        [Fact]
+        public async Task GerarDaOS_ReturnsNotFound_WhenOsDoesNotExist()
+        {
+            // Arrange
+            int nonExistentId = 999;
+
+            // Act
+            var result = await _controller.GerarDaOS(nonExistentId);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
         public void Dispose()
         {
             _context.Database.EnsureDeleted();
