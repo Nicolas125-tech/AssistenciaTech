@@ -108,7 +108,6 @@ namespace AssistenciaTech.Controllers
             catch (DbException ex)
             {
                 _logger.LogError(ex, "DB_CONNECTION_ERROR (Admin/Index)");
-                // Log the exception in a real scenario
                 ViewBag.ErroBanco = "Erro ao conectar ao banco de dados. Por favor, tente novamente mais tarde.";
 
                 // Zera os valores do Dashboard
