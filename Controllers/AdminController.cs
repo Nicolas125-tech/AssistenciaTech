@@ -199,9 +199,9 @@ namespace AssistenciaTech.Controllers
 
                 if (ordemServico == null) return NotFound();
 
-                ViewBag.Tecnicos = new SelectList(await _context.Tecnicos.Where(t => t.Ativo).ToListAsync(), "Id", "Nome");
-                ViewBag.EquipamentosBackup = new SelectList(await _context.EquipamentosBackup.Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).ToListAsync(), "Id", "Descricao");
-                ViewBag.Contratos = new SelectList(await _context.Contratos.Include(c => c.Cliente).Where(c => c.ClienteId == ordemServico.ClienteId).Select(c => new { c.Id, NomeDesc = "Contrato: SLA " + c.HorasSLA + "h - R$ " + c.ValorMensal }).ToListAsync(), "Id", "NomeDesc");
+                ViewBag.Tecnicos = new SelectList(await _context.Tecnicos.AsNoTracking().Where(t => t.Ativo).ToListAsync(), "Id", "Nome");
+                ViewBag.EquipamentosBackup = new SelectList(await _context.EquipamentosBackup.AsNoTracking().Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).ToListAsync(), "Id", "Descricao");
+                ViewBag.Contratos = new SelectList(await _context.Contratos.AsNoTracking().Include(c => c.Cliente).Where(c => c.ClienteId == ordemServico.ClienteId).Select(c => new { c.Id, NomeDesc = "Contrato: SLA " + c.HorasSLA + "h - R$ " + c.ValorMensal }).ToListAsync(), "Id", "NomeDesc");
 
                 return View(ordemServico);
             }
@@ -436,9 +436,9 @@ namespace AssistenciaTech.Controllers
 
         private async Task PopulateViewBagsForEditAsync(OrdemServico ordemServico)
         {
-            ViewBag.Tecnicos = new SelectList(await _context.Tecnicos.Where(t => t.Ativo).ToListAsync(), "Id", "Nome", ordemServico.TecnicoId);
-            ViewBag.EquipamentosBackup = new SelectList(await _context.EquipamentosBackup.Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).ToListAsync(), "Id", "Descricao", ordemServico.EquipamentoBackupId);
-            ViewBag.Contratos = new SelectList(await _context.Contratos.Include(c => c.Cliente).Where(c => c.ClienteId == ordemServico.ClienteId).Select(c => new { c.Id, NomeDesc = "Contrato: SLA " + c.HorasSLA + "h - R$ " + c.ValorMensal }).ToListAsync(), "Id", "NomeDesc", ordemServico.ContratoId);
+            ViewBag.Tecnicos = new SelectList(await _context.Tecnicos.AsNoTracking().Where(t => t.Ativo).ToListAsync(), "Id", "Nome", ordemServico.TecnicoId);
+            ViewBag.EquipamentosBackup = new SelectList(await _context.EquipamentosBackup.AsNoTracking().Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).ToListAsync(), "Id", "Descricao", ordemServico.EquipamentoBackupId);
+            ViewBag.Contratos = new SelectList(await _context.Contratos.AsNoTracking().Include(c => c.Cliente).Where(c => c.ClienteId == ordemServico.ClienteId).Select(c => new { c.Id, NomeDesc = "Contrato: SLA " + c.HorasSLA + "h - R$ " + c.ValorMensal }).ToListAsync(), "Id", "NomeDesc", ordemServico.ContratoId);
         }
 
         private async Task ProcessEvidenciaUploadsAsync(OrdemServico ordemExistente, IFormFileCollection fotos)
