@@ -42,6 +42,22 @@ namespace AssistenciaTech.Application.Tests.Controllers
                             base.SaveChanges();
                         }
                     }
+                    else
+                    {
+                        var pecaEntity = ChangeTracker.Entries<Peca>().FirstOrDefault(e => e.State == EntityState.Modified);
+                        if (pecaEntity != null)
+                        {
+                            pecaEntity.State = EntityState.Detached;
+                            var peca = Set<Peca>().Local.FirstOrDefault(p => p.Id == pecaEntity.Entity.Id) ??
+                                          Set<Peca>().FirstOrDefault(p => p.Id == pecaEntity.Entity.Id);
+
+                            if (peca != null)
+                            {
+                                Set<Peca>().Remove(peca);
+                                base.SaveChanges();
+                            }
+                        }
+                    }
                 }
                 throw new DbUpdateConcurrencyException("Simulated concurrency exception");
             }
