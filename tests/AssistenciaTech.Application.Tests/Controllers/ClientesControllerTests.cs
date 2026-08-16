@@ -29,16 +29,30 @@ namespace AssistenciaTech.Application.Tests.Controllers
             {
                 if (RemoveEntityOnException)
                 {
-                    var entity = ChangeTracker.Entries<Cliente>().FirstOrDefault(e => e.State == EntityState.Modified);
-                    if (entity != null)
+                    var clienteEntity = ChangeTracker.Entries<Cliente>().FirstOrDefault(e => e.State == EntityState.Modified);
+                    if (clienteEntity != null)
                     {
-                        entity.State = EntityState.Detached;
-                        var cliente = Set<Cliente>().Local.FirstOrDefault(c => c.Id == entity.Entity.Id) ??
-                                      Set<Cliente>().FirstOrDefault(c => c.Id == entity.Entity.Id);
+                        clienteEntity.State = EntityState.Detached;
+                        var cliente = Set<Cliente>().Local.FirstOrDefault(c => c.Id == clienteEntity.Entity.Id) ??
+                                      Set<Cliente>().FirstOrDefault(c => c.Id == clienteEntity.Entity.Id);
 
                         if (cliente != null)
                         {
                             Set<Cliente>().Remove(cliente);
+                            base.SaveChanges();
+                        }
+                    }
+
+                    var tecnicoEntity = ChangeTracker.Entries<Tecnico>().FirstOrDefault(e => e.State == EntityState.Modified);
+                    if (tecnicoEntity != null)
+                    {
+                        tecnicoEntity.State = EntityState.Detached;
+                        var tecnico = Set<Tecnico>().Local.FirstOrDefault(c => c.Id == tecnicoEntity.Entity.Id) ??
+                                      Set<Tecnico>().FirstOrDefault(c => c.Id == tecnicoEntity.Entity.Id);
+
+                        if (tecnico != null)
+                        {
+                            Set<Tecnico>().Remove(tecnico);
                             base.SaveChanges();
                         }
                     }
