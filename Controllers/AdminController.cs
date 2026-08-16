@@ -265,18 +265,32 @@ namespace AssistenciaTech.Controllers
         {
             try
             {
-                var ordemServico = await _context.OrdensServico.FindAsync(id);
+                var ordemServico = await _context.OrdensServico
+                    .Include(o => o.Evidencias)
+                    .Include(o => o.PecasUtilizadas)
+                    .FirstOrDefaultAsync(o => o.Id == id);
+
                 if (ordemServico != null)
                 {
+                    if (ordemServico.Evidencias.Any() || ordemServico.PecasUtilizadas.Any())
+                    {
+                        return RedirectToAction(nameof(Index), new { erro = "Não é possível excluir a OS pois ela possui dependências (Evidências ou Peças)." });
+                    }
+
+                    bool hasFaturamento = await _context.Faturamentos.AnyAsync(f => f.OrdemServicoId == id);
+                    if (hasFaturamento)
+                    {
+                        return RedirectToAction(nameof(Index), new { erro = "Não é possível excluir a OS pois ela possui faturamento." });
+                    }
+
                     _context.OrdensServico.Remove(ordemServico);
                     await _context.SaveChangesAsync();
                 }
                 return RedirectToAction(nameof(Index));
             }
-            catch (Exception ex)
+            catch (System.Data.Common.DbException ex)
             {
                 _logger.LogError(ex, "DB_DELETE_ERROR");
-                // Tratar caso a OS tenha dependências impeditivas (raro neste escopo)
                 return RedirectToAction(nameof(Index), new { erro = "Não foi possível excluir a OS." });
             }
         }

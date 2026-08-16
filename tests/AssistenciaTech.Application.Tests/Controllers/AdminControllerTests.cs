@@ -377,6 +377,129 @@ namespace AssistenciaTech.Application.Tests.Controllers
             fileResult.FileContents.Should().BeEquivalentTo(dummyPdfBytes);
         }
 
+
+        [Fact]
+        public async Task Delete_OSComDependencias_DeveRetornarRedirectComErro()
+        {
+            // Arrange
+            var cliente = new Cliente { Nome = "Teste Cliente", Email = "teste@teste.com", Telefone = "12345678" };
+            _context.Clientes.Add(cliente);
+            await _context.SaveChangesAsync();
+
+            var os = new OrdemServico
+            {
+                ClienteId = cliente.Id,
+                Equipamento = "Notebook",
+                ProblemaRelatado = "Tela Quebrada",
+                Status = "Recebido"
+            };
+
+            // Adicionar uma evidência para gerar dependência
+            os.Evidencias.Add(new Evidencia { CaminhoArquivo = "caminho/teste.jpg" });
+
+            _context.OrdensServico.Add(os);
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _controller.Delete(os.Id);
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectResult.ActionName.Should().Be("Index");
+            redirectResult.RouteValues.Should().ContainKey("erro");
+            redirectResult.RouteValues["erro"].ToString().Should().Contain("dependências");
+
+            // Verifica que não foi deletado
+            var osNoBanco = await _context.OrdensServico.FindAsync(os.Id);
+            osNoBanco.Should().NotBeNull();
+        }
+
+        [Fact]
+        public async Task Delete_OSComFaturamento_DeveRetornarRedirectComErro()
+        {
+            // Arrange
+            var cliente = new Cliente { Nome = "Teste Cliente", Email = "teste@teste.com", Telefone = "12345678" };
+            _context.Clientes.Add(cliente);
+            await _context.SaveChangesAsync();
+
+            var os = new OrdemServico
+            {
+                ClienteId = cliente.Id,
+                Equipamento = "Notebook",
+                ProblemaRelatado = "Tela Quebrada",
+                Status = "Concluído"
+            };
+
+            _context.OrdensServico.Add(os);
+            await _context.SaveChangesAsync();
+
+            // Adicionar faturamento
+            var faturamento = new Faturamento
+            {
+                OrdemServicoId = os.Id,
+                ValorTotal = 150.00m,
+                DataVencimento = DateTime.Now.AddDays(5)
+            };
+            _context.Faturamentos.Add(faturamento);
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _controller.Delete(os.Id);
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectResult.ActionName.Should().Be("Index");
+            redirectResult.RouteValues.Should().ContainKey("erro");
+            redirectResult.RouteValues["erro"].ToString().Should().Contain("faturamento");
+
+            // Verifica que não foi deletado
+            var osNoBanco = await _context.OrdensServico.FindAsync(os.Id);
+            osNoBanco.Should().NotBeNull();
+        }
+
+        [Fact]
+        public async Task Delete_OSSemDependencias_DeveDeletarERetornarRedirectIndex()
+        {
+            // Arrange
+            var cliente = new Cliente { Nome = "Teste Cliente", Email = "teste@teste.com", Telefone = "12345678" };
+            _context.Clientes.Add(cliente);
+            await _context.SaveChangesAsync();
+
+            var os = new OrdemServico
+            {
+                ClienteId = cliente.Id,
+                Equipamento = "Notebook",
+                ProblemaRelatado = "Tela Quebrada",
+                Status = "Recebido"
+            };
+            _context.OrdensServico.Add(os);
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _controller.Delete(os.Id);
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectResult.ActionName.Should().Be("Index");
+            redirectResult.RouteValues.Should().BeNull(); // Sem erro
+
+            // Verifica que foi deletado
+            var osNoBanco = await _context.OrdensServico.FindAsync(os.Id);
+            osNoBanco.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task Delete_OSInexistente_DeveRetornarRedirectIndex()
+        {
+            // Act
+            var result = await _controller.Delete(999);
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectResult.ActionName.Should().Be("Index");
+            redirectResult.RouteValues.Should().BeNull(); // Sem erro
+        }
+
         public void Dispose()
         {
             // We might have disposed the context in the test above, so we handle it gracefully
