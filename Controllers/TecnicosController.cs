@@ -21,7 +21,7 @@ namespace AssistenciaTech.Controllers
 
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Tecnicos.ToListAsync());
+            return View(await _context.Tecnicos.AsNoTracking().ToListAsync());
         }
 
         public IActionResult Create()
