@@ -171,7 +171,7 @@ namespace AssistenciaTech.Controllers
             }
             catch (Exception ex)
             {
-                // Em um ambiente real, faríamos um log (ex: Serilog)
+                _logger.LogError(ex, "Erro ao salvar a Ordem de Serviço");
                 string errorMsg = ex.Message;
                 if (ex.InnerException != null) errorMsg = $"{errorMsg} | Inner: {ex.InnerException.Message}";
                 ModelState.AddModelError(string.Empty, $"Erro ao salvar a Ordem de Serviço: {errorMsg}");
