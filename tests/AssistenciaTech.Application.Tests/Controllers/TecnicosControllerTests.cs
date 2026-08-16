@@ -109,6 +109,46 @@ namespace AssistenciaTech.Application.Tests.Controllers
             tecnicosInDb.Should().BeEmpty();
         }
 
+
+        [Fact]
+        public async Task DeleteConfirmed_WithExistingId_ShouldRemoveTecnicoAndRedirectToIndex()
+        {
+            // Arrange
+            var tecnico = new Tecnico
+            {
+                Nome = "Tecnico to delete",
+                PercentualComissao = 10,
+                Ativo = true
+            };
+            _context.Tecnicos.Add(tecnico);
+            await _context.SaveChangesAsync();
+            _context.ChangeTracker.Clear();
+
+            // Act
+            var result = await _controller.DeleteConfirmed(tecnico.Id);
+
+            // Assert
+            var redirectToActionResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectToActionResult.ActionName.Should().Be("Index");
+
+            var tecnicoInDb = await _context.Tecnicos.FindAsync(tecnico.Id);
+            tecnicoInDb.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task DeleteConfirmed_WithNonExistingId_ShouldRedirectToIndexAndNotThrow()
+        {
+            // Arrange
+            var nonExistingId = 999;
+
+            // Act
+            var result = await _controller.DeleteConfirmed(nonExistingId);
+
+            // Assert
+            var redirectToActionResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectToActionResult.ActionName.Should().Be("Index");
+        }
+
         public void Dispose()
         {
             _context.Database.EnsureDeleted();
