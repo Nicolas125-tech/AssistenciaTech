@@ -27,7 +27,7 @@ namespace AssistenciaTech.Controllers
 
         public async Task<IActionResult> Index()
         {
-            var faturamentos = await _context.Faturamentos.Include(f => f.OrdemServico).ToListAsync();
+            var faturamentos = await _context.Faturamentos.AsNoTracking().Include(f => f.OrdemServico).ToListAsync();
             return View(faturamentos);
         }
 
