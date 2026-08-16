@@ -160,6 +160,117 @@ namespace AssistenciaTech.Application.Tests.Controllers
             // Assert
             result.Should().BeOfType<NotFoundResult>();
         }
+
+        [Fact]
+        public async Task Edit_Post_ValidModel_ShouldUpdatePecaAndRedirectToIndex()
+        {
+            // Arrange
+            var peca = new Peca { Nome = "Processador Antigo", QuantidadeEstoque = 10, ValorUnitario = 500.00m };
+            _context.Pecas.Add(peca);
+            await _context.SaveChangesAsync();
+            _context.ChangeTracker.Clear();
+
+            var pecaAtualizada = new Peca
+            {
+                Id = peca.Id,
+                Nome = "Processador Novo",
+                QuantidadeEstoque = 15,
+                ValorUnitario = 600.00m
+            };
+
+            // Act
+            var result = await _controller.Edit(peca.Id, pecaAtualizada);
+
+            // Assert
+            var redirectToActionResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectToActionResult.ActionName.Should().Be("Index");
+
+            var pecaInDb = await _context.Pecas.FindAsync(peca.Id);
+            pecaInDb.Should().NotBeNull();
+            pecaInDb.Nome.Should().Be("Processador Novo");
+            pecaInDb.QuantidadeEstoque.Should().Be(15);
+            pecaInDb.ValorUnitario.Should().Be(600.00m);
+        }
+
+        [Fact]
+        public async Task Edit_Post_InvalidModel_ShouldReturnViewWithModel()
+        {
+            // Arrange
+            var peca = new Peca { Id = 1, Nome = "Teclado", QuantidadeEstoque = 5, ValorUnitario = 100.00m };
+            _controller.ModelState.AddModelError("Nome", "O nome é obrigatório");
+
+            // Act
+            var result = await _controller.Edit(1, peca);
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            viewResult.Model.Should().BeEquivalentTo(peca);
+        }
+
+        [Fact]
+        public async Task Edit_Post_PecaNotFound_ShouldReturnNotFound()
+        {
+            // Arrange
+            var peca = new Peca { Id = 999, Nome = "Peça Inexistente" };
+
+            // Act
+            var result = await _controller.Edit(999, peca);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Fact]
+        public async Task Edit_Post_ConcurrencyException_PecaDeleted_ShouldReturnNotFound()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var concurrencyContext = new ConcurrencyAppDbContext(options);
+            using var controller = new PecasController(concurrencyContext);
+
+            var peca = new Peca { Nome = "Placa de Rede", QuantidadeEstoque = 5, ValorUnitario = 50.00m };
+            concurrencyContext.Pecas.Add(peca);
+            await concurrencyContext.SaveChangesAsync();
+            concurrencyContext.ChangeTracker.Clear();
+
+            var pecaAtualizada = new Peca { Id = peca.Id, Nome = "Placa Wi-Fi", QuantidadeEstoque = 5, ValorUnitario = 60.00m };
+            concurrencyContext.ThrowConcurrencyException = true;
+            concurrencyContext.RemoveEntityOnException = true;
+
+            // Act
+            var result = await controller.Edit(peca.Id, pecaAtualizada);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Fact]
+        public async Task Edit_Post_ConcurrencyException_PecaExists_ShouldThrow()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var concurrencyContext = new ConcurrencyAppDbContext(options);
+            using var controller = new PecasController(concurrencyContext);
+
+            var peca = new Peca { Nome = "Fonte 500W", QuantidadeEstoque = 2, ValorUnitario = 200.00m };
+            concurrencyContext.Pecas.Add(peca);
+            await concurrencyContext.SaveChangesAsync();
+            concurrencyContext.ChangeTracker.Clear();
+
+            var pecaAtualizada = new Peca { Id = peca.Id, Nome = "Fonte 600W", QuantidadeEstoque = 2, ValorUnitario = 250.00m };
+            concurrencyContext.ThrowConcurrencyException = true;
+            concurrencyContext.RemoveEntityOnException = false; // Entity still exists
+
+            // Act & Assert
+            await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => controller.Edit(peca.Id, pecaAtualizada));
+        }
+
         public void Dispose()
         {
             _context.Database.EnsureDeleted();
