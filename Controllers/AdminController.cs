@@ -126,7 +126,7 @@ namespace AssistenciaTech.Controllers
             try
             {
                 // Popula o dropdown de clientes
-                ViewBag.Clientes = new SelectList(_context.Clientes.AsNoTracking().Select(c => new { Id = c.Id, Descricao = $"{c.Nome} - CPF: {c.Cpf} - Tel: {c.Telefone}" }), "Id", "Descricao");
+                PopulateClientesViewBag();
                 return View();
             }
             catch (Exception ex)
@@ -177,7 +177,7 @@ namespace AssistenciaTech.Controllers
             }
 
             // Se falhou, retorna os dados para o formulário
-            ViewBag.Clientes = new SelectList(_context.Clientes.AsNoTracking().Select(c => new { Id = c.Id, Descricao = $"{c.Nome} - CPF: {c.Cpf} - Tel: {c.Telefone}" }), "Id", "Descricao", ordemServico.ClienteId);
+            PopulateClientesViewBag(ordemServico.ClienteId);
             return View(ordemServico);
         }
 
@@ -490,6 +490,18 @@ namespace AssistenciaTech.Controllers
 
                 await Task.WhenAll(uploadTasks);
             }
+        }
+        private void PopulateClientesViewBag(int? selectedId = null)
+        {
+            ViewBag.Clientes = new SelectList(
+                _context.Clientes.AsNoTracking().Select(c => new
+                {
+                    Id = c.Id,
+                    Descricao = $"{c.Nome} - CPF: {c.Cpf} - Tel: {c.Telefone}"
+                }),
+                "Id",
+                "Descricao",
+                selectedId);
         }
     }
 }
