@@ -26,6 +26,7 @@ namespace AssistenciaTech.Controllers
     [Authorize]
     public class AdminController : Controller
     {
+        private static readonly string[] _allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".pdf" };
         private readonly AppDbContext _context;
         private readonly IEstoqueService _estoqueService;
         private readonly IWebHostEnvironment _env;
@@ -301,8 +302,7 @@ namespace AssistenciaTech.Controllers
             }
 
             var extension = Path.GetExtension(fileName).ToLowerInvariant();
-            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".pdf" };
-            if (!allowedExtensions.Contains(extension) || Path.GetFileName(fileName) != fileName)
+            if (!_allowedExtensions.Contains(extension) || Path.GetFileName(fileName) != fileName)
             {
                 return BadRequest();
             }
@@ -447,7 +447,6 @@ namespace AssistenciaTech.Controllers
             {
                 string uploadsFolder = Path.Combine(_env.ContentRootPath, "SecureUploads", "Evidencias");
                 Directory.CreateDirectory(uploadsFolder);
-                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".pdf" };
 
                 var uploadTasks = new List<Task>();
 
@@ -456,7 +455,7 @@ namespace AssistenciaTech.Controllers
                     if (foto.Length > 0)
                     {
                         var extension = Path.GetExtension(foto.FileName).ToLowerInvariant();
-                        if (!allowedExtensions.Contains(extension))
+                        if (!_allowedExtensions.Contains(extension))
                         {
                             continue;
                         }
