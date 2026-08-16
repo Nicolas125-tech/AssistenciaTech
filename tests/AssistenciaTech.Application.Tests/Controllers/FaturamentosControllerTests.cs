@@ -193,8 +193,9 @@ namespace AssistenciaTech.Application.Tests.Controllers
             updatedFaturamento!.StatusPagamento.Should().Be(PagamentoStatus.Pago_Total);
         }
 
+
         [Fact]
-        public async Task MarcarPago_ReturnsRedirectToIndex_WhenFaturamentoDoesNotExist()
+        public async Task MarcarPago_ReturnsRedirectToIndex_AndDoesNotUpdate_WhenFaturamentoDoesNotExist()
         {
             // Arrange
             int nonExistentId = 999;
@@ -205,6 +206,64 @@ namespace AssistenciaTech.Application.Tests.Controllers
             // Assert
             var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Which;
             redirectResult.ActionName.Should().Be(nameof(FaturamentosController.Index));
+
+            // We know it didn't update because it doesn't exist, but checking context count confirms no accidental inserts
+            var count = await _context.Faturamentos.CountAsync();
+            count.Should().Be(0);
+        }
+
+
+
+        [Fact]
+        public async Task MarcarPago_ThrowsTestDbException_WhenDatabaseFails()
+        {
+            // Arrange
+            // We use the existing _context (InMemory) to seed the data,
+            // but we need to mock AppDbContext to throw exception.
+            // Since FindAsync accesses the DbSet, we can mock SaveChangesAsync instead.
+
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            var mockContext = new MockAppDbContext(options);
+
+            var faturamento = new Faturamento
+            {
+                OrdemServicoId = 1,
+                ValorTotal = 150m,
+                DataVencimento = DateTime.Now.AddDays(5),
+                StatusPagamento = PagamentoStatus.Pendente
+            };
+
+            // Seed using a real context to avoid DbSet setup issues
+            using (var seedContext = new AppDbContext(options))
+            {
+                seedContext.Faturamentos.Add(faturamento);
+                await seedContext.SaveChangesAsync();
+            }
+
+            var mockConfig = new Mock<IConfiguration>();
+            var controller = new FaturamentosController(mockContext, mockConfig.Object);
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<TestDbException>(() => controller.MarcarPago(faturamento.Id));
+            exception.Message.Should().Be("Database connection failed");
+        }
+
+        public class MockAppDbContext : AppDbContext
+        {
+            public MockAppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+            public override Task<int> SaveChangesAsync(System.Threading.CancellationToken cancellationToken = default)
+            {
+                throw new TestDbException("Database connection failed");
+            }
+        }
+
+        public class TestDbException : System.Data.Common.DbException
+        {
+            public TestDbException(string message) : base(message) { }
         }
 
         public void Dispose()
