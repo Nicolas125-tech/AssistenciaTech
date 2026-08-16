@@ -20,7 +20,7 @@ namespace AssistenciaTech.Controllers
 
         public async Task<IActionResult> Index()
         {
-            return View(await _context.EquipamentosBackup.ToListAsync());
+            return View(await _context.EquipamentosBackup.AsNoTracking().ToListAsync());
         }
 
         public IActionResult Create()
