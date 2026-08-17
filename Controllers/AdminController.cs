@@ -354,21 +354,22 @@ namespace AssistenciaTech.Controllers
             return PhysicalFile(fullFilePath, contentType);
         }
 
+        private static readonly Dictionary<string, List<byte[]>> _fileSignatures = new Dictionary<string, List<byte[]>>
+        {
+            { ".jpg", new List<byte[]> { new byte[] { 0xFF, 0xD8, 0xFF } } },
+            { ".jpeg", new List<byte[]> { new byte[] { 0xFF, 0xD8, 0xFF } } },
+            { ".png", new List<byte[]> { new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A } } },
+            { ".gif", new List<byte[]> { new byte[] { 0x47, 0x49, 0x46, 0x38 } } },
+            { ".pdf", new List<byte[]> { new byte[] { 0x25, 0x50, 0x44, 0x46, 0x2D } } }
+        };
+
         private static async Task<bool> IsValidFileSignatureAsync(IFormFile file, string extension)
         {
             if (file == null || file.Length == 0) return false;
 
             await using var stream = file.OpenReadStream();
-            var signatures = new Dictionary<string, List<byte[]>>
-            {
-                { ".jpg", new List<byte[]> { new byte[] { 0xFF, 0xD8, 0xFF } } },
-                { ".jpeg", new List<byte[]> { new byte[] { 0xFF, 0xD8, 0xFF } } },
-                { ".png", new List<byte[]> { new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A } } },
-                { ".gif", new List<byte[]> { new byte[] { 0x47, 0x49, 0x46, 0x38 } } },
-                { ".pdf", new List<byte[]> { new byte[] { 0x25, 0x50, 0x44, 0x46, 0x2D } } }
-            };
 
-            if (!signatures.TryGetValue(extension, out var expectedSignatures))
+            if (!_fileSignatures.TryGetValue(extension, out var expectedSignatures))
                 return false;
 
             var maxSignatureLength = expectedSignatures.Max(s => s.Length);
