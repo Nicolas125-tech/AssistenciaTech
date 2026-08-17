@@ -133,7 +133,7 @@ namespace AssistenciaTech.Data
                 {
                     OrdemServicoId = entry.Entity.Id,
                     Usuario = usuario,
-                    DataAlteracao = DateTime.Now,
+                    DataAlteracao = DateTime.UtcNow,
                     CampoAlterado = prop.Metadata.Name,
                     ValorAntigo = oldValue,
                     ValorNovo = newValue
@@ -147,7 +147,7 @@ namespace AssistenciaTech.Data
             var auditoria = new AuditoriaOS
             {
                 Usuario = usuario,
-                DataAlteracao = DateTime.Now,
+                DataAlteracao = DateTime.UtcNow,
                 CampoAlterado = "CRIACAO_OS",
                 ValorAntigo = "",
                 ValorNovo = "OS Criada"

@@ -49,7 +49,7 @@ namespace AssistenciaTech.Controllers
             {
                 OrdemServicoId = osId,
                 ValorTotal = total,
-                DataVencimento = DateTime.Now.AddDays(3),
+                DataVencimento = DateTime.UtcNow.AddDays(3),
                 StatusPagamento = PagamentoStatus.Pendente,
                 TxIdPix = txId,
                 QrCodePayload = qrcodeBase

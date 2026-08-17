@@ -63,7 +63,7 @@ namespace AssistenciaTech.Application.Tests.Services
                 Equipamento = "PC Gamer",
                 ProblemaRelatado = "Formatacao",
                 Status = WorkflowStatus.Recebido,
-                DataEntrada = DateTime.Now
+                DataEntrada = DateTime.UtcNow
                 // Missing Cliente, NumeroSerie, LaudoTecnico, AvariasPreExistentes, DataEntregaCliente
             };
 
@@ -107,9 +107,9 @@ namespace AssistenciaTech.Application.Tests.Services
                 Equipamento = "Smartphone",
                 ProblemaRelatado = "Tela quebrada",
                 Status = WorkflowStatus.Entregue,
-                DataEntrada = DateTime.Now.AddDays(-110),
-                DataConclusao = DateTime.Now.AddDays(-105),
-                DataEntregaCliente = DateTime.Now.AddDays(-100)
+                DataEntrada = DateTime.UtcNow.AddDays(-110),
+                DataConclusao = DateTime.UtcNow.AddDays(-105),
+                DataEntregaCliente = DateTime.UtcNow.AddDays(-100)
             };
 
             // Act
@@ -139,9 +139,9 @@ namespace AssistenciaTech.Application.Tests.Services
                 Equipamento = "Tablet",
                 ProblemaRelatado = "Bateria viciada",
                 Status = WorkflowStatus.Entregue,
-                DataEntrada = DateTime.Now.AddDays(-10),
-                DataConclusao = DateTime.Now.AddDays(-5),
-                DataEntregaCliente = DateTime.Now.AddDays(-2)
+                DataEntrada = DateTime.UtcNow.AddDays(-10),
+                DataConclusao = DateTime.UtcNow.AddDays(-5),
+                DataEntregaCliente = DateTime.UtcNow.AddDays(-2)
                 // Default warranty is usually 90 days from DataEntregaCliente,
                 // so GuarantiaAtiva should be true here since it's only 2 days ago.
             };

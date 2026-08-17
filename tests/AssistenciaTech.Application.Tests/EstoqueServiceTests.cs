@@ -29,7 +29,7 @@ namespace AssistenciaTech.Application.Tests
             using var context = GetDbContext(dbName);
 
             var peca = new Peca { Id = 1, Nome = "Peca 1", QuantidadeEstoque = 10, ValorUnitario = 100 };
-            var ordemServico = new OrdemServico { Id = 1, ClienteId = 1, DataEntrada = DateTime.Now };
+            var ordemServico = new OrdemServico { Id = 1, ClienteId = 1, DataEntrada = DateTime.UtcNow };
             var ordemServicoPeca = new OrdemServicoPeca { Id = 1, OrdemServicoId = 1, PecaId = 1, Peca = peca, Quantidade = 5, ValorVenda = 100 };
 
             context.Pecas.Add(peca);
@@ -59,7 +59,7 @@ namespace AssistenciaTech.Application.Tests
             using var context = GetDbContext(dbName);
 
             var peca = new Peca { Id = 1, Nome = "Peca 1", QuantidadeEstoque = 2, ValorUnitario = 100 };
-            var ordemServico = new OrdemServico { Id = 1, ClienteId = 1, DataEntrada = DateTime.Now };
+            var ordemServico = new OrdemServico { Id = 1, ClienteId = 1, DataEntrada = DateTime.UtcNow };
             var ordemServicoPeca = new OrdemServicoPeca { Id = 1, OrdemServicoId = 1, PecaId = 1, Peca = peca, Quantidade = 5, ValorVenda = 100 };
 
             context.Pecas.Add(peca);
@@ -101,7 +101,7 @@ namespace AssistenciaTech.Application.Tests
             using var context = GetDbContext(dbName);
 
             var peca = new Peca { Id = 1, Nome = "Peca 1", QuantidadeEstoque = 10, ValorUnitario = 100 };
-            var ordemServico = new OrdemServico { Id = 1, ClienteId = 1, DataEntrada = DateTime.Now };
+            var ordemServico = new OrdemServico { Id = 1, ClienteId = 1, DataEntrada = DateTime.UtcNow };
             var ordemServicoPeca = new OrdemServicoPeca { Id = 1, OrdemServicoId = 1, PecaId = 1, Peca = peca, Quantidade = 5, ValorVenda = 100 };
 
             context.Pecas.Add(peca);

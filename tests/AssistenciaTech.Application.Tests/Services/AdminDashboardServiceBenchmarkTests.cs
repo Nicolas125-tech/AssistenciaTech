@@ -38,7 +38,7 @@ namespace AssistenciaTech.Application.Tests.Services
                     ProblemaRelatado = "Problema teste",
                     Status = WorkflowStatus.Recebido,
                     ValorOrcamento = 100m,
-                    DataEntrada = DateTime.Now.AddMinutes(-i)
+                    DataEntrada = DateTime.UtcNow.AddMinutes(-i)
                 });
             }
 

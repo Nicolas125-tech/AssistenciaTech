@@ -132,7 +132,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 ClienteId = 1,
                 Equipamento = "PC Gamer Antigo",
                 NumeroSerie = "SN123456",
-                DataEntrada = DateTime.Now.AddDays(-10), // Menos de 30 dias
+                DataEntrada = DateTime.UtcNow.AddDays(-10), // Menos de 30 dias
                 Status = WorkflowStatus.Concluido,
                 ValorOrcamento = 100
             };
@@ -438,7 +438,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             {
                 OrdemServicoId = os.Id,
                 ValorTotal = 150.00m,
-                DataVencimento = DateTime.Now.AddDays(5)
+                DataVencimento = DateTime.UtcNow.AddDays(5)
             };
             _context.Faturamentos.Add(faturamento);
             await _context.SaveChangesAsync();
