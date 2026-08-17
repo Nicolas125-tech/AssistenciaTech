@@ -672,7 +672,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 _context.Database.EnsureDeleted();
                 _context.Dispose();
             }
-            catch { }
+            catch (Exception ex) { Console.WriteLine($"Error during test teardown: {ex.Message}"); }
             _controller.Dispose();
         }
     }
