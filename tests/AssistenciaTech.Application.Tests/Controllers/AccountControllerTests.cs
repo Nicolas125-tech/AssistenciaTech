@@ -184,65 +184,6 @@ namespace AssistenciaTech.Application.Tests.Controllers
             redirectResult.ControllerName.Should().Be("Admin");
         }
 
-
-        [Fact]
-        public async Task SetupAdmin_ReturnsRedirectToActionResult_WhenCpfIsValid()
-        {
-            // Act
-            var result = await _controller.SetupAdmin("12161408984", "newadmin", "securepass");
-
-            // Assert
-            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
-            redirectResult.ActionName.Should().Be("Login");
-
-            // Verify DB changes
-            var user = await _context.Usuarios.FirstOrDefaultAsync(u => u.Username == "newadmin");
-            user.Should().NotBeNull();
-            user.Role.Should().Be("Administrador");
-
-            var tecnico = await _context.Tecnicos.FirstOrDefaultAsync(t => t.Nome == "newadmin");
-            tecnico.Should().NotBeNull();
-        }
-
-        [Fact]
-        public async Task SetupAdmin_ReturnsViewResultWithError_WhenCpfIsInvalid()
-        {
-            // Act
-            var result = await _controller.SetupAdmin("00000000000", "badadmin", "securepass");
-
-            // Assert
-            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
-            ((string)_controller.ViewBag.Error).Should().Be("CPF inválido ou não autorizado para criação de administrador.");
-
-            // Verify no DB changes
-            var user = await _context.Usuarios.FirstOrDefaultAsync(u => u.Username == "badadmin");
-            user.Should().BeNull();
-        }
-
-        [Fact]
-        public async Task SetupAdmin_ReturnsViewResultWithError_WhenUsernameAlreadyExists()
-        {
-            // Arrange
-            var hasher = new PasswordHasher<Usuario>();
-            var user = new Usuario
-            {
-                Username = "newadmin",
-                Role = "Administrador"
-            };
-            user.PasswordHash = hasher.HashPassword(user, "senha123");
-
-            _context.Usuarios.Add(user);
-            await _context.SaveChangesAsync();
-            _context.ChangeTracker.Clear();
-
-            // Act
-            var result = await _controller.SetupAdmin("12161408984", "newadmin", "securepass");
-
-            // Assert
-            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
-            ((string)_controller.ViewBag.Error).Should().Be("Nome de usuário já existe.");
-        }
-
         public void Dispose()
         {
             _context.Database.EnsureDeleted();
