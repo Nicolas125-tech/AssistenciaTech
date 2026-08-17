@@ -42,6 +42,24 @@ namespace AssistenciaTech.Application.Tests.Controllers
 
 
         [Fact]
+        public async Task FinalizarVisita_ReturnsNotFound_WhenVisitaIsNotFound()
+        {
+            // Arrange
+            // Empty database, no VisitaCampo exists
+
+            SetUserContext(10); // Any technician ID
+
+            var request = new MobileApiController.FinalizarRequest { VisitaId = 999 }; // Non-existent VisitaId
+
+            // Act
+            var result = await _controller.FinalizarVisita(1, request); // Any OS ID
+
+            // Assert
+            var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
+            notFoundResult.Value.Should().BeEquivalentTo(new { error = "Visita não encontrada ou não pertence a esta OS" });
+        }
+
+        [Fact]
         public async Task FinalizarVisita_ReturnsNotFound_WhenOrdemServicoIsNotFound()
         {
             // Arrange
