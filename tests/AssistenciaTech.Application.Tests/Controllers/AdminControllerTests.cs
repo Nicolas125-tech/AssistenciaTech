@@ -163,6 +163,56 @@ namespace AssistenciaTech.Application.Tests.Controllers
         }
 
         [Fact]
+        public async Task ExportarCsv_DeveFazerFlushEmLotes_QuandoMuitasOrdensServicoExistem()
+        {
+            // Arrange
+            var cliente = new Cliente { Id = 1, Nome = "Cliente Teste", Email = "teste@teste.com", Telefone = "12345678" };
+            _context.Clientes.Add(cliente);
+
+            var ordens = new List<OrdemServico>();
+            for (int i = 1; i <= 105; i++)
+            {
+                ordens.Add(new OrdemServico
+                {
+                    Id = i,
+                    ClienteId = 1,
+                    Cliente = cliente,
+                    Equipamento = $"Equipamento {i}",
+                    DataEntrada = new DateTime(2023, 10, 01),
+                    Status = "Orçamento",
+                    ValorOrcamento = 100 + i
+                });
+            }
+
+            _context.OrdensServico.AddRange(ordens);
+            await _context.SaveChangesAsync();
+
+            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+            var responseBody = new System.IO.MemoryStream();
+            httpContext.Response.Body = responseBody;
+
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = httpContext
+            };
+
+            // Act
+            await _controller.ExportarCsv();
+
+            // Assert
+            var csvString = System.Text.Encoding.UTF8.GetString(responseBody.ToArray());
+            var linhas = csvString.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+
+            linhas.Should().HaveCount(106); // Cabecalho + 105 OS
+            linhas[0].Should().Be("Id,Cliente,Equipamento,Data Entrada,Status,Valor Orçamento");
+
+            // A ordem é decrescente, então a primeira linha de dados é a do ID 105
+            linhas[1].Should().Contain("105,\"Cliente Teste\",\"Equipamento 105\",01/10/2023,Orçamento,205");
+            // E a última linha de dados é a do ID 1
+            linhas[105].Should().Contain("1,\"Cliente Teste\",\"Equipamento 1\",01/10/2023,Orçamento,101");
+        }
+
+        [Fact]
         public async Task Create_DeveConfigurarTempDataAlertaGarantia_QuandoOrdemComMesmoNumeroSerieExisteHaMenosDe30Dias()
         {
             // Arrange
