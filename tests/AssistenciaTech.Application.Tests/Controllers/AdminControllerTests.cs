@@ -500,6 +500,76 @@ namespace AssistenciaTech.Application.Tests.Controllers
             redirectResult.RouteValues.Should().BeNull(); // Sem erro
         }
 
+
+        [Fact]
+        public async Task Delete_DbExceptionThrown_ReturnsRedirectWithErro()
+        {
+            // Arrange
+            var dbName = Guid.NewGuid().ToString();
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: dbName)
+                .Options;
+
+            // Seed normal context
+            using (var seedContext = new AppDbContext(options))
+            {
+                var os = new OrdemServico { Id = 9999, Equipamento = "Teste DB Error", ProblemaRelatado = "Falha", ClienteId = 1, Status = "Recebido" };
+                seedContext.OrdensServico.Add(os);
+                await seedContext.SaveChangesAsync();
+            }
+
+            // Create context that will throw exception
+            var exceptionContext = new TestExceptionDbContext(options);
+
+            var _mockEquipamentoBackupService = new Mock<IEquipamentoBackupService>();
+            var localController = new AdminController(
+                exceptionContext,
+                _mockEstoqueService.Object,
+                _mockEnv.Object,
+                _mockPdfGeneratorService.Object,
+                _mockDashboardService.Object,
+                _mockEquipamentoBackupService.Object,
+                _mockLogger.Object
+            );
+
+            // Act
+            var result = await localController.Delete(9999);
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Which;
+            redirectResult.ActionName.Should().Be("Index");
+            redirectResult.RouteValues.Should().NotBeNull();
+            redirectResult.RouteValues["erro"].Should().Be("Não foi possível excluir a OS.");
+
+            // Verify logger was called
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("DB_DELETE_ERROR")),
+                    It.IsAny<Exception>(),
+                    It.Is<Func<It.IsAnyType, Exception, string>>((v, t) => true)),
+                Times.Once);
+
+            localController.Dispose();
+            exceptionContext.Dispose();
+        }
+
+        private class TestExceptionDbContext : AppDbContext
+        {
+            public TestExceptionDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+            public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+            {
+                throw new TestDbException("Simulated database error");
+            }
+        }
+
+        private class TestDbException : System.Data.Common.DbException
+        {
+            public TestDbException(string message) : base(message) { }
+        }
+
         public void Dispose()
         {
             // We might have disposed the context in the test above, so we handle it gracefully
