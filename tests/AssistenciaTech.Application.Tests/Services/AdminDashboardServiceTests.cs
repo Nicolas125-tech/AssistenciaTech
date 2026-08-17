@@ -33,29 +33,29 @@ namespace AssistenciaTech.Application.Tests.Services
                 new OrdemServico
                 {
                     Id = 1, ClienteId = 1, Equipamento = "Notebook Dell", ProblemaRelatado = "Não liga",
-                    Status = WorkflowStatus.Recebido, ValorOrcamento = 100m, DataEntrada = DateTime.Now.AddDays(-5)
+                    Status = WorkflowStatus.Recebido, ValorOrcamento = 100m, DataEntrada = DateTime.UtcNow.AddDays(-5)
                 },
                 new OrdemServico
                 {
                     Id = 2, ClienteId = 2, Equipamento = "PC Gamer", ProblemaRelatado = "Lento",
-                    Status = WorkflowStatus.EmAnalise, ValorOrcamento = 200m, DataEntrada = DateTime.Now.AddDays(-4)
+                    Status = WorkflowStatus.EmAnalise, ValorOrcamento = 200m, DataEntrada = DateTime.UtcNow.AddDays(-4)
                 },
                 new OrdemServico
                 {
                     Id = 3, ClienteId = 1, Equipamento = "MacBook Pro", ProblemaRelatado = "Teclado ruim",
-                    Status = WorkflowStatus.Concluido, ValorOrcamento = 500m, DataEntrada = DateTime.Now.AddDays(-3),
-                    DataConclusao = DateTime.Now.AddDays(-1)
+                    Status = WorkflowStatus.Concluido, ValorOrcamento = 500m, DataEntrada = DateTime.UtcNow.AddDays(-3),
+                    DataConclusao = DateTime.UtcNow.AddDays(-1)
                 },
                 new OrdemServico
                 {
                     Id = 4, ClienteId = 2, Equipamento = "Monitor LG", ProblemaRelatado = "Sem imagem",
-                    Status = WorkflowStatus.Entregue, ValorOrcamento = 300m, DataEntrada = DateTime.Now.AddDays(-10),
-                    DataConclusao = DateTime.Now.AddDays(-5), DataEntregaCliente = DateTime.Now.AddDays(-2)
+                    Status = WorkflowStatus.Entregue, ValorOrcamento = 300m, DataEntrada = DateTime.UtcNow.AddDays(-10),
+                    DataConclusao = DateTime.UtcNow.AddDays(-5), DataEntregaCliente = DateTime.UtcNow.AddDays(-2)
                 },
                 new OrdemServico
                 {
                     Id = 5, ClienteId = 1, Equipamento = "Impressora HP", ProblemaRelatado = "Não imprime",
-                    Status = "Cancelado", ValorOrcamento = 150m, DataEntrada = DateTime.Now.AddDays(-2)
+                    Status = "Cancelado", ValorOrcamento = 150m, DataEntrada = DateTime.UtcNow.AddDays(-2)
                 }
             };
 

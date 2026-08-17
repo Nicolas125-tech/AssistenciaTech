@@ -148,7 +148,7 @@ namespace AssistenciaTech.Controllers
                 // Validação de segurança básica e ModelState
                 if (ModelState.IsValid)
                 {
-                    ordemServico.DataEntrada = DateTime.Now;
+                    ordemServico.DataEntrada = DateTime.UtcNow;
                     ordemServico.Status = WorkflowStatus.Recebido; // Força fluxo inicial
                     ordemServico.ValorOrcamento = ordemServico.ValorTotalCalculado;
                     _context.Add(ordemServico);
@@ -158,7 +158,7 @@ namespace AssistenciaTech.Controllers
                     if (!string.IsNullOrEmpty(ordemServico.NumeroSerie))
                     {
                         var retornoRecente = await _context.OrdensServico
-                            .AnyAsync(o => o.NumeroSerie == ordemServico.NumeroSerie && o.Id != ordemServico.Id && o.DataEntrada >= DateTime.Now.AddDays(-30));
+                            .AnyAsync(o => o.NumeroSerie == ordemServico.NumeroSerie && o.Id != ordemServico.Id && o.DataEntrada >= DateTime.UtcNow.AddDays(-30));
 
                         if (retornoRecente)
                         {
@@ -412,7 +412,7 @@ namespace AssistenciaTech.Controllers
         {
             if (ordemExistente.Status == WorkflowStatus.Concluido && ordemExistente.DataConclusao == null)
             {
-                ordemExistente.DataConclusao = DateTime.Now;
+                ordemExistente.DataConclusao = DateTime.UtcNow;
                 await _estoqueService.DeduzirEstoque(ordemExistente.Id);
             }
             else if (statusAnterior == WorkflowStatus.Concluido && ordemExistente.Status != WorkflowStatus.Concluido && ordemExistente.Status != WorkflowStatus.Entregue)
@@ -433,11 +433,11 @@ namespace AssistenciaTech.Controllers
                     }
                 }
 
-                ordemExistente.DataEntregaCliente = DateTime.Now;
+                ordemExistente.DataEntregaCliente = DateTime.UtcNow;
 
                 if (ordemExistente.DataConclusao == null)
                 {
-                    ordemExistente.DataConclusao = DateTime.Now;
+                    ordemExistente.DataConclusao = DateTime.UtcNow;
                     await _estoqueService.DeduzirEstoque(ordemExistente.Id);
                 }
             }
@@ -496,7 +496,7 @@ namespace AssistenciaTech.Controllers
                         ordemExistente.Evidencias.Add(new Evidencia
                         {
                             CaminhoArquivo = $"/Admin/GetEvidencia?fileName={uniqueFileName}",
-                            DataUpload = DateTime.Now
+                            DataUpload = DateTime.UtcNow
                         });
                     }
                 }

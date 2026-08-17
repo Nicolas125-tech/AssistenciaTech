@@ -50,7 +50,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 Id = 1,
                 OrdemServicoId = 99, // Represents a non-existent OS
                 TecnicoId = 10,
-                CheckIn = DateTime.Now
+                CheckIn = DateTime.UtcNow
             };
             _context.VisitasCampo.Add(visita);
             await _context.SaveChangesAsync();
@@ -78,7 +78,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 Id = 1,
                 OrdemServicoId = 1,
                 TecnicoId = 10, // A different technician
-                CheckIn = DateTime.Now
+                CheckIn = DateTime.UtcNow
             };
             _context.VisitasCampo.Add(visita);
             await _context.SaveChangesAsync();
@@ -107,7 +107,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 Id = 1,
                 OrdemServicoId = 1,
                 TecnicoId = 10, // The authenticated technician
-                CheckIn = DateTime.Now
+                CheckIn = DateTime.UtcNow
             };
             _context.VisitasCampo.Add(visita);
             await _context.SaveChangesAsync();
@@ -145,8 +145,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 Id = 1,
                 OrdemServicoId = 1,
                 TecnicoId = 10, // The authenticated technician
-                CheckIn = DateTime.Now.AddHours(-1),
-                CheckOut = DateTime.Now // Already finalized
+                CheckIn = DateTime.UtcNow.AddHours(-1),
+                CheckOut = DateTime.UtcNow // Already finalized
             };
             _context.VisitasCampo.Add(visita);
             await _context.SaveChangesAsync();

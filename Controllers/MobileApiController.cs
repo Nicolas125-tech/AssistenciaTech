@@ -48,7 +48,7 @@ namespace AssistenciaTech.Controllers
             {
                 OrdemServicoId = id,
                 TecnicoId = tecnicoId,
-                CheckIn = DateTime.Now,
+                CheckIn = DateTime.UtcNow,
                 Latitude = request.Latitude,
                 Longitude = request.Longitude
             };
@@ -89,7 +89,7 @@ namespace AssistenciaTech.Controllers
                 return Forbid();
 
             // Atualiza a Visita
-            visita.CheckOut = DateTime.Now;
+            visita.CheckOut = DateTime.UtcNow;
             visita.AssinaturaClienteBase64 = request.AssinaturaBase64;
 
             // Atualiza a OS

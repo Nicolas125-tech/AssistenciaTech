@@ -17,6 +17,6 @@ namespace AssistenciaTech.Models
         [Required]
         public string CaminhoArquivo { get; set; } = string.Empty;
 
-        public DateTime DataUpload { get; set; } = DateTime.Now;
+        public DateTime DataUpload { get; set; } = DateTime.UtcNow;
     }
 }
