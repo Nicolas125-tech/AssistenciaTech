@@ -20,6 +20,11 @@ using Xunit;
 
 namespace AssistenciaTech.Application.Tests.Controllers
 {
+    public class TestDbException : System.Data.Common.DbException
+    {
+        public TestDbException(string message) : base(message) { }
+    }
+
     public class AdminControllerTests : IDisposable
     {
         private readonly AppDbContext _context;
@@ -53,6 +58,33 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 _mockEquipamentoBackupService.Object,
                 _mockLogger.Object
             );
+        }
+
+
+        [Fact]
+        public async Task Index_Get_ReturnsEmptyList_WhenDatabaseFails()
+        {
+            // Arrange
+
+            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+            var tempData = new TempDataDictionary(httpContext, Mock.Of<ITempDataProvider>());
+            _controller.TempData = tempData;
+            _mockDashboardService
+                .Setup(s => s.GetDashboardDataAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()))
+                .ThrowsAsync(new TestDbException("Simulated DB connection error"));
+
+            // Act
+            var result = await _controller.Index(null, null, 1) as ViewResult;
+
+            // Assert
+            result.Should().NotBeNull();
+            result.Model.Should().BeEquivalentTo(new List<OrdemServico>());
+
+            var viewData = result.ViewData;
+            viewData["ErroBanco"].Should().Be("Erro ao conectar ao banco de dados. Por favor, tente novamente mais tarde.");
+            viewData["TotalAbertas"].Should().Be(0);
+            viewData["EquipamentosProntos"].Should().Be(0);
+            viewData["FaturamentoPrevisto"].Should().Be(0m);
         }
 
         [Fact]
