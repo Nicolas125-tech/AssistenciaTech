@@ -106,7 +106,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             {
                 OrdemServicoId = 1,
                 ValorTotal = 100m,
-                DataVencimento = DateTime.Now.AddDays(3),
+                DataVencimento = DateTime.UtcNow.AddDays(3),
                 StatusPagamento = PagamentoStatus.Pendente,
                 TxIdPix = txId
             };
@@ -173,7 +173,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             {
                 OrdemServicoId = 1,
                 ValorTotal = 150m,
-                DataVencimento = DateTime.Now.AddDays(5),
+                DataVencimento = DateTime.UtcNow.AddDays(5),
                 StatusPagamento = PagamentoStatus.Pendente
             };
 
@@ -232,7 +232,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             {
                 OrdemServicoId = 1,
                 ValorTotal = 150m,
-                DataVencimento = DateTime.Now.AddDays(5),
+                DataVencimento = DateTime.UtcNow.AddDays(5),
                 StatusPagamento = PagamentoStatus.Pendente
             };
 
@@ -301,7 +301,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             faturamento.StatusPagamento.Should().Be(PagamentoStatus.Pendente);
             faturamento.TxIdPix.Should().NotBeNullOrEmpty();
             faturamento.QrCodePayload.Should().NotBeNullOrEmpty();
-            faturamento.DataVencimento.Date.Should().Be(DateTime.Now.AddDays(3).Date);
+            faturamento.DataVencimento.Date.Should().Be(DateTime.UtcNow.AddDays(3).Date);
         }
 
         [Fact]

@@ -15,7 +15,7 @@ namespace AssistenciaTech.Models
         public string Usuario { get; set; } = string.Empty; // Nome ou Id de quem alterou
 
         [Required]
-        public DateTime DataAlteracao { get; set; } = DateTime.Now;
+        public DateTime DataAlteracao { get; set; } = DateTime.UtcNow;
 
         [Required]
         public string CampoAlterado { get; set; } = string.Empty;

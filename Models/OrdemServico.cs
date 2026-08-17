@@ -113,7 +113,7 @@ namespace AssistenciaTech.Models
         public decimal ValorOrcamento { get; set; } // Valor final armazenado. Pode ser calculado.
 
         [Display(Name = "Data de Entrada")]
-        public DateTime DataEntrada { get; set; } = DateTime.Now;
+        public DateTime DataEntrada { get; set; } = DateTime.UtcNow;
 
         [Display(Name = "Data de Conclusão")]
         public DateTime? DataConclusao { get; set; } // Quando o reparo termina
@@ -130,9 +130,9 @@ namespace AssistenciaTech.Models
         public DateTime? DataVencimentoGarantia => DataEntregaCliente?.AddDays(90);
 
         [NotMapped]
-        public bool GarantiaAtiva => DataVencimentoGarantia.HasValue && DateTime.Now.Date <= DataVencimentoGarantia.Value.Date;
+        public bool GarantiaAtiva => DataVencimentoGarantia.HasValue && DateTime.UtcNow.Date <= DataVencimentoGarantia.Value.Date;
 
         [NotMapped]
-        public bool AparelhoAbandonado => Status == "Concluído" && DataConclusao.HasValue && !DataEntregaCliente.HasValue && (DateTime.Now - DataConclusao.Value).TotalDays > 90;
+        public bool AparelhoAbandonado => Status == "Concluído" && DataConclusao.HasValue && !DataEntregaCliente.HasValue && (DateTime.UtcNow - DataConclusao.Value).TotalDays > 90;
     }
 }
