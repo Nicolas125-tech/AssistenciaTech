@@ -202,8 +202,8 @@ namespace AssistenciaTech.Controllers
 
                 if (ordemServico == null) return NotFound();
 
-                ViewBag.Tecnicos = new SelectList(await _context.Tecnicos.Where(t => t.Ativo).ToListAsync(), "Id", "Nome");
-                ViewBag.EquipamentosBackup = new SelectList(await _context.EquipamentosBackup.Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).ToListAsync(), "Id", "Descricao");
+                ViewBag.Tecnicos = new SelectList(await _context.Tecnicos.Where(t => t.Ativo).Select(t => new { t.Id, t.Nome }).ToListAsync(), "Id", "Nome");
+                ViewBag.EquipamentosBackup = new SelectList(await _context.EquipamentosBackup.Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).Select(e => new { e.Id, e.Descricao }).ToListAsync(), "Id", "Descricao");
                 ViewBag.Contratos = new SelectList(await _context.Contratos.Include(c => c.Cliente).Where(c => c.ClienteId == ordemServico.ClienteId).Select(c => new { c.Id, NomeDesc = "Contrato: SLA " + c.HorasSLA + "h - R$ " + c.ValorMensal }).ToListAsync(), "Id", "NomeDesc");
 
                 return View(ordemServico);
