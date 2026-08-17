@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Http;
 using System.IO;
 using System.Data.Common;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AssistenciaTech.Controllers
 {
@@ -34,8 +35,9 @@ namespace AssistenciaTech.Controllers
         private readonly IAdminDashboardService _dashboardService;
         private readonly IEquipamentoBackupService _equipamentoBackupService;
         private readonly ILogger<AdminController> _logger;
+        private readonly IServiceScopeFactory _scopeFactory;
 
-        public AdminController(AppDbContext context, IEstoqueService estoqueService, IWebHostEnvironment env, IPdfGeneratorService pdfGeneratorService, IAdminDashboardService dashboardService, IEquipamentoBackupService equipamentoBackupService, ILogger<AdminController> logger)
+        public AdminController(AppDbContext context, IEstoqueService estoqueService, IWebHostEnvironment env, IPdfGeneratorService pdfGeneratorService, IAdminDashboardService dashboardService, IEquipamentoBackupService equipamentoBackupService, ILogger<AdminController> logger, IServiceScopeFactory scopeFactory)
         {
             _context = context;
             _estoqueService = estoqueService;
@@ -44,6 +46,7 @@ namespace AssistenciaTech.Controllers
             _dashboardService = dashboardService;
             _equipamentoBackupService = equipamentoBackupService;
             _logger = logger;
+            _scopeFactory = scopeFactory;
         }
 
         // GET: Admin/Index
@@ -448,11 +451,31 @@ namespace AssistenciaTech.Controllers
             return true;
         }
 
-        private async Task PopulateViewBagsForEditAsync(OrdemServico ordemServico)
+                private async Task PopulateViewBagsForEditAsync(OrdemServico ordemServico)
         {
-            ViewBag.Tecnicos = new SelectList(await _context.Tecnicos.Where(t => t.Ativo).ToListAsync(), "Id", "Nome", ordemServico.TecnicoId);
-            ViewBag.EquipamentosBackup = new SelectList(await _context.EquipamentosBackup.Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).ToListAsync(), "Id", "Descricao", ordemServico.EquipamentoBackupId);
-            ViewBag.Contratos = new SelectList(await _context.Contratos.Include(c => c.Cliente).Where(c => c.ClienteId == ordemServico.ClienteId).Select(c => new { c.Id, NomeDesc = "Contrato: SLA " + c.HorasSLA + "h - R$ " + c.ValorMensal }).ToListAsync(), "Id", "NomeDesc", ordemServico.ContratoId);
+            using var scopeTecnicos = _scopeFactory.CreateScope();
+            var ctxTecnicos = scopeTecnicos.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            using var scopeEquipamentos = _scopeFactory.CreateScope();
+            var ctxEquipamentos = scopeEquipamentos.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            using var scopeContratos = _scopeFactory.CreateScope();
+            var ctxContratos = scopeContratos.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            var tecnicosTask = ctxTecnicos.Tecnicos.AsNoTracking().Where(t => t.Ativo).ToListAsync();
+
+            var equipamentosTask = ctxEquipamentos.EquipamentosBackup.AsNoTracking().Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).ToListAsync();
+
+            var contratosTask = ctxContratos.Contratos.Include(c => c.Cliente).AsNoTracking()
+                .Where(c => c.ClienteId == ordemServico.ClienteId)
+                .Select(c => new { c.Id, NomeDesc = "Contrato: SLA " + c.HorasSLA + "h - R$ " + c.ValorMensal })
+                .ToListAsync();
+
+            await Task.WhenAll(tecnicosTask, equipamentosTask, contratosTask);
+
+            ViewBag.Tecnicos = new SelectList(tecnicosTask.Result, "Id", "Nome", ordemServico.TecnicoId);
+            ViewBag.EquipamentosBackup = new SelectList(equipamentosTask.Result, "Id", "Descricao", ordemServico.EquipamentoBackupId);
+            ViewBag.Contratos = new SelectList(contratosTask.Result, "Id", "NomeDesc", ordemServico.ContratoId);
         }
 
         private async Task ProcessEvidenciaUploadsAsync(OrdemServico ordemExistente, IFormFileCollection fotos)

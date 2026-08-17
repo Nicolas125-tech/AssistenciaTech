@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace AssistenciaTech.Application.Tests.Controllers
@@ -33,6 +34,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
         private readonly Mock<IPdfGeneratorService> _mockPdfGeneratorService;
         private readonly Mock<IAdminDashboardService> _mockDashboardService;
         private readonly Mock<ILogger<AdminController>> _mockLogger;
+        private readonly Mock<IServiceScopeFactory> _mockScopeFactory;
         private readonly AdminController _controller;
 
         public AdminControllerTests()
@@ -47,6 +49,14 @@ namespace AssistenciaTech.Application.Tests.Controllers
             _mockPdfGeneratorService = new Mock<IPdfGeneratorService>();
             _mockDashboardService = new Mock<IAdminDashboardService>();
             _mockLogger = new Mock<ILogger<AdminController>>();
+            _mockScopeFactory = new Mock<IServiceScopeFactory>();
+
+            // Setup ScopeFactory to return a scope containing the DbContext
+            var mockScope = new Mock<IServiceScope>();
+            var mockServiceProvider = new Mock<IServiceProvider>();
+            mockServiceProvider.Setup(sp => sp.GetService(typeof(AppDbContext))).Returns(_context);
+            mockScope.Setup(s => s.ServiceProvider).Returns(mockServiceProvider.Object);
+            _mockScopeFactory.Setup(s => s.CreateScope()).Returns(mockScope.Object);
 
             var _mockEquipamentoBackupService = new Mock<IEquipamentoBackupService>();
             _controller = new AdminController(
@@ -56,7 +66,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 _mockPdfGeneratorService.Object,
                 _mockDashboardService.Object,
                 _mockEquipamentoBackupService.Object,
-                _mockLogger.Object
+                _mockLogger.Object,
+                _mockScopeFactory.Object
             );
         }
 
@@ -561,7 +572,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 _mockPdfGeneratorService.Object,
                 _mockDashboardService.Object,
                 _mockEquipamentoBackupService.Object,
-                _mockLogger.Object
+                _mockLogger.Object,
+                _mockScopeFactory.Object
             );
 
             // Act
