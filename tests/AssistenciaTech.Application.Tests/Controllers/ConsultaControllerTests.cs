@@ -72,6 +72,24 @@ namespace AssistenciaTech.Application.Tests.Controllers
             erro.Should().Be("Ordem de Serviço não encontrada ou CPF inválido.");
         }
 
+
+        [Fact]
+        public async Task Status_ComNumeroOSInvalido_DeveRetornarErroDeValidacao()
+        {
+            // Arrange
+            int numeroOS = 0;
+            string cpf = "12345678901";
+
+            // Act
+            var result = await _controller.Status(numeroOS, cpf);
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            viewResult.ViewName.Should().Be("Index");
+            string erro = _controller.ViewBag.Erro;
+            erro.Should().Be("Por favor, preencha o número da OS e o CPF.");
+        }
+
         public void Dispose()
         {
             _context.Database.EnsureDeleted();
