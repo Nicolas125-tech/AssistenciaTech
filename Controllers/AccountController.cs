@@ -230,5 +230,50 @@ namespace AssistenciaTech.Controllers
                 return Json(new { success = false, message = $"Erro ao verificar autenticação: {ex.Message}" });
             }
         }
+
+        // GET: /Account/LoginWithGoogle
+        [HttpGet]
+        public async Task<IActionResult> LoginWithGoogle()
+        {
+            try
+            {
+                var callbackUrl = $"{Request.Scheme}://{Request.Host}{Url.Content("~/Account/NeonCallback")}";
+                
+                var payload = new
+                {
+                    provider = "google",
+                    callbackURL = callbackUrl
+                };
+
+                using var requestMsg = new HttpRequestMessage(HttpMethod.Post, "https://ep-raspy-violet-apzb0bnc.neonauth.c-7.us-east-1.aws.neon.tech/neondb/auth/sign-in/social");
+                requestMsg.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+
+                var response = await _httpClient.SendAsync(requestMsg);
+                if (!response.IsSuccessStatusCode)
+                {
+                    ViewBag.Error = "Erro ao se comunicar com o servidor de autenticação Neon.";
+                    return View("Login");
+                }
+
+                var responseBody = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(responseBody);
+                if (doc.RootElement.TryGetProperty("url", out var urlElement))
+                {
+                    var redirectUrl = urlElement.GetString();
+                    if (!string.IsNullOrEmpty(redirectUrl))
+                    {
+                        return Redirect(redirectUrl);
+                    }
+                }
+
+                ViewBag.Error = "Resposta inválida do servidor de autenticação.";
+                return View("Login");
+            }
+            catch (Exception ex)
+            {
+                ViewBag.Error = $"Erro ao iniciar login social: {ex.Message}";
+                return View("Login");
+            }
+        }
     }
 }

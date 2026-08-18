@@ -306,3 +306,26 @@ footer {
     border-top: 1px solid var(--tech-border) !important;
 }
 
+/* Botão Google Customizado */
+.btn-google {
+    background-color: #ffffff !important;
+    color: #1f1f1f !important;
+    border: 1px solid #dadce0 !important;
+    font-weight: 600 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    transition: background-color 0.2s, box-shadow 0.2s, border-color 0.2s !important;
+}
+.btn-google:hover {
+    background-color: #f8f9fa !important;
+    border-color: #d2d4d7 !important;
+    box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15) !important;
+    color: #1f1f1f !important;
+}
+.btn-google:active {
+    background-color: #f1f3f4 !important;
+    box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3) !important;
+}
+
