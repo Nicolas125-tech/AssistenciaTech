@@ -71,7 +71,11 @@ namespace AssistenciaTech.Services
             {
                 if (!_cache.TryGetValue(CacheKeyStatusGroup, out statusGroupDb) || statusGroupDb == null)
                 {
-                    statusGroupDb = await _context.OrdensServico
+                    var ordens = await _context.OrdensServico
+                        .Select(o => new { o.Status, o.ValorOrcamento })
+                        .ToListAsync();
+
+                    statusGroupDb = ordens
                         .GroupBy(o => o.Status)
                         .Select(g => new StatusGroupDto
                         {
@@ -79,7 +83,7 @@ namespace AssistenciaTech.Services
                             Count = g.Count(),
                             TotalValor = g.Sum(x => x.ValorOrcamento)
                         })
-                        .ToListAsync();
+                        .ToList();
 
                     _cache.Set(CacheKeyStatusGroup, statusGroupDb, CacheDuration);
                 }
@@ -92,16 +96,20 @@ namespace AssistenciaTech.Services
             }
             else
             {
-                statusGroupDb = await query.GroupBy(o => o.Status)
+                var ordens = await query
+                    .Select(o => new { o.Status, o.ValorOrcamento })
+                    .ToListAsync();
+
+                statusGroupDb = ordens.GroupBy(o => o.Status)
                     .Select(g => new StatusGroupDto
                     {
                         Status = g.Key,
                         Count = g.Count(),
                         TotalValor = g.Sum(x => x.ValorOrcamento)
                     })
-                    .ToListAsync();
+                    .ToList();
 
-                totalOrdens = await query.CountAsync();
+                totalOrdens = ordens.Count;
             }
 
             int totalPages = (int)Math.Ceiling(totalOrdens / (double)pageSize);
