@@ -307,7 +307,7 @@ footer {
 }
 
 /* Botão Google Customizado */
-.btn-google {
+a.btn-google, button.btn-google {
     background-color: #ffffff !important;
     color: #1f1f1f !important;
     border: 1px solid #dadce0 !important;
@@ -318,14 +318,15 @@ footer {
     gap: 8px !important;
     transition: background-color 0.2s, box-shadow 0.2s, border-color 0.2s !important;
 }
-.btn-google:hover {
+a.btn-google:hover, button.btn-google:hover {
     background-color: #f8f9fa !important;
     border-color: #d2d4d7 !important;
     box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15) !important;
     color: #1f1f1f !important;
 }
-.btn-google:active {
+a.btn-google:active, button.btn-google:active {
     background-color: #f1f3f4 !important;
     box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3) !important;
+    color: #1f1f1f !important;
 }
 
