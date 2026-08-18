@@ -211,6 +211,56 @@ namespace AssistenciaTech.Application.Tests.Controllers
             // E a última linha de dados é a do ID 1
             linhas[105].Should().Contain("1,\"Cliente Teste\",\"Equipamento 1\",01/10/2023,Orçamento,101");
         }
+        [Fact]
+        public void Create_Get_ReturnsViewResult()
+        {
+            // Arrange
+            _context.Clientes.Add(new Cliente { Id = 1, Nome = "Cliente Teste", Cpf = "12345678901", Telefone = "123456789" });
+            _context.SaveChanges();
+
+            // Act
+            var result = _controller.Create();
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Which;
+            var viewBag = _controller.ViewBag;
+            ((object)viewBag.Clientes).Should().NotBeNull();
+            ((object)viewBag.Clientes).Should().BeOfType<Microsoft.AspNetCore.Mvc.Rendering.SelectList>();
+        }
+        [Fact]
+        public void Create_Get_ReturnsRedirectToActionResult_WhenDatabaseFails()
+        {
+            // Arrange
+            // Passing null for AppDbContext will cause a NullReferenceException when it tries to read _context.Clientes
+            var localController = new AdminController(
+                null,
+                _mockEstoqueService.Object,
+                _mockEnv.Object,
+                _mockPdfGeneratorService.Object,
+                _mockDashboardService.Object,
+                new Mock<IEquipamentoBackupService>().Object,
+                _mockLogger.Object,
+                _mockScopeFactory.Object
+            );
+
+            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+            var tempData = new Microsoft.AspNetCore.Mvc.ViewFeatures.TempDataDictionary(httpContext, Mock.Of<Microsoft.AspNetCore.Mvc.ViewFeatures.ITempDataProvider>());
+            localController.TempData = tempData;
+
+            // Act
+            var result = localController.Create();
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Which;
+            redirectResult.ActionName.Should().Be("Index");
+            localController.TempData["ErroBanco"].Should().NotBeNull();
+            localController.TempData["ErroBanco"].ToString().Should().Be("Não foi possível carregar a tela de criação. O banco de dados está inacessível.");
+
+            localController.Dispose();
+        }
+
+
+
 
         [Fact]
         public async Task Create_DeveConfigurarTempDataAlertaGarantia_QuandoOrdemComMesmoNumeroSerieExisteHaMenosDe30Dias()
