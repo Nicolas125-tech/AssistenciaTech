@@ -354,6 +354,43 @@ namespace AssistenciaTech.Application.Tests.Controllers
             result.Should().BeOfType<NotFoundResult>();
         }
 
+
+        [Fact]
+        public async Task GerarDaOS_ThrowsTestDbException_WhenDatabaseFails()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            var mockContext = new MockAppDbContext(options);
+
+            var os = new OrdemServico
+            {
+                ClienteId = 1,
+                Equipamento = "PC Gamer",
+                ProblemaRelatado = "Não liga",
+                Status = "Concluído",
+                CustoPecas = 100m,
+                CustoMaoDeObra = 200m,
+                DescontoAplicado = 50m
+            };
+
+            // Seed using a real context to avoid DbSet setup issues
+            using (var seedContext = new AppDbContext(options))
+            {
+                seedContext.OrdensServico.Add(os);
+                await seedContext.SaveChangesAsync();
+            }
+
+            var mockConfig = new Mock<IConfiguration>();
+            var controller = new FaturamentosController(mockContext, mockConfig.Object);
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<TestDbException>(() => controller.GerarDaOS(os.Id));
+            exception.Message.Should().Be("Database connection failed");
+        }
+
         public void Dispose()
         {
             _context.Database.EnsureDeleted();
