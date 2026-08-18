@@ -262,14 +262,18 @@ namespace AssistenciaTech.Application.Tests.Controllers
         }
 
 
-        [Fact]
-        public void GetEvidencia_ValidFile_ReturnsPhysicalFileResult()
+        [Theory]
+        [InlineData("test.jpg", "image/jpeg")]
+        [InlineData("test.jpeg", "image/jpeg")]
+        [InlineData("test.png", "image/png")]
+        [InlineData("test.gif", "image/gif")]
+        [InlineData("test.pdf", "application/pdf")]
+        public void GetEvidencia_ValidFile_ReturnsPhysicalFileResult_ForVariousExtensions(string fileName, string expectedContentType)
         {
             // Arrange
             var tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             var uploadsFolder = Path.Combine(tempPath, "SecureUploads", "Evidencias");
             Directory.CreateDirectory(uploadsFolder);
-            var fileName = "test.jpg";
             var filePath = Path.Combine(uploadsFolder, fileName);
             System.IO.File.WriteAllText(filePath, "dummy content");
 
@@ -280,7 +284,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
 
             // Assert
             result.Should().NotBeNull();
-            result.ContentType.Should().Be("image/jpeg");
+            result.ContentType.Should().Be(expectedContentType);
             result.FileName.Should().Be(filePath);
 
             // Cleanup
