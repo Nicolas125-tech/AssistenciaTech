@@ -193,6 +193,7 @@ namespace AssistenciaTech.Controllers
             try
             {
                 var ordemServico = await _context.OrdensServico
+                                                 .AsNoTracking()
                                                  .Include(o => o.Cliente)
                                                  .Include(o => o.TecnicoResponsavel)
                                                  .Include(o => o.EquipamentoBackup)
