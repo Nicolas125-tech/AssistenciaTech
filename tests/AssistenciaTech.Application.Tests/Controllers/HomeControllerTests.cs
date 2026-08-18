@@ -97,5 +97,53 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 contentResult.Content.Should().Be("ERRO: Não foi possível conectar ao banco de dados.");
             }
         }
+
+        [Fact]
+        public void Servicos_ReturnsViewResult()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using (var context = new AppDbContext(options))
+            {
+                var controller = new HomeController(context, Mock.Of<ILogger<HomeController>>());
+
+                // Act
+                var result = controller.Servicos();
+
+                // Assert
+                result.Should().BeOfType<ViewResult>();
+            }
+        }
+
+        [Fact]
+        public void Error_ReturnsViewResult_WithErrorViewModel()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using (var context = new AppDbContext(options))
+            {
+                var controller = new HomeController(context, Mock.Of<ILogger<HomeController>>());
+                controller.ControllerContext = new ControllerContext
+                {
+                    HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext { TraceIdentifier = "TestTraceId" }
+                };
+
+                // Act
+                var result = controller.Error();
+
+                // Assert
+                var viewResult = result.Should().BeOfType<ViewResult>().Which;
+                var model = viewResult.Model.Should().BeOfType<AssistenciaTech.Models.ErrorViewModel>().Which;
+
+                // RequestId will be Activity.Current?.Id or "TestTraceId"
+                model.RequestId.Should().NotBeNullOrEmpty();
+            }
+        }
     }
 }
