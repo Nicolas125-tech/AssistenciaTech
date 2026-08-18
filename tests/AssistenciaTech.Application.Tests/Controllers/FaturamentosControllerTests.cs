@@ -49,6 +49,43 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 HttpContext = httpContext
             };
         }
+        [Fact]
+        public async Task Index_ReturnsViewResult_WithListOfFaturamentos()
+        {
+            // Arrange
+            var os = new OrdemServico
+            {
+                ClienteId = 1,
+                Equipamento = "PC Gamer",
+                ProblemaRelatado = "Não liga",
+                Status = "Concluído",
+                CustoPecas = 100m,
+                CustoMaoDeObra = 200m,
+                DescontoAplicado = 50m
+            };
+            _context.OrdensServico.Add(os);
+            await _context.SaveChangesAsync();
+
+            var faturamentosList = new System.Collections.Generic.List<Faturamento>
+            {
+                new Faturamento { OrdemServicoId = os.Id, ValorTotal = 100, StatusPagamento = PagamentoStatus.Pendente },
+                new Faturamento { OrdemServicoId = os.Id, ValorTotal = 200, StatusPagamento = PagamentoStatus.Pago_Total }
+            };
+
+            _context.Faturamentos.AddRange(faturamentosList);
+            await _context.SaveChangesAsync();
+            _context.ChangeTracker.Clear();
+
+            // Act
+            var result = await _controller.Index();
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            var model = viewResult.Model.Should().BeAssignableTo<System.Collections.Generic.IEnumerable<Faturamento>>().Subject;
+            model.Should().HaveCount(2);
+        }
+
+
 
         [Fact]
         public async Task WebhookPix_Returns500_WhenWebhookSecretIsNotConfigured()
