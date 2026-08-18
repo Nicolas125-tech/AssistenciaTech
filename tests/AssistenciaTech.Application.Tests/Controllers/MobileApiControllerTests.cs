@@ -226,6 +226,31 @@ namespace AssistenciaTech.Application.Tests.Controllers
             unauthorizedResult.Value.Should().BeEquivalentTo(new { error = "Técnico não autenticado." });
         }
 
+
+        [Fact]
+        public async Task FinalizarVisita_ReturnsUnauthorized_WhenClaimIdIsNotValidInteger()
+        {
+            // Arrange
+            var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, "invalid_id")
+            }, "mock"));
+
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext { User = user }
+            };
+
+            var request = new MobileApiController.FinalizarRequest { VisitaId = 1 };
+
+            // Act
+            var result = await _controller.FinalizarVisita(1, request);
+
+            // Assert
+            var unauthorizedResult = result.Should().BeOfType<UnauthorizedObjectResult>().Subject;
+            unauthorizedResult.Value.Should().BeEquivalentTo(new { error = "Técnico não autenticado." });
+        }
+
         [Fact]
         public async Task FinalizarVisita_ReturnsUnauthorized_WhenUserIsNotAuthenticated()
         {
