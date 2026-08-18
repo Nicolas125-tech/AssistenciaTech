@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace AssistenciaTech.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "Administrador")]
     public class EquipamentoBackupController : Controller
     {
         private readonly AppDbContext _context;

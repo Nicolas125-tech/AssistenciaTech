@@ -24,7 +24,7 @@ namespace AssistenciaTech.Controllers
     /// <summary>
     /// Controller responsável pelo Painel Administrativo (CRUD de Ordens de Serviço).
     /// </summary>
-    [Authorize]
+    [Authorize(Roles = "Administrador")]
     public class AdminController : Controller
     {
         private static readonly string[] _allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".pdf" };

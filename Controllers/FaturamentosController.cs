@@ -13,7 +13,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace AssistenciaTech.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "Administrador")]
     public class FaturamentosController : Controller
     {
         private readonly AppDbContext _context;

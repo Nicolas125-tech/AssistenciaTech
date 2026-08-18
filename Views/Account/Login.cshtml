@@ -40,6 +40,13 @@
                         </div>
                     </form>
 
+                    <div class="text-center mt-3 mb-2">
+                        <span class="text-muted small">OU</span>
+                    </div>
+
+                    <button type="button" onclick="loginWithGoogle()" class="btn btn-outline-dark w-100 py-2 fw-bold">
+                        <i class="bi bi-google text-danger"></i> Entrar com o Google
+                    </button>
                 </div>
                 <div class="card-footer bg-transparent border-0 text-center pb-4">
                     <a asp-controller="Home" asp-action="Index" class="text-decoration-none text-muted small">
@@ -50,3 +57,30 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        async function loginWithGoogle() {
+            try {
+                const response = await fetch("https://ep-raspy-violet-apzb0bnc.neonauth.c-7.us-east-1.aws.neon.tech/neondb/auth/sign-in/social", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        provider: "google",
+                        callbackURL: window.location.origin + "/Account/NeonCallback"
+                    })
+                });
+                const data = await response.json();
+                if (data.url) {
+                    window.location.href = data.url;
+                } else {
+                    alert("Erro ao iniciar login com Google.");
+                }
+            } catch (err) {
+                alert("Erro de conexão ao tentar login com Google: " + err.message);
+            }
+        }
+    </script>
+}

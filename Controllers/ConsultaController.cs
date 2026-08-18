@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using System;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace AssistenciaTech.Controllers
 {
@@ -109,6 +111,51 @@ namespace AssistenciaTech.Controllers
                     }
                 }
             });
+        }
+
+        // GET: /Consulta/MeusEquipamentos
+        [Authorize(Roles = "Cliente")]
+        public async Task<IActionResult> MeusEquipamentos()
+        {
+            var email = User.FindFirstValue(ClaimTypes.Email);
+            if (string.IsNullOrEmpty(email))
+            {
+                return RedirectToAction("Index");
+            }
+
+            var ordens = await _context.OrdensServico
+                                .Include(o => o.Cliente)
+                                .Where(o => o.Cliente != null && o.Cliente.Email == email)
+                                .OrderByDescending(o => o.DataEntrada)
+                                .ToListAsync();
+
+            return View(ordens);
+        }
+
+        // GET: /Consulta/VisualizarOS/{id}
+        // Visualiza a OS de forma segura apenas se pertencer ao cliente logado
+        [Authorize(Roles = "Cliente")]
+        public async Task<IActionResult> VisualizarOS(int id)
+        {
+            var email = User.FindFirstValue(ClaimTypes.Email);
+            if (string.IsNullOrEmpty(email))
+            {
+                return RedirectToAction("Index");
+            }
+
+            var ordem = await _context.OrdensServico
+                                .Include(o => o.Cliente)
+                                .Include(o => o.PecasUtilizadas)
+                                    .ThenInclude(p => p.Peca)
+                                .Include(o => o.Evidencias)
+                                .FirstOrDefaultAsync(o => o.Id == id);
+
+            if (ordem == null || ordem.Cliente == null || ordem.Cliente.Email != email)
+            {
+                return NotFound("Ordem de Serviço não encontrada ou acesso não autorizado.");
+            }
+
+            return View("Detalhes", ordem);
         }
     }
 }

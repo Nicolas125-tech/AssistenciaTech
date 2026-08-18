@@ -81,7 +81,14 @@
 
                 </div>
                 <div class="card-footer text-center py-3">
-                    <a href="~/Consulta/Index" class="btn btn-outline-primary">Fazer nova consulta</a>
+                    @if (User.Identity != null && User.Identity.IsAuthenticated && User.IsInRole("Cliente"))
+                    {
+                        <a asp-controller="Consulta" asp-action="MeusEquipamentos" class="btn btn-outline-primary"><i class="bi bi-arrow-left"></i> Voltar para meus equipamentos</a>
+                    }
+                    else
+                    {
+                        <a href="~/Consulta/Index" class="btn btn-outline-primary">Fazer nova consulta</a>
+                    }
                 </div>
             </div>
         </div>

@@ -1,0 +1,96 @@
+@model IEnumerable<AssistenciaTech.Models.OrdemServico>
+
+@{
+    ViewData["Title"] = "Meus Equipamentos";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="fw-bold mb-0 text-dark"><i class="bi bi-laptop text-primary"></i> Meus Equipamentos</h2>
+                    <p class="text-muted mb-0">Confira abaixo o andamento de suas ordens de serviço</p>
+                </div>
+                <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                        Sair <i class="bi bi-box-arrow-right"></i>
+                    </button>
+                </form>
+            </div>
+
+            <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+                <div class="card-header bg-dark text-white p-3">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-list-task"></i> Ordens de Serviço Ativas</h5>
+                </div>
+                <div class="card-body p-0">
+                    @if (!Model.Any())
+                    {
+                        <div class="text-center py-5 my-4">
+                            <i class="bi bi-clipboard-x fs-1 text-muted"></i>
+                            <p class="mt-3 fs-5 text-secondary">Nenhum equipamento em manutenção para este e-mail.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-4">Número (OS)</th>
+                                        <th>Equipamento</th>
+                                        <th>Data de Entrada</th>
+                                        <th>Status</th>
+                                        <th class="text-end pe-4">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var os in Model)
+                                    {
+                                        string statusBadgeClass = os.Status switch
+                                        {
+                                            AssistenciaTech.Models.WorkflowStatus.Recebido => "bg-secondary",
+                                            AssistenciaTech.Models.WorkflowStatus.EmAnalise => "bg-warning text-dark",
+                                            AssistenciaTech.Models.WorkflowStatus.AguardandoAprovacao => "bg-info text-dark",
+                                            AssistenciaTech.Models.WorkflowStatus.AguardandoPecas => "bg-danger",
+                                            AssistenciaTech.Models.WorkflowStatus.EmReparo => "bg-primary",
+                                            AssistenciaTech.Models.WorkflowStatus.Concluido => "bg-success",
+                                            AssistenciaTech.Models.WorkflowStatus.Entregue => "bg-dark",
+                                            _ => "bg-secondary"
+                                        };
+
+                                        <tr>
+                                            <td class="ps-4 fw-bold">#@os.Id</td>
+                                            <td>
+                                                <span class="d-block fw-bold text-dark">@os.Equipamento</span>
+                                                @if (!string.IsNullOrEmpty(os.NumeroSerie))
+                                                {
+                                                    <small class="text-muted">S/N: @os.NumeroSerie</small>
+                                                }
+                                            </td>
+                                            <td>@os.DataEntrada.ToString("dd/MM/yyyy HH:mm")</td>
+                                            <td>
+                                                <span class="badge @statusBadgeClass fs-7">@os.Status</span>
+                                            </td>
+                                            <td class="text-end pe-4">
+                                                <a asp-action="VisualizarOS" asp-route-id="@os.Id" class="btn btn-sm btn-primary rounded-pill px-3">
+                                                    Acompanhar <i class="bi bi-chevron-right"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+            
+            <div class="text-center mt-4">
+                <small class="text-muted">
+                    Logado como: <strong>@User.Identity?.Name</strong> (@User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value)
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
