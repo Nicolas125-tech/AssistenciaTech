@@ -251,7 +251,8 @@ namespace AssistenciaTech.Controllers
                 var response = await _httpClient.SendAsync(requestMsg);
                 if (!response.IsSuccessStatusCode)
                 {
-                    ViewBag.Error = "Erro ao se comunicar com o servidor de autenticação Neon.";
+                    var errBody = await response.Content.ReadAsStringAsync();
+                    ViewBag.Error = $"Erro ao se comunicar com o servidor de autenticação Neon (Status: {response.StatusCode}). Detalhes: {errBody}";
                     return View("Login");
                 }
 
