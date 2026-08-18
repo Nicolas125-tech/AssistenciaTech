@@ -155,19 +155,30 @@ namespace AssistenciaTech.Controllers
 
         private async Task ProcessPaymentsAsync(System.Collections.Generic.List<string> txIds)
         {
-            var faturamentosToUpdate = await _context.Faturamentos
-                .Where(f => txIds.Contains(f.TxIdPix) && f.StatusPagamento != PagamentoStatus.Pago_Total)
-                .ToListAsync();
+            if (txIds == null || txIds.Count == 0) return;
 
-            if (faturamentosToUpdate.Count > 0)
+            if (_context.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
             {
-                foreach (var faturamento in faturamentosToUpdate)
-                {
-                    faturamento.StatusPagamento = PagamentoStatus.Pago_Total;
-                }
+                var faturamentosToUpdate = await _context.Faturamentos
+                    .Where(f => txIds.Contains(f.TxIdPix) && f.StatusPagamento != PagamentoStatus.Pago_Total)
+                    .ToListAsync();
 
-                _context.UpdateRange(faturamentosToUpdate);
-                await _context.SaveChangesAsync();
+                if (faturamentosToUpdate.Count > 0)
+                {
+                    foreach (var faturamento in faturamentosToUpdate)
+                    {
+                        faturamento.StatusPagamento = PagamentoStatus.Pago_Total;
+                    }
+
+                    _context.UpdateRange(faturamentosToUpdate);
+                    await _context.SaveChangesAsync();
+                }
+            }
+            else
+            {
+                await _context.Faturamentos
+                    .Where(f => txIds.Contains(f.TxIdPix) && f.StatusPagamento != PagamentoStatus.Pago_Total)
+                    .ExecuteUpdateAsync(s => s.SetProperty(f => f.StatusPagamento, PagamentoStatus.Pago_Total));
             }
         }
 
