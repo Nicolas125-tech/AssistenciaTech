@@ -308,6 +308,112 @@ namespace AssistenciaTech.Application.Tests.Controllers
             notFoundResult.Value.Should().BeEquivalentTo(new { error = "OS não encontrada" });
         }
 
+        [Fact]
+        public async Task FinalizarVisita_ReturnsNotFound_WhenVisitaDoesNotBelongToOS()
+        {
+            // Arrange
+            var visita = new VisitaCampo
+            {
+                Id = 1,
+                OrdemServicoId = 2, // Different OS
+                TecnicoId = 10,
+                CheckIn = DateTime.UtcNow
+            };
+            _context.VisitasCampo.Add(visita);
+            await _context.SaveChangesAsync();
+
+            SetUserContext(10);
+
+            var request = new MobileApiController.FinalizarRequest { VisitaId = 1 };
+
+            // Act
+            var result = await _controller.FinalizarVisita(1, request); // Mismatched OS ID
+
+            // Assert
+            var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
+            notFoundResult.Value.Should().BeEquivalentTo(new { error = "Visita não encontrada ou não pertence a esta OS" });
+        }
+
+        [Fact]
+        public async Task FinalizarVisita_UpdatesLaudoAndAssinatura_WhenProvided()
+        {
+            // Arrange
+            var os = new OrdemServico { Id = 1, Equipamento = "PC", Status = WorkflowStatus.EmAnalise, LaudoTecnico = "Original" };
+            _context.OrdensServico.Add(os);
+
+            var visita = new VisitaCampo
+            {
+                Id = 1,
+                OrdemServicoId = 1,
+                TecnicoId = 10,
+                CheckIn = DateTime.UtcNow
+            };
+            _context.VisitasCampo.Add(visita);
+            await _context.SaveChangesAsync();
+
+            SetUserContext(10);
+
+            var request = new MobileApiController.FinalizarRequest
+            {
+                VisitaId = 1,
+                AssinaturaBase64 = "base64string",
+                LaudoFinal = "Novo Laudo"
+            };
+
+            // Act
+            var result = await _controller.FinalizarVisita(1, request);
+
+            // Assert
+            result.Should().BeOfType<OkObjectResult>();
+
+            var osInDb = await _context.OrdensServico.FindAsync(1);
+            osInDb!.LaudoTecnico.Should().Be("Novo Laudo");
+            osInDb.Status.Should().Be(WorkflowStatus.Concluido);
+
+            var visitaInDb = await _context.VisitasCampo.FindAsync(1);
+            visitaInDb!.AssinaturaClienteBase64.Should().Be("base64string");
+        }
+
+        [Fact]
+        public async Task FinalizarVisita_DoesNotUpdateLaudo_WhenLaudoFinalIsEmpty()
+        {
+            // Arrange
+            var os = new OrdemServico { Id = 1, Equipamento = "PC", Status = WorkflowStatus.EmAnalise, LaudoTecnico = "Original" };
+            _context.OrdensServico.Add(os);
+
+            var visita = new VisitaCampo
+            {
+                Id = 1,
+                OrdemServicoId = 1,
+                TecnicoId = 10,
+                CheckIn = DateTime.UtcNow
+            };
+            _context.VisitasCampo.Add(visita);
+            await _context.SaveChangesAsync();
+
+            SetUserContext(10);
+
+            var request = new MobileApiController.FinalizarRequest
+            {
+                VisitaId = 1,
+                AssinaturaBase64 = "base64string",
+                LaudoFinal = "" // Empty
+            };
+
+            // Act
+            var result = await _controller.FinalizarVisita(1, request);
+
+            // Assert
+            result.Should().BeOfType<OkObjectResult>();
+
+            var osInDb = await _context.OrdensServico.FindAsync(1);
+            osInDb!.LaudoTecnico.Should().Be("Original"); // Should remain unchanged
+            osInDb.Status.Should().Be(WorkflowStatus.Concluido);
+
+            var visitaInDb = await _context.VisitasCampo.FindAsync(1);
+            visitaInDb!.AssinaturaClienteBase64.Should().Be("base64string");
+        }
+
         public void Dispose()
         {
             _context.Database.EnsureDeleted();
