@@ -183,6 +183,30 @@ namespace AssistenciaTech.Application.Tests.Controllers
         }
 
         [Fact]
+        public async Task CheckIn_ReturnsUnauthorized_WhenClaimIdIsNotValidInteger()
+        {
+            // Arrange
+            var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, "invalid_id")
+            }, "mock"));
+
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext { User = user }
+            };
+
+            var request = new MobileApiController.CheckInRequest { Latitude = 10m, Longitude = 20m };
+
+            // Act
+            var result = await _controller.CheckIn(1, request);
+
+            // Assert
+            var unauthorizedResult = result.Should().BeOfType<UnauthorizedObjectResult>().Subject;
+            unauthorizedResult.Value.Should().BeEquivalentTo(new { error = "Técnico não autenticado." });
+        }
+
+        [Fact]
         public async Task CheckIn_ReturnsUnauthorized_WhenUserIsNotAuthenticated()
         {
             // Arrange
