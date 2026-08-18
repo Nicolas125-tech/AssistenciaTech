@@ -435,6 +435,113 @@ namespace AssistenciaTech.Application.Tests.Controllers
 
 
         [Fact]
+        public async Task Edit_Post_ReturnsNotFound_WhenIdMismatch()
+        {
+            // Act
+            var ordemServico = new OrdemServico { Id = 2 };
+            var result = await _controller.Edit(1, ordemServico, null);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Fact]
+        public async Task Edit_Post_ReturnsNotFound_WhenOrdemServicoDoesNotExist()
+        {
+            // Act
+            var ordemServico = new OrdemServico { Id = 999 };
+            var result = await _controller.Edit(999, ordemServico, null);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Fact]
+        public async Task Edit_Post_ReturnsRedirectToIndex_WhenValid()
+        {
+            // Arrange
+            var cliente = new Cliente { Nome = "Cliente Teste", Email = "teste@teste.com", Telefone = "12345678", Cpf = "12345678901" };
+            _context.Clientes.Add(cliente);
+            await _context.SaveChangesAsync();
+
+            var osExistente = new OrdemServico { ClienteId = cliente.Id, Status = "Orçamento", Equipamento = "PC", Id = 101 };
+            _context.OrdensServico.Add(osExistente);
+            await _context.SaveChangesAsync();
+            _context.ChangeTracker.Clear(); // Clear tracking so context can find it anew
+
+            var osAlterada = new OrdemServico
+            {
+                Id = 101,
+                ClienteId = cliente.Id,
+                Equipamento = "PC Atualizado",
+                Status = "Orçamento" // Keep same status to bypass workflow validation errors
+            };
+
+            // Act
+            var result = await _controller.Edit(101, osAlterada, null);
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Which;
+            redirectResult.ActionName.Should().Be("Index");
+
+            var osDb = await _context.OrdensServico.FindAsync(101);
+            osDb.Equipamento.Should().Be("PC Atualizado");
+        }
+
+        [Fact]
+        public async Task Edit_Post_ReturnsView_WhenDatabaseThrowsException()
+        {
+            // Arrange
+            var dbName = Guid.NewGuid().ToString();
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: dbName)
+                .Options;
+
+            using (var seedContext = new AppDbContext(options))
+            {
+                var os = new OrdemServico { Id = 102, Equipamento = "Teste DB Error", Status = "Orçamento", ClienteId = 1 };
+                seedContext.OrdensServico.Add(os);
+                await seedContext.SaveChangesAsync();
+            }
+
+            var exceptionContext = new TestExceptionDbContext(options);
+            var mockEquipamentoBackupService = new Mock<IEquipamentoBackupService>();
+
+            var localController = new AdminController(
+                exceptionContext,
+                _mockEstoqueService.Object,
+                _mockEnv.Object,
+                _mockPdfGeneratorService.Object,
+                _mockDashboardService.Object,
+                mockEquipamentoBackupService.Object,
+                _mockLogger.Object,
+                _mockScopeFactory.Object
+            );
+
+            var osAlterada = new OrdemServico { Id = 102, Equipamento = "PC Atualizado", Status = "Orçamento", ClienteId = 1 };
+
+            // Act
+            var result = await localController.Edit(102, osAlterada, null);
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Which;
+            viewResult.Model.Should().BeEquivalentTo(osAlterada);
+            localController.ModelState.ErrorCount.Should().Be(1);
+
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("DB_UPDATE_ERROR_EDIT")),
+                    It.IsAny<Exception>(),
+                    It.Is<Func<It.IsAnyType, Exception, string>>((v, t) => true)),
+                Times.Once);
+
+            localController.Dispose();
+            exceptionContext.Dispose();
+        }
+
+        [Fact]
         public async Task ImprimirOs_ReturnsNotFound_WhenOrdemServicoDoesNotExist()
         {
             // Act
