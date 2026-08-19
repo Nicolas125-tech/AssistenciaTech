@@ -232,49 +232,17 @@ namespace AssistenciaTech.Controllers
         }
 
         // GET: /Account/LoginWithGoogle
+        // Redireciona o browser diretamente para o endpoint de sign-in social do Neon Auth.
+        // O fluxo OAuth DEVE ser iniciado do lado do client (browser) para que os cookies
+        // de state sejam corretamente setados antes do redirect para o Google.
         [HttpGet]
-        public async Task<IActionResult> LoginWithGoogle()
+        public IActionResult LoginWithGoogle()
         {
-            try
-            {
-                var callbackUrl = $"{Request.Scheme}://{Request.Host}{Url.Content("~/Account/NeonCallback")}";
-                
-                var payload = new
-                {
-                    provider = "google",
-                    callbackURL = callbackUrl
-                };
-
-                using var requestMsg = new HttpRequestMessage(HttpMethod.Post, "https://ep-raspy-violet-apzb0bnc.neonauth.c-7.us-east-1.aws.neon.tech/neondb/auth/sign-in/social");
-                requestMsg.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-
-                var response = await _httpClient.SendAsync(requestMsg);
-                if (!response.IsSuccessStatusCode)
-                {
-                    var errBody = await response.Content.ReadAsStringAsync();
-                    ViewBag.Error = $"Erro ao se comunicar com o servidor de autenticação Neon (Status: {response.StatusCode}). Detalhes: {errBody}";
-                    return View("Login");
-                }
-
-                var responseBody = await response.Content.ReadAsStringAsync();
-                using var doc = JsonDocument.Parse(responseBody);
-                if (doc.RootElement.TryGetProperty("url", out var urlElement))
-                {
-                    var redirectUrl = urlElement.GetString();
-                    if (!string.IsNullOrEmpty(redirectUrl))
-                    {
-                        return Redirect(redirectUrl);
-                    }
-                }
-
-                ViewBag.Error = "Resposta inválida do servidor de autenticação.";
-                return View("Login");
-            }
-            catch (Exception ex)
-            {
-                ViewBag.Error = $"Erro ao iniciar login social: {ex.Message}";
-                return View("Login");
-            }
+            var callbackUrl = $"{Request.Scheme}://{Request.Host}{Url.Content("~/Account/NeonCallback")}";
+            var neonAuthBase = "https://ep-raspy-violet-apzb0bnc.neonauth.c-7.us-east-1.aws.neon.tech/neondb/auth";
+            
+            var redirectUrl = $"{neonAuthBase}/sign-in/social?provider=google&callbackURL={Uri.EscapeDataString(callbackUrl)}";
+            return Redirect(redirectUrl);
         }
     }
 }

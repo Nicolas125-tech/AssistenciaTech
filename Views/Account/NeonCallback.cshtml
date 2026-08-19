@@ -25,6 +25,9 @@
                             <span id="errorMessage">Ocorreu um erro ao processar sua autenticação.</span>
                         </div>
                         <div class="d-grid gap-2">
+                            <a href="/Account/Login" class="btn btn-outline-primary">
+                                <i class="bi bi-arrow-repeat"></i> Tentar Novamente
+                            </a>
                             <a href="/Home/Index" class="btn btn-outline-secondary">
                                 <i class="bi bi-house"></i> Voltar para o Início
                             </a>
@@ -46,31 +49,53 @@
             const errorArea = document.getElementById("errorArea");
             const errorMessage = document.getElementById("errorMessage");
 
+            const NEON_AUTH_BASE = "https://ep-raspy-violet-apzb0bnc.neonauth.c-7.us-east-1.aws.neon.tech/neondb/auth";
+
+            async function showError(msg) {
+                loader.classList.add("d-none");
+                errorArea.classList.remove("d-none");
+                errorMessage.textContent = msg;
+            }
+
             try {
-                // 1. Buscar a sessão ativa no servidor Neon Auth
-                const neonSessionUrl = "https://ep-raspy-violet-apzb0bnc.neonauth.c-7.us-east-1.aws.neon.tech/neondb/auth/get-session";
-                
-                const response = await fetch(neonSessionUrl, {
+                // 1. Buscar a sessão ativa no servidor Neon Auth (Better Auth)
+                // Após o redirect do Google -> Neon Auth -> aqui, o Neon Auth já setou
+                // os cookies de sessão no seu domínio. Usamos credentials: "include"
+                // para enviar esses cookies de volta ao Neon Auth.
+                const response = await fetch(NEON_AUTH_BASE + "/get-session", {
                     method: "GET",
                     headers: {
                         "Accept": "application/json"
                     },
-                    credentials: "include" // Importante: envia os cookies cross-domain do Neon Auth
+                    credentials: "include"
                 });
 
                 if (!response.ok) {
-                    throw new Error("Não foi possível recuperar a sessão do Neon Auth. Por favor, tente novamente.");
+                    throw new Error("Não foi possível recuperar a sessão do Neon Auth (Status: " + response.status + "). Tente fazer login novamente.");
                 }
 
                 const sessionData = await response.json();
-                
-                if (!sessionData || !sessionData.session || !sessionData.session.token) {
-                    throw new Error("Você não possui uma sessão ativa. Efetue o login com o Google primeiro.");
+
+                // Better Auth retorna { session: { token, ... }, user: { id, name, email, ... } }
+                // Tentamos obter o token da sessão
+                let token = null;
+
+                if (sessionData && sessionData.session && sessionData.session.token) {
+                    token = sessionData.session.token;
+                } else if (sessionData && sessionData.token) {
+                    token = sessionData.token;
                 }
 
-                const token = sessionData.session.token;
+                if (!token) {
+                    // Sessão não encontrada - possível bloqueio de cookies de terceiros
+                    throw new Error(
+                        "Não foi possível obter a sessão de autenticação. " +
+                        "Isso pode ocorrer se o seu navegador bloqueia cookies de terceiros. " +
+                        "Tente desabilitar o bloqueio de cookies ou use outro navegador."
+                    );
+                }
 
-                // 2. Enviar o token para verificar e iniciar a sessão no ASP.NET local
+                // 2. Enviar o token para o backend ASP.NET para verificar e criar sessão local
                 const verifyResponse = await fetch("/Account/VerifyNeonSession", {
                     method: "POST",
                     headers: {
@@ -80,7 +105,7 @@
                 });
 
                 if (!verifyResponse.ok) {
-                    throw new Error("Erro na comunicação com o servidor principal.");
+                    throw new Error("Erro na comunicação com o servidor principal (Status: " + verifyResponse.status + ").");
                 }
 
                 const result = await verifyResponse.json();
@@ -93,10 +118,7 @@
                 }
 
             } catch (err) {
-                // Exibe a mensagem de erro
-                loader.classList.add("d-none");
-                errorArea.classList.remove("d-none");
-                errorMessage.textContent = err.message;
+                showError(err.message);
             }
         });
     </script>
