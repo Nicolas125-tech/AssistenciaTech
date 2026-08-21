@@ -205,5 +205,33 @@ namespace AssistenciaTech.Application.Tests
             var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
             redirectResult.ActionName.Should().Be("Index");
         }
+        [Fact]
+        public async Task Index_ReturnsViewResult_WithListOfEquipamentosBackup()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var context = new AppDbContext(options);
+            var equipamento1 = new EquipamentoBackup { Id = 1, Descricao = "Eq 1", NumeroSerie = "111", Disponivel = true };
+            var equipamento2 = new EquipamentoBackup { Id = 2, Descricao = "Eq 2", NumeroSerie = "222", Disponivel = false };
+
+            context.EquipamentosBackup.Add(equipamento1);
+            context.EquipamentosBackup.Add(equipamento2);
+            await context.SaveChangesAsync();
+            context.ChangeTracker.Clear();
+
+            var controller = new EquipamentoBackupController(context);
+
+            // Act
+            var result = await controller.Index();
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            var model = viewResult.Model.Should().BeAssignableTo<System.Collections.Generic.IEnumerable<EquipamentoBackup>>().Subject;
+            model.Should().HaveCount(2);
+        }
+
     }
 }
