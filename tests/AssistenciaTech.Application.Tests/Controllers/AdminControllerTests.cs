@@ -73,6 +73,64 @@ namespace AssistenciaTech.Application.Tests.Controllers
 
 
         [Fact]
+        public async Task Index_Get_ReturnsViewWithDashboardData_WhenSuccessful()
+        {
+            // Arrange
+            var searchString = "test";
+            var statusFilter = "Aberto";
+            var page = 2;
+
+            var ordens = new List<OrdemServico>
+            {
+                new OrdemServico { Id = 1, ClienteId = 1, Equipamento = "PC", ProblemaRelatado = "Broken", Status = "Aberto" }
+            };
+
+            var dashboardData = new AssistenciaTech.Services.DashboardDto
+            {
+                Ordens = ordens,
+                TotalAbertas = 5,
+                EquipamentosProntos = 3,
+                FaturamentoPrevisto = 1500.50m,
+                CurrentPage = page,
+                TotalPages = 3,
+                TotalOrdens = 25,
+                ChartLabels = new List<string> { "Jan", "Feb" },
+                ChartData = new List<int> { 10, 15 }
+            };
+
+            _mockDashboardService
+                .Setup(s => s.GetDashboardDataAsync(searchString, statusFilter, page, 50))
+                .ReturnsAsync(dashboardData);
+
+            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+            var tempData = new TempDataDictionary(httpContext, Mock.Of<ITempDataProvider>());
+            tempData["ErroBanco"] = "Test error message";
+            _controller.TempData = tempData;
+
+            // Act
+            var result = await _controller.Index(searchString, statusFilter, page) as ViewResult;
+
+            // Assert
+            result.Should().NotBeNull();
+            var model = result.Model.Should().BeAssignableTo<IEnumerable<OrdemServico>>().Subject;
+            model.Should().BeEquivalentTo(ordens);
+
+            var viewData = result.ViewData;
+            viewData["ErroBanco"].Should().Be("Test error message");
+            viewData["SearchString"].Should().Be(searchString);
+            viewData["StatusFilter"].Should().Be(statusFilter);
+            viewData["ChartLabels"].Should().BeEquivalentTo(dashboardData.ChartLabels);
+            viewData["ChartData"].Should().BeEquivalentTo(dashboardData.ChartData);
+
+            viewData["TotalAbertas"].Should().Be(5);
+            viewData["EquipamentosProntos"].Should().Be(3);
+            viewData["FaturamentoPrevisto"].Should().Be(1500.50m);
+            viewData["CurrentPage"].Should().Be(2);
+            viewData["TotalPages"].Should().Be(3);
+            viewData["TotalOrdens"].Should().Be(25);
+        }
+
+        [Fact]
         public async Task Index_Get_ReturnsEmptyList_WhenDatabaseFails()
         {
             // Arrange
