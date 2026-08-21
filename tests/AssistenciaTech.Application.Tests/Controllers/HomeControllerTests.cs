@@ -39,14 +39,29 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 var servicosList = System.Linq.Enumerable.ToList(servicos);
                 servicosList.Should().HaveCount(3);
 
-                // Use reflection to verify the properties of the first element due to anonymous type visibility
+                // Use reflection to verify the properties due to anonymous type visibility
                 var firstService = servicosList[0];
                 var type = (Type)firstService.GetType();
 
-                var tituloProperty = type.GetProperty("Titulo");
-                tituloProperty.Should().NotBeNull();
-                var tituloValue = tituloProperty.GetValue(firstService) as string;
-                tituloValue.Should().Be("Formatação e Backup");
+                // Servico 1
+                (type.GetProperty("Titulo")?.GetValue(firstService) as string).Should().Be("Formatação e Backup");
+                (type.GetProperty("Descricao")?.GetValue(firstService) as string).Should().Be("Instalação limpa do Windows com backup completo e seguro dos seus arquivos.");
+                (type.GetProperty("Icone")?.GetValue(firstService) as string).Should().Be("bi-laptop");
+                (type.GetProperty("Preco")?.GetValue(firstService) as string).Should().Be("A partir de R$ 120");
+
+                // Servico 2
+                var secondService = servicosList[1];
+                (type.GetProperty("Titulo")?.GetValue(secondService) as string).Should().Be("Limpeza Preventiva");
+                (type.GetProperty("Descricao")?.GetValue(secondService) as string).Should().Be("Limpeza interna profunda e troca de pasta térmica de alta performance.");
+                (type.GetProperty("Icone")?.GetValue(secondService) as string).Should().Be("bi-tools");
+                (type.GetProperty("Preco")?.GetValue(secondService) as string).Should().Be("A partir de R$ 150");
+
+                // Servico 3
+                var thirdService = servicosList[2];
+                (type.GetProperty("Titulo")?.GetValue(thirdService) as string).Should().Be("Reparo de Placa-Mãe");
+                (type.GetProperty("Descricao")?.GetValue(thirdService) as string).Should().Be("Conserto de curtos, troca de componentes e regravação de BIOS.");
+                (type.GetProperty("Icone")?.GetValue(thirdService) as string).Should().Be("bi-motherboard");
+                (type.GetProperty("Preco")?.GetValue(thirdService) as string).Should().Be("Sob Orçamento");
             }
         }
 
