@@ -54,7 +54,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
             var mockUrlHelper = new Mock<IUrlHelper>();
             mockUrlHelper.Setup(x => x.IsLocalUrl(It.IsAny<string>())).Returns(false);
 
-            _controller = new AccountController(_mockConfig.Object, _context)
+            var mockHttpClient = new Mock<System.Net.Http.HttpClient>();
+            _controller = new AccountController(_mockConfig.Object, _context, mockHttpClient.Object)
             {
                 ControllerContext = new ControllerContext
                 {
