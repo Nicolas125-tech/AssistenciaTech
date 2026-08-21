@@ -632,6 +632,47 @@ namespace AssistenciaTech.Application.Tests.Controllers
         }
 
 
+
+        [Fact]
+        public async Task Delete_OSComPecasUtilizadas_DeveRetornarRedirectComErro()
+        {
+            // Arrange
+            var cliente = new Cliente { Nome = "Teste Cliente", Email = "teste@teste.com", Telefone = "12345678" };
+            _context.Clientes.Add(cliente);
+            await _context.SaveChangesAsync();
+
+            var os = new OrdemServico
+            {
+                ClienteId = cliente.Id,
+                Equipamento = "Notebook",
+                ProblemaRelatado = "Teclado Falhando",
+                Status = "Recebido"
+            };
+
+            // Adicionar uma peça utilizada para gerar dependência
+            var peca = new Peca { Nome = "Teclado Novo", QuantidadeEstoque = 10, ValorUnitario = 100 };
+            _context.Pecas.Add(peca);
+            await _context.SaveChangesAsync();
+
+            os.PecasUtilizadas.Add(new OrdemServicoPeca { PecaId = peca.Id, Quantidade = 1, ValorVenda = 100 });
+
+            _context.OrdensServico.Add(os);
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _controller.Delete(os.Id);
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectResult.ActionName.Should().Be("Index");
+            redirectResult.RouteValues.Should().ContainKey("erro");
+            redirectResult.RouteValues["erro"].ToString().Should().Contain("dependências");
+
+            // Verifica que não foi deletado
+            var osNoBanco = await _context.OrdensServico.FindAsync(os.Id);
+            osNoBanco.Should().NotBeNull();
+        }
+
         [Fact]
         public async Task Delete_OSComDependencias_DeveRetornarRedirectComErro()
         {
