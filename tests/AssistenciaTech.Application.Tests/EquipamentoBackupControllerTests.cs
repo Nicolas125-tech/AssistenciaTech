@@ -205,5 +205,138 @@ namespace AssistenciaTech.Application.Tests
             var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
             redirectResult.ActionName.Should().Be("Index");
         }
+
+        [Fact]
+        public async Task Edit_Get_WhenEquipamentoNotFound_ReturnsNotFound()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var context = new AppDbContext(options);
+            var controller = new EquipamentoBackupController(context);
+
+            // Act
+            var result = await controller.Edit(999);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Fact]
+        public async Task Edit_Get_WhenEquipamentoExists_ReturnsViewResultWithEquipamento()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var context = new AppDbContext(options);
+            var equipamento = new EquipamentoBackup { Descricao = "Notebook Dell", NumeroSerie = "SN12345", Disponivel = true };
+            context.EquipamentosBackup.Add(equipamento);
+            await context.SaveChangesAsync();
+            context.ChangeTracker.Clear();
+
+            var controller = new EquipamentoBackupController(context);
+
+            // Act
+            var result = await controller.Edit(equipamento.Id);
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            var model = viewResult.Model.Should().BeOfType<EquipamentoBackup>().Subject;
+            model.Id.Should().Be(equipamento.Id);
+            model.Descricao.Should().Be("Notebook Dell");
+        }
+
+        [Fact]
+        public async Task Edit_Post_WhenIdMismatchesEquipamentoId_ReturnsNotFound()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var context = new AppDbContext(options);
+            var controller = new EquipamentoBackupController(context);
+            var equipamento = new EquipamentoBackup { Id = 2, Descricao = "Notebook Dell", NumeroSerie = "SN12345" };
+
+            // Act
+            var result = await controller.Edit(1, equipamento);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Fact]
+        public async Task Edit_Post_WhenModelStateIsInvalid_ReturnsViewResultWithEquipamento()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var context = new AppDbContext(options);
+            var controller = new EquipamentoBackupController(context);
+            var equipamento = new EquipamentoBackup { Id = 1, Descricao = "", NumeroSerie = "SN12345" };
+            controller.ModelState.AddModelError("Descricao", "Descricao é obrigatória.");
+
+            // Act
+            var result = await controller.Edit(1, equipamento);
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            viewResult.Model.Should().BeEquivalentTo(equipamento);
+        }
+
+        [Fact]
+        public async Task Edit_Post_WhenExistingEquipamentoNotFound_ReturnsNotFound()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var context = new AppDbContext(options);
+            var controller = new EquipamentoBackupController(context);
+            var equipamento = new EquipamentoBackup { Id = 999, Descricao = "Notebook Inexistente", NumeroSerie = "SN999" };
+
+            // Act
+            var result = await controller.Edit(999, equipamento);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Fact]
+        public async Task Edit_Post_WhenValidModel_UpdatesEquipamentoAndRedirectsToIndex()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var context = new AppDbContext(options);
+            var equipamento = new EquipamentoBackup { Descricao = "Notebook Lenovo", NumeroSerie = "SN001", Disponivel = true };
+            context.EquipamentosBackup.Add(equipamento);
+            await context.SaveChangesAsync();
+            context.ChangeTracker.Clear();
+
+            var controller = new EquipamentoBackupController(context);
+            var updatedEquipamento = new EquipamentoBackup { Id = equipamento.Id, Descricao = "Notebook Lenovo ThinkPad", NumeroSerie = "SN001-UPDATED", Disponivel = true };
+
+            // Act
+            var result = await controller.Edit(equipamento.Id, updatedEquipamento);
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectResult.ActionName.Should().Be("Index");
+
+            var equipamentoInDb = await context.EquipamentosBackup.FindAsync(equipamento.Id);
+            equipamentoInDb.Should().NotBeNull();
+            equipamentoInDb.Descricao.Should().Be("Notebook Lenovo ThinkPad");
+            equipamentoInDb.NumeroSerie.Should().Be("SN001-UPDATED");
+        }
     }
 }
