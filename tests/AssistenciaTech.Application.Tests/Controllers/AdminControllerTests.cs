@@ -211,6 +211,86 @@ namespace AssistenciaTech.Application.Tests.Controllers
             // E a última linha de dados é a do ID 1
             linhas[105].Should().Contain("1,\"Cliente Teste\",\"Equipamento 1\",01/10/2023,Orçamento,101");
         }
+
+        [Fact]
+        public async Task ExportarCsv_DeveRetornarApenasCabecalho_QuandoNaoExistemOrdensServico()
+        {
+            // Arrange
+            _context.ChangeTracker.Clear();
+            _context.OrdensServico.RemoveRange(_context.OrdensServico);
+            await _context.SaveChangesAsync();
+
+            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+            var responseBody = new System.IO.MemoryStream();
+            httpContext.Response.Body = responseBody;
+
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = httpContext
+            };
+
+            // Act
+            await _controller.ExportarCsv();
+
+            // Assert
+            httpContext.Response.ContentType.Should().Be("text/csv");
+            httpContext.Response.Headers["Content-Disposition"].ToString().Should().Be("attachment; filename=\"OrdensDeServico.csv\"");
+
+            var csvString = System.Text.Encoding.UTF8.GetString(responseBody.ToArray());
+            var linhas = csvString.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+
+            linhas.Should().HaveCount(1);
+            linhas[0].Should().Be("Id,Cliente,Equipamento,Data Entrada,Status,Valor Orçamento");
+        }
+
+        [Fact]
+        public async Task ExportarCsv_NaoDeveFalharSeClienteForNulo()
+        {
+            // Arrange
+            _context.ChangeTracker.Clear();
+            _context.OrdensServico.RemoveRange(_context.OrdensServico);
+
+            var cliente = new Cliente { Id = 99, Nome = "", Email = "teste@teste.com", Telefone = "12345678" };
+            _context.Clientes.Add(cliente);
+
+            var osSemCliente = new OrdemServico
+            {
+                Id = 99,
+                ClienteId = 99,
+                Cliente = cliente,
+                Equipamento = "PC Sem Cliente",
+                DataEntrada = new DateTime(2023, 10, 01),
+                Status = "Orçamento",
+                CustoPecas = 100,
+                CustoMaoDeObra = 50,
+                DescontoAplicado = 10,
+                ValorOrcamento = 140
+            };
+
+            _context.OrdensServico.Add(osSemCliente);
+            await _context.SaveChangesAsync();
+
+            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+            var responseBody = new System.IO.MemoryStream();
+            httpContext.Response.Body = responseBody;
+
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = httpContext
+            };
+
+            // Act
+            await _controller.ExportarCsv();
+
+            // Assert
+            var csvString = System.Text.Encoding.UTF8.GetString(responseBody.ToArray());
+            var linhas = csvString.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+
+            linhas.Should().HaveCount(2);
+            linhas[1].Should().Be("99,\"\",\"PC Sem Cliente\",01/10/2023,Orçamento,140");
+        }
+
+
         [Fact]
         public void Create_Get_ReturnsViewResult()
         {
