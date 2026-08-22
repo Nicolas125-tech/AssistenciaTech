@@ -37,12 +37,12 @@ namespace AssistenciaTech.Services
     public class AdminDashboardService : IAdminDashboardService
     {
         private readonly AppDbContext _context;
-        private readonly IMemoryCache _cache;
+        private readonly IMemoryCache? _cache;
         private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
         private const string CacheKeyStatusGroup = "AdminDashboard_StatusGroup";
         private const string CacheKeyTotalOrdens = "AdminDashboard_TotalOrdens";
 
-        public AdminDashboardService(AppDbContext context, IMemoryCache cache = null)
+        public AdminDashboardService(AppDbContext context, IMemoryCache? cache = null)
         {
             _context = context;
             _cache = cache;
@@ -50,9 +50,35 @@ namespace AssistenciaTech.Services
 
         public async Task<DashboardDto> GetDashboardDataAsync(string searchString, string statusFilter, int page = 1, int pageSize = 50)
         {
-            var query = _context.OrdensServico.Include(o => o.Cliente).AsNoTracking().AsQueryable();
+            var query = ApplyFilters(searchString, statusFilter);
 
             bool hasFilters = !string.IsNullOrEmpty(searchString) || !string.IsNullOrEmpty(statusFilter);
+
+            var (statusGroupDb, totalOrdens) = await GetStatusGroupDataAsync(query, hasFilters);
+
+            int totalPages = (int)Math.Ceiling(totalOrdens / (double)pageSize);
+
+            var ordensOrdenadas = await GetPagedOrdersAsync(query, page, pageSize);
+
+            var metrics = CalculateMetrics(statusGroupDb);
+
+            return new DashboardDto
+            {
+                Ordens = ordensOrdenadas,
+                ChartLabels = metrics.ChartLabels,
+                ChartData = metrics.ChartData,
+                TotalAbertas = metrics.TotalAbertas,
+                EquipamentosProntos = metrics.EquipamentosProntos,
+                FaturamentoPrevisto = metrics.FaturamentoPrevisto,
+                TotalOrdens = totalOrdens,
+                CurrentPage = page,
+                TotalPages = totalPages
+            };
+        }
+
+        private IQueryable<OrdemServico> ApplyFilters(string searchString, string statusFilter)
+        {
+            var query = _context.OrdensServico.Include(o => o.Cliente).AsNoTracking().AsQueryable();
 
             if (!string.IsNullOrEmpty(searchString))
             {
@@ -64,6 +90,11 @@ namespace AssistenciaTech.Services
                 query = query.Where(o => o.Status == statusFilter);
             }
 
+            return query;
+        }
+
+        private async Task<(List<StatusGroupDto>? StatusGroupDb, int TotalOrdens)> GetStatusGroupDataAsync(IQueryable<OrdemServico> query, bool hasFilters)
+        {
             List<StatusGroupDto>? statusGroupDb = null;
             int totalOrdens;
 
@@ -112,14 +143,20 @@ namespace AssistenciaTech.Services
                 totalOrdens = ordens.Count;
             }
 
-            int totalPages = (int)Math.Ceiling(totalOrdens / (double)pageSize);
+            return (statusGroupDb, totalOrdens);
+        }
 
-            var ordensOrdenadas = await query
+        private async Task<List<OrdemServico>> GetPagedOrdersAsync(IQueryable<OrdemServico> query, int page, int pageSize)
+        {
+            return await query
                 .OrderByDescending(o => o.DataEntrada)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
+        }
 
+        private static (List<string> ChartLabels, List<int> ChartData, int TotalAbertas, int EquipamentosProntos, decimal FaturamentoPrevisto) CalculateMetrics(List<StatusGroupDto>? statusGroupDb)
+        {
             int totalAbertas = 0;
             int equipamentosProntos = 0;
             decimal faturamentoPrevisto = 0;
@@ -146,18 +183,7 @@ namespace AssistenciaTech.Services
                 }
             }
 
-            return new DashboardDto
-            {
-                Ordens = ordensOrdenadas,
-                ChartLabels = chartLabels,
-                ChartData = chartData,
-                TotalAbertas = totalAbertas,
-                EquipamentosProntos = equipamentosProntos,
-                FaturamentoPrevisto = faturamentoPrevisto,
-                TotalOrdens = totalOrdens,
-                CurrentPage = page,
-                TotalPages = totalPages
-            };
+            return (chartLabels, chartData, totalAbertas, equipamentosProntos, faturamentoPrevisto);
         }
     }
 }
