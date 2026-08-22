@@ -769,6 +769,30 @@ namespace AssistenciaTech.Application.Tests.Controllers
             fileResult.FileContents.Should().BeEquivalentTo(dummyPdfBytes);
         }
 
+        [Fact]
+        public async Task ImprimirOs_CallsPdfGeneratorService_WithCorrectOrdemServico()
+        {
+            // Arrange
+            var cliente = new Cliente { Nome = "Cliente Verificacao", Email = "verificacao@teste.com", Telefone = "87654321", Cpf = "98765432100" };
+            _context.Clientes.Add(cliente);
+            await _context.SaveChangesAsync();
+
+            var os = new OrdemServico { ClienteId = cliente.Id, Status = "Em Andamento", Equipamento = "Notebook" };
+            _context.OrdensServico.Add(os);
+            await _context.SaveChangesAsync();
+
+            var dummyPdfBytes = new byte[] { 7, 8, 9 };
+            _mockPdfGeneratorService.Setup(s => s.GenerateOsPdf(It.Is<OrdemServico>(o => o.Id == os.Id && o.Cliente != null && o.Cliente.Nome == cliente.Nome)))
+                                    .Returns(dummyPdfBytes);
+
+            // Act
+            var result = await _controller.ImprimirOs(os.Id);
+
+            // Assert
+            result.Should().BeOfType<FileContentResult>();
+            _mockPdfGeneratorService.Verify(s => s.GenerateOsPdf(It.Is<OrdemServico>(o => o.Id == os.Id && o.Cliente != null && o.Cliente.Id == cliente.Id)), Times.Once);
+        }
+
 
 
         [Fact]
