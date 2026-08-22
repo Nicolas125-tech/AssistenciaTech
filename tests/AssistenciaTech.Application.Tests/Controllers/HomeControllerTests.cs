@@ -134,7 +134,41 @@ namespace AssistenciaTech.Application.Tests.Controllers
         }
 
         [Fact]
-        public void Error_ReturnsViewResult_WithErrorViewModel()
+        public void Error_WhenActivityCurrentIsNull_ReturnsViewResultWithTraceIdentifier()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using (var context = new AppDbContext(options))
+            {
+                var controller = new HomeController(context, Mock.Of<ILogger<HomeController>>());
+                var expectedTraceId = "TestTraceIdentifier_12345";
+                controller.ControllerContext = new ControllerContext
+                {
+                    HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext { TraceIdentifier = expectedTraceId }
+                };
+
+                // Ensure Activity.Current is null
+                if (System.Diagnostics.Activity.Current != null)
+                {
+                    System.Diagnostics.Activity.Current.Stop();
+                }
+
+                // Act
+                var result = controller.Error();
+
+                // Assert
+                var viewResult = result.Should().BeOfType<ViewResult>().Which;
+                var model = viewResult.Model.Should().BeOfType<AssistenciaTech.Models.ErrorViewModel>().Which;
+                model.RequestId.Should().Be(expectedTraceId);
+                model.ShowRequestId.Should().BeTrue();
+            }
+        }
+
+        [Fact]
+        public void Error_WhenActivityCurrentIsNotNull_ReturnsViewResultWithActivityId()
         {
             // Arrange
             var options = new DbContextOptionsBuilder<AppDbContext>()
@@ -146,19 +180,41 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 var controller = new HomeController(context, Mock.Of<ILogger<HomeController>>());
                 controller.ControllerContext = new ControllerContext
                 {
-                    HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext { TraceIdentifier = "TestTraceId" }
+                    HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext { TraceIdentifier = "FallbackTraceId" }
                 };
 
-                // Act
-                var result = controller.Error();
+                var activity = new System.Diagnostics.Activity("TestActivity");
+                activity.Start();
 
-                // Assert
-                var viewResult = result.Should().BeOfType<ViewResult>().Which;
-                var model = viewResult.Model.Should().BeOfType<AssistenciaTech.Models.ErrorViewModel>().Which;
+                try
+                {
+                    // Act
+                    var result = controller.Error();
 
-                // RequestId will be Activity.Current?.Id or "TestTraceId"
-                model.RequestId.Should().NotBeNullOrEmpty();
+                    // Assert
+                    var viewResult = result.Should().BeOfType<ViewResult>().Which;
+                    var model = viewResult.Model.Should().BeOfType<AssistenciaTech.Models.ErrorViewModel>().Which;
+                    model.RequestId.Should().Be(activity.Id);
+                    model.ShowRequestId.Should().BeTrue();
+                }
+                finally
+                {
+                    activity.Stop();
+                }
             }
+        }
+
+        [Theory]
+        [InlineData("Req-123", true)]
+        [InlineData("", false)]
+        [InlineData(null, false)]
+        public void ErrorViewModel_ShowRequestId_ReturnsCorrectValue(string? requestId, bool expectedShowRequestId)
+        {
+            // Arrange & Act
+            var model = new AssistenciaTech.Models.ErrorViewModel { RequestId = requestId };
+
+            // Assert
+            model.ShowRequestId.Should().Be(expectedShowRequestId);
         }
     }
 }
