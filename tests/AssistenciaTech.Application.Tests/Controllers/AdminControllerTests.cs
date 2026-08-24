@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using AssistenciaTech.Controllers;
 using AssistenciaTech.Data;
 using AssistenciaTech.Models;
+using AssistenciaTech.DTOs;
 using AssistenciaTech.Services;
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
@@ -429,9 +430,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
             };
             _controller.TempData = tempData;
 
-            var novaOs = new OrdemServico
+            var novaOs = new OrdemServicoCreateDto
             {
-                Id = 2,
                 ClienteId = 1,
                 Equipamento = "PC Gamer Novo",
                 NumeroSerie = "SN123456", // Mesmo número de série
