@@ -312,3 +312,19 @@ A focused benchmark script (`bench_webhook/Program.cs`) was created to simulate 
 - **Improvement:** ~8226 ms (99.6% faster)
 
 By batching the IDs and performing a single read and write, we eliminated the N+1 database round-trips. This fundamentally transforms the scalability of the webhook endpoint, reducing execution time from several seconds to a few milliseconds under heavy loads, saving significant database resources and improving overall application throughput.
+
+### AdminDashboardService.cs Grouping Optimization
+
+**Change Made:**
+Changed the sequence of operations from `Select -> ToListAsync -> GroupBy` to `GroupBy -> Select -> ToListAsync` in `AdminDashboardService.cs` (`GetStatusGroupDataAsync`).
+
+**Why:**
+Previously, the code was materializing all dashboard records into application memory using `ToListAsync()`, and then performing the grouping, counting, and summation locally.
+By moving the `GroupBy` and subsequent `Select` projection (with aggregate functions like `Count()` and `Sum()`) before the `ToListAsync()` call, we enable Entity Framework Core to translate these operations into native SQL aggregates (`GROUP BY`, `COUNT`, `SUM`). This allows the PostgreSQL database to perform the heavy lifting and drastically reduces the amount of data transferred over the network and materialized in the application server's memory, especially as the `OrdensServico` table grows.
+
+**Measurements:**
+An attempt was made to measure the performance improvement using `BenchmarkDotNet` and custom `Stopwatch` benchmarks with the existing `UseInMemoryDatabase` test setup.
+
+However, measuring this specific type of optimization (SQL translation of aggregates) using the EF Core InMemory provider yields inaccurate results. The InMemory provider does not possess a SQL engine and handles `.GroupBy()` internally, which often leads to worse performance and higher allocations than client-side evaluation during tests.
+
+Despite the benchmark limitations in the testing environment, this change is a universally recommended practice for EF Core targeting relational databases (like PostgreSQL). Pushing aggregation logic to the database server is a known, significant net-positive optimization for CPU, Memory, and I/O overhead on the application server.
