@@ -35,9 +35,13 @@ if (!string.IsNullOrEmpty(connectionString) && (connectionString.StartsWith("pos
             Host = uri.Host,
             Port = uri.Port > 0 ? uri.Port : 5432,
             Username = userInfo[0],
-            Password = userInfo.Length > 1 ? userInfo[1] : "",
             Database = uri.LocalPath.TrimStart('/')
         };
+
+        if (userInfo.Length > 1)
+        {
+            connBuilder.Password = userInfo[1];
+        }
 
         if (connectionString.Contains("sslmode=require", StringComparison.OrdinalIgnoreCase))
         {
