@@ -15,6 +15,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace AssistenciaTech.Controllers
 {
@@ -23,12 +24,14 @@ namespace AssistenciaTech.Controllers
         private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration;
         private readonly AppDbContext _context;
         private readonly HttpClient _httpClient;
+        private readonly IMemoryCache _cache;
 
-        public AccountController(Microsoft.Extensions.Configuration.IConfiguration configuration, AppDbContext context, HttpClient httpClient)
+        public AccountController(Microsoft.Extensions.Configuration.IConfiguration configuration, AppDbContext context, HttpClient httpClient, IMemoryCache cache)
         {
             _configuration = configuration;
             _context = context;
             _httpClient = httpClient;
+            _cache = cache;
         }
 
         // GET: /Account/Login
@@ -133,6 +136,16 @@ namespace AssistenciaTech.Controllers
             public NeonUser User { get; set; } = new();
         }
 
+
+        public class UserAuthCacheItem
+        {
+            public bool IsAdmin { get; set; }
+            public bool IsCliente { get; set; }
+            public bool HasOS { get; set; }
+            public string Name { get; set; } = string.Empty;
+            public string Role { get; set; } = string.Empty;
+        }
+
         public class NeonUser
         {
             [JsonPropertyName("id")]
@@ -180,15 +193,47 @@ namespace AssistenciaTech.Controllers
                 var email = neonSession.User.Email;
                 var name = neonSession.User.Name;
 
-                // 1. Verificar se é Administrador no sistema local
-                var adminUser = await _context.Usuarios.FirstOrDefaultAsync(u => u.Username == email);
-                if (adminUser != null)
+                var cacheKey = $"UserAuthStatus_{email}";
+                if (!_cache.TryGetValue(cacheKey, out UserAuthCacheItem? authStatus))
+                {
+                    authStatus = new UserAuthCacheItem();
+
+                    // 1. Verificar se é Administrador no sistema local
+                    var adminUser = await _context.Usuarios.AsNoTracking().FirstOrDefaultAsync(u => u.Username == email);
+                    if (adminUser != null)
+                    {
+                        authStatus.IsAdmin = true;
+                        authStatus.Name = adminUser.Username;
+                        authStatus.Role = adminUser.Role;
+                    }
+                    else
+                    {
+                        // 2. Verificar se é Cliente e possui OS cadastrada
+                        var cliente = await _context.Clientes
+                            .Include(c => c.OrdensServico)
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(c => c.Email == email);
+
+                        if (cliente != null)
+                        {
+                            authStatus.IsCliente = true;
+                            authStatus.HasOS = cliente.OrdensServico.Any();
+                            authStatus.Name = cliente.Nome;
+                            authStatus.Role = "Cliente";
+                        }
+                    }
+
+                    // Store in cache with absolute expiration of 15 minutes to balance performance and freshness
+                    _cache.Set(cacheKey, authStatus, TimeSpan.FromMinutes(15));
+                }
+
+                if (authStatus != null && authStatus.IsAdmin)
                 {
                     var claims = new List<Claim>
                     {
-                        new Claim(ClaimTypes.Name, adminUser.Username),
+                        new Claim(ClaimTypes.Name, authStatus.Name),
                         new Claim(ClaimTypes.Email, email),
-                        new Claim(ClaimTypes.Role, adminUser.Role)
+                        new Claim(ClaimTypes.Role, authStatus.Role)
                     };
 
                     var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -197,18 +242,13 @@ namespace AssistenciaTech.Controllers
                     return Json(new { success = true, redirectUrl = Url.Action("Index", "Admin") });
                 }
 
-                // 2. Verificar se é Cliente e possui OS cadastrada
-                var cliente = await _context.Clientes
-                    .Include(c => c.OrdensServico)
-                    .FirstOrDefaultAsync(c => c.Email == email);
-
-                if (cliente != null && cliente.OrdensServico.Any())
+                if (authStatus != null && authStatus.IsCliente && authStatus.HasOS)
                 {
                     var claims = new List<Claim>
                     {
-                        new Claim(ClaimTypes.Name, cliente.Nome),
+                        new Claim(ClaimTypes.Name, authStatus.Name),
                         new Claim(ClaimTypes.Email, email),
-                        new Claim(ClaimTypes.Role, "Cliente")
+                        new Claim(ClaimTypes.Role, authStatus.Role)
                     };
 
                     var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -217,8 +257,7 @@ namespace AssistenciaTech.Controllers
                     return Json(new { success = true, redirectUrl = Url.Action("MeusEquipamentos", "Consulta") });
                 }
 
-                // 3. Caso não possua OS
-                if (cliente != null && !cliente.OrdensServico.Any())
+                if (authStatus != null && authStatus.IsCliente && !authStatus.HasOS)
                 {
                     return Json(new { success = false, message = "Acesso negado: Seu e-mail de cliente não possui nenhuma Ordem de Serviço cadastrada." });
                 }
