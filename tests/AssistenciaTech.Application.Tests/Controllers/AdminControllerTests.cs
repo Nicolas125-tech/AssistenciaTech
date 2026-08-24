@@ -366,6 +366,61 @@ namespace AssistenciaTech.Application.Tests.Controllers
             ((object)viewBag.Clientes).Should().BeOfType<Microsoft.AspNetCore.Mvc.Rendering.SelectList>();
         }
         [Fact]
+        public async Task Create_Post_ReturnsViewResult_WhenDatabaseFails()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: "CreatePostDbErrorTest")
+                .Options;
+
+            using (var seedContext = new AppDbContext(options))
+            {
+                var cliente = new Cliente { Id = 1, Nome = "Cliente Teste", Cpf = "12345678901", Telefone = "123456789" };
+                seedContext.Clientes.Add(cliente);
+                await seedContext.SaveChangesAsync();
+            }
+
+            var exceptionContext = new TestExceptionDbContext(options);
+
+            var localController = new AdminController(
+                exceptionContext,
+                _mockEstoqueService.Object,
+                _mockEnv.Object,
+                _mockPdfGeneratorService.Object,
+                _mockDashboardService.Object,
+                new Mock<IEquipamentoBackupService>().Object,
+                _mockLogger.Object,
+                _mockScopeFactory.Object
+            );
+
+            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+            var tempData = new Microsoft.AspNetCore.Mvc.ViewFeatures.TempDataDictionary(httpContext, Mock.Of<Microsoft.AspNetCore.Mvc.ViewFeatures.ITempDataProvider>());
+            localController.TempData = tempData;
+
+            var os = new OrdemServico { Equipamento = "PC Teste", ClienteId = 1 };
+
+            // Act
+            var result = await localController.Create(os);
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Which;
+            viewResult.ViewData.ModelState.ErrorCount.Should().BeGreaterThan(0);
+            localController.ModelState.Values.SelectMany(v => v.Errors).Any(e => e.ErrorMessage.Contains("Erro ao salvar a Ordem de Serviço")).Should().BeTrue();
+
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Erro ao salvar a Ordem de Serviço")),
+                    It.IsAny<Exception>(),
+                    It.Is<Func<It.IsAnyType, Exception, string>>((v, t) => true)),
+                Times.Once);
+
+            localController.Dispose();
+            exceptionContext.Dispose();
+        }
+
+        [Fact]
         public void Create_Get_ReturnsRedirectToActionResult_WhenDatabaseFails()
         {
             // Arrange
