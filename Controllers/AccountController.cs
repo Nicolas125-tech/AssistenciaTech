@@ -156,21 +156,7 @@ namespace AssistenciaTech.Controllers
 
             try
             {
-                // Cria a requisição para verificar a sessão no Neon Auth
-                using var requestMsg = new HttpRequestMessage(HttpMethod.Get, "https://ep-raspy-violet-apzb0bnc.neonauth.c-7.us-east-1.aws.neon.tech/neondb/auth/get-session");
-                requestMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", request.Token);
-
-                var response = await _httpClient.SendAsync(requestMsg);
-                if (!response.IsSuccessStatusCode)
-                {
-                    return Json(new { success = false, message = "Sessão inválida ou expirada no Neon Auth." });
-                }
-
-                var responseBody = await response.Content.ReadAsStringAsync();
-                var neonSession = JsonSerializer.Deserialize<NeonSessionResponse>(responseBody, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
+                var neonSession = await FetchNeonSessionAsync(request.Token);
 
                 if (neonSession?.User == null || string.IsNullOrEmpty(neonSession.User.Email))
                 {
@@ -184,16 +170,7 @@ namespace AssistenciaTech.Controllers
                 var adminUser = await _context.Usuarios.FirstOrDefaultAsync(u => u.Username == email);
                 if (adminUser != null)
                 {
-                    var claims = new List<Claim>
-                    {
-                        new Claim(ClaimTypes.Name, adminUser.Username),
-                        new Claim(ClaimTypes.Email, email),
-                        new Claim(ClaimTypes.Role, adminUser.Role)
-                    };
-
-                    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                    await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
-
+                    await SignInUserAsync(adminUser.Username, email, adminUser.Role);
                     return Json(new { success = true, redirectUrl = Url.Action("Index", "Admin") });
                 }
 
@@ -204,16 +181,7 @@ namespace AssistenciaTech.Controllers
 
                 if (cliente != null && cliente.OrdensServico.Any())
                 {
-                    var claims = new List<Claim>
-                    {
-                        new Claim(ClaimTypes.Name, cliente.Nome),
-                        new Claim(ClaimTypes.Email, email),
-                        new Claim(ClaimTypes.Role, "Cliente")
-                    };
-
-                    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                    await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
-
+                    await SignInUserAsync(cliente.Nome, email, "Cliente");
                     return Json(new { success = true, redirectUrl = Url.Action("MeusEquipamentos", "Consulta") });
                 }
 
@@ -229,6 +197,38 @@ namespace AssistenciaTech.Controllers
             {
                 return Json(new { success = false, message = $"Erro ao verificar autenticação: {ex.Message}" });
             }
+        }
+
+
+        private async Task<NeonSessionResponse?> FetchNeonSessionAsync(string token)
+        {
+            using var requestMsg = new HttpRequestMessage(HttpMethod.Get, "https://ep-raspy-violet-apzb0bnc.neonauth.c-7.us-east-1.aws.neon.tech/neondb/auth/get-session");
+            requestMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var response = await _httpClient.SendAsync(requestMsg);
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            var responseBody = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<NeonSessionResponse>(responseBody, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+        }
+
+        private async Task SignInUserAsync(string name, string email, string role)
+        {
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, name),
+                new Claim(ClaimTypes.Email, email),
+                new Claim(ClaimTypes.Role, role)
+            };
+
+            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
         }
 
         // GET: /Account/LoginWithGoogle
