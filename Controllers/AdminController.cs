@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using AssistenciaTech.Data;
 using AssistenciaTech.Models;
+using AssistenciaTech.DTOs;
 using AssistenciaTech.Services;
 using System;
 using System.Linq;
@@ -131,7 +132,7 @@ namespace AssistenciaTech.Controllers
             {
                 // Popula o dropdown de clientes
                 PopulateClientesViewBag();
-                return View();
+                return View(new OrdemServicoCreateDto());
             }
             catch (Exception ex)
             {
@@ -144,16 +145,32 @@ namespace AssistenciaTech.Controllers
         // POST: Admin/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(OrdemServico ordemServico)
+        public async Task<IActionResult> Create(OrdemServicoCreateDto dto)
         {
             try
             {
                 // Validação de segurança básica e ModelState
                 if (ModelState.IsValid)
                 {
-                    ordemServico.DataEntrada = DateTime.UtcNow;
-                    ordemServico.Status = WorkflowStatus.Recebido; // Força fluxo inicial
+                    var ordemServico = new OrdemServico
+                    {
+                        ClienteId = dto.ClienteId,
+                        Equipamento = dto.Equipamento,
+                        NumeroSerie = dto.NumeroSerie,
+                        ProblemaRelatado = dto.ProblemaRelatado,
+                        Prioridade = dto.Prioridade,
+                        AvariasPreExistentes = dto.AvariasPreExistentes,
+                        AnotacoesInternas = dto.AnotacoesInternas,
+                        CustoPecas = dto.CustoPecas,
+                        CustoMaoDeObra = dto.CustoMaoDeObra,
+                        DescontoAplicado = dto.DescontoAplicado,
+                        DataEntrada = DateTime.UtcNow,
+                        Status = WorkflowStatus.Recebido
+                    };
+
+                    // The model calculates ValorOrcamento based on costs and discount
                     ordemServico.ValorOrcamento = ordemServico.ValorTotalCalculado;
+
                     _context.Add(ordemServico);
                     await _context.SaveChangesAsync();
 
@@ -181,8 +198,8 @@ namespace AssistenciaTech.Controllers
             }
 
             // Se falhou, retorna os dados para o formulário
-            PopulateClientesViewBag(ordemServico.ClienteId);
-            return View(ordemServico);
+            PopulateClientesViewBag(dto.ClienteId);
+            return View(dto);
         }
 
         // GET: Admin/Edit/5
