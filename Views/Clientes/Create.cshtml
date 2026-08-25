@@ -44,6 +44,14 @@
                             </div>
                         </div>
 
+                        <div class="row mb-3">
+                            <div class="col-md-12 form-group">
+                                <label asp-for="TelegramChatId" class="form-label fw-bold"></label>
+                                <input asp-for="TelegramChatId" class="form-control" placeholder="123456789" />
+                                <span asp-validation-for="TelegramChatId" class="text-danger"></span>
+                            </div>
+                        </div>
+
                         <hr />
                         <div class="d-flex justify-content-between">
                             <a href="javascript:history.back()" class="btn btn-secondary">Voltar</a>

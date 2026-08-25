@@ -26,6 +26,9 @@ namespace AssistenciaTech.Models
         [EmailAddress(ErrorMessage = "E-mail inválido.")]
         public string? Email { get; set; }
 
+        [Display(Name = "Telegram Chat ID")]
+        public string? TelegramChatId { get; set; }
+
         // Um cliente pode ter várias ordens de serviço
         public List<OrdemServico> OrdensServico { get; set; } = new List<OrdemServico>();
     }

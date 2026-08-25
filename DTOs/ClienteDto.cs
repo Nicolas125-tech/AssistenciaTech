@@ -18,6 +18,9 @@ namespace AssistenciaTech.DTOs
 
         [EmailAddress(ErrorMessage = "E-mail inválido.")]
         public string? Email { get; set; }
+
+        [Display(Name = "Telegram Chat ID")]
+        public string? TelegramChatId { get; set; }
     }
 
     public class ClienteUpdateDto
@@ -39,5 +42,8 @@ namespace AssistenciaTech.DTOs
 
         [EmailAddress(ErrorMessage = "E-mail inválido.")]
         public string? Email { get; set; }
+
+        [Display(Name = "Telegram Chat ID")]
+        public string? TelegramChatId { get; set; }
     }
 }

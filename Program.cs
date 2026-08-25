@@ -19,7 +19,7 @@ builder.Services.AddScoped<IPdfGeneratorService, PdfGeneratorService>();
 builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
 builder.Services.AddScoped<IEquipamentoBackupService, EquipamentoBackupService>();
 builder.Services.AddMemoryCache();
-builder.Services.AddScoped<INotificationService, LogNotificationService>();
+builder.Services.AddHttpClient<INotificationService, TelegramNotificationService>();
 
 // Registrando o contexto do banco de dados PostgreSQL
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -109,6 +109,8 @@ using (var scope = app.Services.CreateScope())
         context.Database.EnsureCreated();
 
         // Migração manual: Adiciona novas colunas caso o banco já tenha sido criado antes (pois o EnsureCreated não altera tabelas existentes)
+        context.Database.ExecuteSqlRaw(@"ALTER TABLE ""Clientes"" ADD COLUMN IF NOT EXISTS ""TelegramChatId"" text NULL;");
+
         // --- SEED ADMIN USER ---
         var config = services.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
         var adminUser = config["AdminCredentials:Username"] ?? "admin";

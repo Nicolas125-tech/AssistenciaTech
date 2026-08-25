@@ -44,7 +44,8 @@ namespace AssistenciaTech.Controllers
                     Nome = clienteDto.Nome,
                     Cpf = clienteDto.Cpf,
                     Telefone = clienteDto.Telefone,
-                    Email = clienteDto.Email
+                    Email = clienteDto.Email,
+                    TelegramChatId = clienteDto.TelegramChatId
                 };
                 _context.Add(cliente);
                 await _context.SaveChangesAsync();
@@ -67,7 +68,8 @@ namespace AssistenciaTech.Controllers
                 Nome = cliente.Nome,
                 Cpf = cliente.Cpf,
                 Telefone = cliente.Telefone,
-                Email = cliente.Email
+                Email = cliente.Email,
+                TelegramChatId = cliente.TelegramChatId
             };
 
             return View(clienteDto);
@@ -91,6 +93,7 @@ namespace AssistenciaTech.Controllers
                     clienteExistente.Cpf = clienteDto.Cpf;
                     clienteExistente.Telefone = clienteDto.Telefone;
                     clienteExistente.Email = clienteDto.Email;
+                    clienteExistente.TelegramChatId = clienteDto.TelegramChatId;
 
                     await _context.SaveChangesAsync();
                 }
