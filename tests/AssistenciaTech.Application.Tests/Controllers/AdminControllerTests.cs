@@ -398,7 +398,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             var tempData = new Microsoft.AspNetCore.Mvc.ViewFeatures.TempDataDictionary(httpContext, Mock.Of<Microsoft.AspNetCore.Mvc.ViewFeatures.ITempDataProvider>());
             localController.TempData = tempData;
 
-            var os = new OrdemServico { Equipamento = "PC Teste", ClienteId = 1 };
+            var os = new OrdemServicoCreateDto { Equipamento = "PC Teste", ClienteId = 1 };
 
             // Act
             var result = await localController.Create(os);

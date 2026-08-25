@@ -470,7 +470,7 @@ namespace AssistenciaTech.Controllers
             return true;
         }
 
-                private async Task PopulateViewBagsForEditAsync(OrdemServico ordemServico)
+        private async Task PopulateViewBagsForEditAsync(OrdemServico ordemServico)
         {
             using var scopeTecnicos = _scopeFactory.CreateScope();
             var ctxTecnicos = scopeTecnicos.ServiceProvider.GetRequiredService<AppDbContext>();
