@@ -30,7 +30,7 @@
                             <td class="text-center">
                                 @if (!item.Disponivel)
                                 {
-                                    <form asp-action="Devolver" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Marcar como Devolvido/Disponível?');">
+                                    <form asp-action="Devolver" asp-route-id="@item.Id" asp-route-returnUrl="@Context.Request.Path" method="post" class="d-inline" onsubmit="return confirm('Marcar como Devolvido/Disponível?');">
                                         <button type="submit" class="btn btn-sm btn-outline-success"><i class="bi bi-arrow-return-left"></i> Devolver</button>
                                     </form>
                                 }
