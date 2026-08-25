@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AssistenciaTech.Data;
 using AssistenciaTech.Models;
+using AssistenciaTech.DTOs;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -34,15 +35,22 @@ namespace AssistenciaTech.Controllers
         // POST: Clientes/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Nome,Cpf,Telefone,Email")] Cliente cliente)
+        public async Task<IActionResult> Create(ClienteCreateDto clienteDto)
         {
             if (ModelState.IsValid)
             {
+                var cliente = new Cliente
+                {
+                    Nome = clienteDto.Nome,
+                    Cpf = clienteDto.Cpf,
+                    Telefone = clienteDto.Telefone,
+                    Email = clienteDto.Email
+                };
                 _context.Add(cliente);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            return View(cliente);
+            return View(clienteDto);
         }
 
         // GET: Clientes/Edit/5
@@ -53,15 +61,24 @@ namespace AssistenciaTech.Controllers
             var cliente = await _context.Clientes.FindAsync(id);
             if (cliente == null) return NotFound();
 
-            return View(cliente);
+            var clienteDto = new ClienteUpdateDto
+            {
+                Id = cliente.Id,
+                Nome = cliente.Nome,
+                Cpf = cliente.Cpf,
+                Telefone = cliente.Telefone,
+                Email = cliente.Email
+            };
+
+            return View(clienteDto);
         }
 
         // POST: Clientes/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Nome,Cpf,Telefone,Email")] Cliente cliente)
+        public async Task<IActionResult> Edit(int id, ClienteUpdateDto clienteDto)
         {
-            if (id != cliente.Id) return NotFound();
+            if (id != clienteDto.Id) return NotFound();
 
             if (ModelState.IsValid)
             {
@@ -70,16 +87,16 @@ namespace AssistenciaTech.Controllers
                     var clienteExistente = await _context.Clientes.FindAsync(id);
                     if (clienteExistente == null) return NotFound();
 
-                    clienteExistente.Nome = cliente.Nome;
-                    clienteExistente.Cpf = cliente.Cpf;
-                    clienteExistente.Telefone = cliente.Telefone;
-                    clienteExistente.Email = cliente.Email;
+                    clienteExistente.Nome = clienteDto.Nome;
+                    clienteExistente.Cpf = clienteDto.Cpf;
+                    clienteExistente.Telefone = clienteDto.Telefone;
+                    clienteExistente.Email = clienteDto.Email;
 
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!ClienteExists(cliente.Id))
+                    if (!ClienteExists(clienteDto.Id))
                     {
                         return NotFound();
                     }
@@ -90,7 +107,7 @@ namespace AssistenciaTech.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            return View(cliente);
+            return View(clienteDto);
         }
 
         // POST: Clientes/Delete/5

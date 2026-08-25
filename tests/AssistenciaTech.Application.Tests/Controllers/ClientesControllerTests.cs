@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AssistenciaTech.Controllers;
 using AssistenciaTech.Data;
 using AssistenciaTech.Models;
+using AssistenciaTech.DTOs;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -122,7 +123,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             };
 
             // Act
-            var result = await _controller.Create(novoCliente);
+            var result = await _controller.Create(new ClienteCreateDto { Nome = novoCliente.Nome, Cpf = novoCliente.Cpf, Telefone = novoCliente.Telefone, Email = novoCliente.Email });
 
             // Assert
             var redirectToActionResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
@@ -146,11 +147,11 @@ namespace AssistenciaTech.Application.Tests.Controllers
             _controller.ModelState.AddModelError("Nome", "O nome é obrigatório.");
 
             // Act
-            var result = await _controller.Create(clienteInvalido);
+            var result = await _controller.Create(new ClienteCreateDto { Nome = clienteInvalido.Nome, Cpf = clienteInvalido.Cpf, Telefone = clienteInvalido.Telefone, Email = clienteInvalido.Email });
 
             // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
-            viewResult.Model.Should().BeEquivalentTo(clienteInvalido);
+            viewResult.Model.Should().BeEquivalentTo(new ClienteCreateDto { Nome = clienteInvalido.Nome, Cpf = clienteInvalido.Cpf, Telefone = clienteInvalido.Telefone, Email = clienteInvalido.Email });
 
             var clientesInDb = await _context.Clientes.ToListAsync();
             clientesInDb.Should().BeEmpty();
@@ -190,7 +191,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
 
             // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
-            var model = viewResult.Model.Should().BeOfType<Cliente>().Subject;
+            var model = viewResult.Model.Should().BeOfType<ClienteUpdateDto>().Subject;
             model.Id.Should().Be(cliente.Id);
             model.Nome.Should().Be("Cliente Teste");
         }
@@ -202,7 +203,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             var cliente = new Cliente { Id = 1, Nome = "Cliente" };
 
             // Act
-            var result = await _controller.Edit(2, cliente);
+            var result = await _controller.Edit(2, new ClienteUpdateDto { Id = cliente.Id, Nome = cliente.Nome, Cpf = cliente.Cpf, Telefone = cliente.Telefone, Email = cliente.Email });
 
             // Assert
             result.Should().BeOfType<NotFoundResult>();
@@ -216,11 +217,12 @@ namespace AssistenciaTech.Application.Tests.Controllers
             _controller.ModelState.AddModelError("Cpf", "CPF é obrigatório");
 
             // Act
-            var result = await _controller.Edit(1, cliente);
+            var clienteDto = new ClienteUpdateDto { Id = cliente.Id, Nome = cliente.Nome, Cpf = cliente.Cpf, Telefone = cliente.Telefone, Email = cliente.Email };
+            var result = await _controller.Edit(1, new ClienteUpdateDto { Id = clienteDto.Id, Nome = clienteDto.Nome, Cpf = clienteDto.Cpf, Telefone = clienteDto.Telefone, Email = clienteDto.Email });
 
             // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
-            viewResult.Model.Should().BeEquivalentTo(cliente);
+            viewResult.Model.Should().BeEquivalentTo(cliente, options => options.ExcludingMissingMembers());
         }
 
         [Fact]
@@ -242,7 +244,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             };
 
             // Act
-            var result = await _controller.Edit(cliente.Id, clienteAtualizado);
+            var result = await _controller.Edit(cliente.Id, new ClienteUpdateDto { Id = clienteAtualizado.Id, Nome = clienteAtualizado.Nome, Cpf = clienteAtualizado.Cpf, Telefone = clienteAtualizado.Telefone, Email = clienteAtualizado.Email });
 
             // Assert
             var redirectToActionResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
@@ -275,7 +277,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             concurrencyContext.RemoveEntityOnException = true;
 
             // Act
-            var result = await controller.Edit(cliente.Id, clienteAtualizado);
+            var result = await controller.Edit(cliente.Id, new ClienteUpdateDto { Id = clienteAtualizado.Id, Nome = clienteAtualizado.Nome, Cpf = clienteAtualizado.Cpf, Telefone = clienteAtualizado.Telefone, Email = clienteAtualizado.Email });
 
             // Assert
             result.Should().BeOfType<NotFoundResult>();
@@ -302,7 +304,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             concurrencyContext.RemoveEntityOnException = false; // Entity still exists
 
             // Act & Assert
-            await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => controller.Edit(cliente.Id, clienteAtualizado));
+            await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => controller.Edit(cliente.Id, new ClienteUpdateDto { Id = clienteAtualizado.Id, Nome = clienteAtualizado.Nome, Cpf = clienteAtualizado.Cpf, Telefone = clienteAtualizado.Telefone, Email = clienteAtualizado.Email }));
         }
 
         [Fact]
