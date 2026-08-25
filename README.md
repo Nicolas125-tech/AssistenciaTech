@@ -21,6 +21,8 @@ O **TechOS** é um sistema completo (MVP) desenvolvido para automatizar e profis
 ### 🔒 Backoffice (Painel do Técnico)
 - **Design Premium Dark Mode**: Interface otimizada em Grafite Azulado com alta legibilidade e suavidade visual para longas jornadas de trabalho na bancada.
 - **Dashboard de Bancada**: Cards de resumo com barras indicadoras em Neon contendo o status das ordens de serviço (Abertas, Prontas) e Faturamento Previsto.
+- **Gestão de Suprimentos**: Controle e avisos automatizados de **Estoque Mínimo** de peças diretamente no Dashboard.
+- **Notificações Telegram API**: Vinculação de clientes por webhook (criação automática de Chat IDs) e disparo em tempo real de atualizações do status da OS para o Telegram do cliente.
 - **CRUD e Controle de Status**: Controle rígido do ciclo de vida das Ordens de Serviço (OS) com as regras de negócio integradas e protegidas via State Pattern.
 - **Impressão de Recibos em PDF**: Geração instantânea de comprovantes em formato A4 contendo dados do serviço, diagnóstico e assinatura com a biblioteca **QuestPDF**.
 
