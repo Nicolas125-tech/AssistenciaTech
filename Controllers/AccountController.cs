@@ -96,6 +96,13 @@ namespace AssistenciaTech.Controllers
             ViewBag.Error = "Usuário ou senha incorretos. Acesso negado.";
             return View();
         }
+        // GET: /Account/NeonCallback
+        [HttpGet]
+        public IActionResult NeonCallback()
+        {
+            return View();
+        }
+
 
         // POST: /Account/Logout
         [HttpPost]
