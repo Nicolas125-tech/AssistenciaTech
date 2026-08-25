@@ -9,13 +9,8 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using System;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace AssistenciaTech.Controllers
 {
@@ -23,15 +18,11 @@ namespace AssistenciaTech.Controllers
     {
         private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration;
         private readonly AppDbContext _context;
-        private readonly HttpClient _httpClient;
-        private readonly IMemoryCache _cache;
 
-        public AccountController(Microsoft.Extensions.Configuration.IConfiguration configuration, AppDbContext context, HttpClient httpClient, IMemoryCache cache)
+        public AccountController(Microsoft.Extensions.Configuration.IConfiguration configuration, AppDbContext context)
         {
             _configuration = configuration;
             _context = context;
-            _httpClient = httpClient;
-            _cache = cache;
         }
 
         // GET: /Account/Login
@@ -113,175 +104,6 @@ namespace AssistenciaTech.Controllers
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             return RedirectToAction("Index", "Home");
-        }
-
-        // GET: /Account/NeonCallback
-        [HttpGet]
-        public IActionResult NeonCallback()
-        {
-            return View();
-        }
-
-        // DTO para a verificação do token
-        public class VerifyTokenRequest
-        {
-            [JsonPropertyName("token")]
-            public string Token { get; set; } = string.Empty;
-        }
-
-        // Classes para desserialização do Neon Auth
-        public class NeonSessionResponse
-        {
-            [JsonPropertyName("user")]
-            public NeonUser User { get; set; } = new();
-        }
-
-
-        public class UserAuthCacheItem
-        {
-            public bool IsAdmin { get; set; }
-            public bool IsCliente { get; set; }
-            public bool HasOS { get; set; }
-            public string Name { get; set; } = string.Empty;
-            public string Role { get; set; } = string.Empty;
-        }
-
-        public class NeonUser
-        {
-            [JsonPropertyName("id")]
-            public string Id { get; set; } = string.Empty;
-
-            [JsonPropertyName("name")]
-            public string Name { get; set; } = string.Empty;
-
-            [JsonPropertyName("email")]
-            public string Email { get; set; } = string.Empty;
-        }
-
-        // POST: /Account/VerifyNeonSession
-        [HttpPost]
-        public async Task<IActionResult> VerifyNeonSession([FromBody] VerifyTokenRequest request)
-        {
-            if (request == null || string.IsNullOrEmpty(request.Token))
-            {
-                return Json(new { success = false, message = "Token de sessão não fornecido." });
-            }
-
-            try
-            {
-                // Cria a requisição para verificar a sessão no Neon Auth
-                using var requestMsg = new HttpRequestMessage(HttpMethod.Get, "https://ep-raspy-violet-apzb0bnc.neonauth.c-7.us-east-1.aws.neon.tech/neondb/auth/get-session");
-                requestMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", request.Token);
-
-                var response = await _httpClient.SendAsync(requestMsg);
-                if (!response.IsSuccessStatusCode)
-                {
-                    return Json(new { success = false, message = "Sessão inválida ou expirada no Neon Auth." });
-                }
-
-                var responseBody = await response.Content.ReadAsStringAsync();
-                var neonSession = JsonSerializer.Deserialize<NeonSessionResponse>(responseBody, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-
-                if (neonSession?.User == null || string.IsNullOrEmpty(neonSession.User.Email))
-                {
-                    return Json(new { success = false, message = "Não foi possível obter os dados do usuário a partir da sessão." });
-                }
-
-                var email = neonSession.User.Email;
-                var name = neonSession.User.Name;
-
-                var cacheKey = $"UserAuthStatus_{email}";
-                if (!_cache.TryGetValue(cacheKey, out UserAuthCacheItem? authStatus))
-                {
-                    authStatus = new UserAuthCacheItem();
-
-                    // 1. Verificar se é Administrador no sistema local
-                    var adminUser = await _context.Usuarios.AsNoTracking().FirstOrDefaultAsync(u => u.Username == email);
-                    if (adminUser != null)
-                    {
-                        authStatus.IsAdmin = true;
-                        authStatus.Name = adminUser.Username;
-                        authStatus.Role = adminUser.Role;
-                    }
-                    else
-                    {
-                        // 2. Verificar se é Cliente e possui OS cadastrada
-                        var cliente = await _context.Clientes
-                            .Include(c => c.OrdensServico)
-                            .AsNoTracking()
-                            .FirstOrDefaultAsync(c => c.Email == email);
-
-                        if (cliente != null)
-                        {
-                            authStatus.IsCliente = true;
-                            authStatus.HasOS = cliente.OrdensServico.Any();
-                            authStatus.Name = cliente.Nome;
-                            authStatus.Role = "Cliente";
-                        }
-                    }
-
-                    // Store in cache with absolute expiration of 15 minutes to balance performance and freshness
-                    _cache.Set(cacheKey, authStatus, TimeSpan.FromMinutes(15));
-                }
-
-                if (authStatus != null && authStatus.IsAdmin)
-                {
-                    var claims = new List<Claim>
-                    {
-                        new Claim(ClaimTypes.Name, authStatus.Name),
-                        new Claim(ClaimTypes.Email, email),
-                        new Claim(ClaimTypes.Role, authStatus.Role)
-                    };
-
-                    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                    await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
-
-                    return Json(new { success = true, redirectUrl = Url.Action("Index", "Admin") });
-                }
-
-                if (authStatus != null && authStatus.IsCliente && authStatus.HasOS)
-                {
-                    var claims = new List<Claim>
-                    {
-                        new Claim(ClaimTypes.Name, authStatus.Name),
-                        new Claim(ClaimTypes.Email, email),
-                        new Claim(ClaimTypes.Role, authStatus.Role)
-                    };
-
-                    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                    await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
-
-                    return Json(new { success = true, redirectUrl = Url.Action("MeusEquipamentos", "Consulta") });
-                }
-
-                if (authStatus != null && authStatus.IsCliente && !authStatus.HasOS)
-                {
-                    return Json(new { success = false, message = "Acesso negado: Seu e-mail de cliente não possui nenhuma Ordem de Serviço cadastrada." });
-                }
-
-                return Json(new { success = false, message = "Acesso negado: Este e-mail não está cadastrado como cliente no sistema." });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = $"Erro ao verificar autenticação: {ex.Message}" });
-            }
-        }
-
-        // GET: /Account/LoginWithGoogle
-        // Redireciona o browser diretamente para o endpoint de sign-in social do Neon Auth.
-        // O fluxo OAuth DEVE ser iniciado do lado do client (browser) para que os cookies
-        // de state sejam corretamente setados antes do redirect para o Google.
-        [HttpGet]
-        public IActionResult LoginWithGoogle()
-        {
-            var callbackUrl = $"{Request.Scheme}://{Request.Host}{Url.Content("~/Account/NeonCallback")}";
-            var neonAuthBase = "https://ep-raspy-violet-apzb0bnc.neonauth.c-7.us-east-1.aws.neon.tech/neondb/auth";
-
-            var redirectUrl = $"{neonAuthBase}/sign-in/social?provider=google&callbackURL={Uri.EscapeDataString(callbackUrl)}";
-            return Redirect(redirectUrl);
         }
     }
 }
