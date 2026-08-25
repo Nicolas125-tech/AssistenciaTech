@@ -102,7 +102,7 @@ namespace AssistenciaTech.Application.Tests
             await action.Should().ThrowAsync<DbUpdateConcurrencyException>();
         }
 
-        [Fact]
+                [Fact]
         public async Task Devolver_WhenEquipamentoExists_SetsDisponivelToTrueAndRedirectsToIndex()
         {
             // Arrange
@@ -121,7 +121,6 @@ namespace AssistenciaTech.Application.Tests
             urlHelperMock.Setup(x => x.IsLocalUrl(It.IsAny<string>())).Returns(true);
             controller.Url = urlHelperMock.Object;
 
-            // Mock HttpContext to simulate missing Referer header
             var httpContext = new DefaultHttpContext();
             controller.ControllerContext = new ControllerContext()
             {
@@ -129,7 +128,7 @@ namespace AssistenciaTech.Application.Tests
             };
 
             // Act
-            var result = await controller.Devolver(1);
+            var result = await controller.Devolver(1, returnUrl: null);
 
             // Assert
             var savedEquipamento = await context.EquipamentosBackup.FindAsync(1);
@@ -140,7 +139,7 @@ namespace AssistenciaTech.Application.Tests
         }
 
         [Fact]
-        public async Task Devolver_WhenEquipamentoExistsAndRefererPresent_RedirectsToReferer()
+        public async Task Devolver_WhenEquipamentoExistsAndReturnUrlIsLocal_RedirectsToReturnUrl()
         {
             // Arrange
             var options = new DbContextOptionsBuilder<AppDbContext>()
@@ -155,29 +154,63 @@ namespace AssistenciaTech.Application.Tests
 
             var controller = new EquipamentoBackupController(context);
             var urlHelperMock = new Mock<IUrlHelper>();
-            urlHelperMock.Setup(x => x.IsLocalUrl(It.IsAny<string>())).Returns(true);
+            urlHelperMock.Setup(x => x.IsLocalUrl("/some-local-page")).Returns(true);
             controller.Url = urlHelperMock.Object;
 
-            // Mock HttpContext to simulate Referer header
             var httpContext = new DefaultHttpContext();
-            httpContext.Request.Headers["Referer"] = "/some-local-page";
             controller.ControllerContext = new ControllerContext()
             {
                 HttpContext = httpContext
             };
 
             // Act
-            var result = await controller.Devolver(1);
+            var result = await controller.Devolver(1, returnUrl: "/some-local-page");
 
             // Assert
             var savedEquipamento = await context.EquipamentosBackup.FindAsync(1);
             savedEquipamento.Disponivel.Should().BeTrue();
 
-            var redirectResult = result.Should().BeOfType<RedirectResult>().Subject;
+            var redirectResult = result.Should().BeOfType<LocalRedirectResult>().Subject;
             redirectResult.Url.Should().Be("/some-local-page");
         }
 
         [Fact]
+        public async Task Devolver_WhenEquipamentoExistsAndReturnUrlIsNotLocal_RedirectsToIndex()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var context = new AppDbContext(options);
+            var equipamento = new EquipamentoBackup { Id = 2, Descricao = "Test2", NumeroSerie = "1234", Disponivel = false };
+            context.EquipamentosBackup.Add(equipamento);
+            await context.SaveChangesAsync();
+            context.ChangeTracker.Clear();
+
+            var controller = new EquipamentoBackupController(context);
+            var urlHelperMock = new Mock<IUrlHelper>();
+            urlHelperMock.Setup(x => x.IsLocalUrl("http://malicious.com")).Returns(false);
+            controller.Url = urlHelperMock.Object;
+
+            var httpContext = new DefaultHttpContext();
+            controller.ControllerContext = new ControllerContext()
+            {
+                HttpContext = httpContext
+            };
+
+            // Act
+            var result = await controller.Devolver(2, returnUrl: "http://malicious.com");
+
+            // Assert
+            var savedEquipamento = await context.EquipamentosBackup.FindAsync(2);
+            savedEquipamento.Disponivel.Should().BeTrue();
+
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectResult.ActionName.Should().Be("Index");
+        }
+
+[Fact]
         public async Task Devolver_WhenEquipamentoDoesNotExist_GracefullyRedirects()
         {
             // Arrange

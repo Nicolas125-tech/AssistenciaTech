@@ -94,7 +94,7 @@ namespace AssistenciaTech.Controllers
         // Ação rápida para devolver equipamento
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Devolver(int id)
+        public async Task<IActionResult> Devolver(int id, string returnUrl = null)
         {
             var equipamento = await _context.EquipamentosBackup.FindAsync(id);
             if (equipamento != null)
@@ -103,11 +103,10 @@ namespace AssistenciaTech.Controllers
                 _context.Update(equipamento);
                 await _context.SaveChangesAsync();
             }
-            // Retorna para a página anterior, pode ser a OS ou o próprio index
-            string referer = Request.Headers["Referer"].ToString();
-            if (!string.IsNullOrEmpty(referer) && Url.IsLocalUrl(referer))
+
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
             {
-                return Redirect(referer);
+                return LocalRedirect(returnUrl);
             }
             return RedirectToAction(nameof(Index));
         }
