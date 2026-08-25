@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using AssistenciaTech.Controllers;
 using AssistenciaTech.Data;
 using AssistenciaTech.Models;
+using AssistenciaTech.DTOs;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -30,7 +31,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
         public async Task Create_Post_ValidModel_ShouldAddPecaAndRedirectToIndex()
         {
             // Arrange
-            var novaPeca = new Peca
+            var novaPeca = new PecaCreateDto
             {
                 Nome = "Placa Mãe",
                 QuantidadeEstoque = 10,
@@ -54,7 +55,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
         public async Task Create_Post_InvalidModel_ShouldReturnViewWithModel_AndNotSaveToDb()
         {
             // Arrange
-            var pecaInvalida = new Peca
+            var pecaInvalida = new PecaCreateDto
             {
                 // Nome is required, leaving it empty or default
                 QuantidadeEstoque = 10,
@@ -146,7 +147,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
         {
             // Arrange
             int urlId = 1;
-            var peca = new Peca
+            var peca = new PecaEditDto
             {
                 Id = 2,
                 Nome = "Placa de Vídeo",
@@ -170,7 +171,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             await _context.SaveChangesAsync();
             _context.ChangeTracker.Clear();
 
-            var pecaAtualizada = new Peca
+            var pecaAtualizada = new PecaEditDto
             {
                 Id = peca.Id,
                 Nome = "Processador Novo",
@@ -196,7 +197,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
         public async Task Edit_Post_InvalidModel_ShouldReturnViewWithModel()
         {
             // Arrange
-            var peca = new Peca { Id = 1, Nome = "Teclado", QuantidadeEstoque = 5, ValorUnitario = 100.00m };
+            var peca = new PecaEditDto { Id = 1, Nome = "Teclado", QuantidadeEstoque = 5, ValorUnitario = 100.00m };
             _controller.ModelState.AddModelError("Nome", "O nome é obrigatório");
 
             // Act
@@ -211,7 +212,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
         public async Task Edit_Post_PecaNotFound_ShouldReturnNotFound()
         {
             // Arrange
-            var peca = new Peca { Id = 999, Nome = "Peça Inexistente" };
+            var peca = new PecaEditDto { Id = 999, Nome = "Peça Inexistente" };
 
             // Act
             var result = await _controller.Edit(999, peca);
@@ -236,7 +237,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             await concurrencyContext.SaveChangesAsync();
             concurrencyContext.ChangeTracker.Clear();
 
-            var pecaAtualizada = new Peca { Id = peca.Id, Nome = "Placa Wi-Fi", QuantidadeEstoque = 5, ValorUnitario = 60.00m };
+            var pecaAtualizada = new PecaEditDto { Id = peca.Id, Nome = "Placa Wi-Fi", QuantidadeEstoque = 5, ValorUnitario = 60.00m };
             concurrencyContext.ThrowConcurrencyException = true;
             concurrencyContext.RemoveEntityOnException = true;
 
@@ -263,7 +264,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             await concurrencyContext.SaveChangesAsync();
             concurrencyContext.ChangeTracker.Clear();
 
-            var pecaAtualizada = new Peca { Id = peca.Id, Nome = "Fonte 600W", QuantidadeEstoque = 2, ValorUnitario = 250.00m };
+            var pecaAtualizada = new PecaEditDto { Id = peca.Id, Nome = "Fonte 600W", QuantidadeEstoque = 2, ValorUnitario = 250.00m };
             concurrencyContext.ThrowConcurrencyException = true;
             concurrencyContext.RemoveEntityOnException = false; // Entity still exists
 

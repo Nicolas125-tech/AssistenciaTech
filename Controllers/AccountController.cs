@@ -279,7 +279,7 @@ namespace AssistenciaTech.Controllers
         {
             var callbackUrl = $"{Request.Scheme}://{Request.Host}{Url.Content("~/Account/NeonCallback")}";
             var neonAuthBase = "https://ep-raspy-violet-apzb0bnc.neonauth.c-7.us-east-1.aws.neon.tech/neondb/auth";
-            
+
             var redirectUrl = $"{neonAuthBase}/sign-in/social?provider=google&callbackURL={Uri.EscapeDataString(callbackUrl)}";
             return Redirect(redirectUrl);
         }

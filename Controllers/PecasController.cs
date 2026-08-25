@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AssistenciaTech.Data;
 using AssistenciaTech.Models;
+using AssistenciaTech.DTOs;
 using Microsoft.AspNetCore.Authorization;
 
 namespace AssistenciaTech.Controllers
@@ -33,15 +34,21 @@ namespace AssistenciaTech.Controllers
         // POST: Pecas/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Nome,QuantidadeEstoque,ValorUnitario")] Peca peca)
+        public async Task<IActionResult> Create(PecaCreateDto dto)
         {
             if (ModelState.IsValid)
             {
+                var peca = new Peca
+                {
+                    Nome = dto.Nome,
+                    QuantidadeEstoque = dto.QuantidadeEstoque,
+                    ValorUnitario = dto.ValorUnitario
+                };
                 _context.Add(peca);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            return View(peca);
+            return View(dto);
         }
 
         // GET: Pecas/Edit/5
@@ -52,15 +59,23 @@ namespace AssistenciaTech.Controllers
             var peca = await _context.Pecas.FindAsync(id);
             if (peca == null) return NotFound();
 
-            return View(peca);
+            var dto = new PecaEditDto
+            {
+                Id = peca.Id,
+                Nome = peca.Nome,
+                QuantidadeEstoque = peca.QuantidadeEstoque,
+                ValorUnitario = peca.ValorUnitario
+            };
+
+            return View(dto);
         }
 
         // POST: Pecas/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Nome,QuantidadeEstoque,ValorUnitario")] Peca peca)
+        public async Task<IActionResult> Edit(int id, PecaEditDto dto)
         {
-            if (id != peca.Id) return NotFound();
+            if (id != dto.Id) return NotFound();
 
             if (ModelState.IsValid)
             {
@@ -69,20 +84,20 @@ namespace AssistenciaTech.Controllers
                     var pecaExistente = await _context.Pecas.FindAsync(id);
                     if (pecaExistente == null) return NotFound();
 
-                    pecaExistente.Nome = peca.Nome;
-                    pecaExistente.QuantidadeEstoque = peca.QuantidadeEstoque;
-                    pecaExistente.ValorUnitario = peca.ValorUnitario;
+                    pecaExistente.Nome = dto.Nome;
+                    pecaExistente.QuantidadeEstoque = dto.QuantidadeEstoque;
+                    pecaExistente.ValorUnitario = dto.ValorUnitario;
 
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!PecaExists(peca.Id)) return NotFound();
+                    if (!PecaExists(dto.Id)) return NotFound();
                     else throw;
                 }
                 return RedirectToAction(nameof(Index));
             }
-            return View(peca);
+            return View(dto);
         }
 
         // POST: Pecas/Delete/5
