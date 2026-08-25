@@ -55,7 +55,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             var mockUrlHelper = new Mock<IUrlHelper>();
             mockUrlHelper.Setup(x => x.IsLocalUrl(It.IsAny<string>())).Returns(false);
 
-            _controller = new AccountController(_mockConfig.Object, _context, new System.Net.Http.HttpClient(), new MemoryCache(new MemoryCacheOptions()))
+            _controller = new AccountController(_mockConfig.Object, _context)
             {
                 ControllerContext = new ControllerContext
                 {
@@ -114,6 +114,16 @@ namespace AssistenciaTech.Application.Tests.Controllers
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
             ((string)_controller.ViewBag.Error).Should().Be("Usuário ou senha incorretos. Acesso negado.");
         }
+        [Fact]
+        public void NeonCallback_ReturnsViewResult()
+        {
+            // Act
+            var result = _controller.NeonCallback();
+
+            // Assert
+            result.Should().BeOfType<ViewResult>();
+        }
+
 
         [Fact]
         public async Task Logout_CallsSignOutAsyncAndRedirectsToHomeIndex()
