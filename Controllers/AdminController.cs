@@ -223,9 +223,10 @@ namespace AssistenciaTech.Controllers
 
                 if (ordemServico == null) return NotFound();
 
-                ViewBag.Tecnicos = new SelectList(await _context.Tecnicos.Where(t => t.Ativo).Select(t => new { t.Id, t.Nome }).ToListAsync(), "Id", "Nome");
-                ViewBag.EquipamentosBackup = new SelectList(await _context.EquipamentosBackup.Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).Select(e => new { e.Id, e.Descricao }).ToListAsync(), "Id", "Descricao");
-                ViewBag.Contratos = new SelectList(await _context.Contratos.Include(c => c.Cliente).Where(c => c.ClienteId == ordemServico.ClienteId).Select(c => new { c.Id, NomeDesc = "Contrato: SLA " + c.HorasSLA + "h - R$ " + c.ValorMensal }).ToListAsync(), "Id", "NomeDesc");
+                ViewBag.Tecnicos = new SelectList(await _context.Tecnicos.AsNoTracking().Where(t => t.Ativo).Select(t => new { t.Id, t.Nome }).ToListAsync(), "Id", "Nome");
+                ViewBag.EquipamentosBackup = new SelectList(await _context.EquipamentosBackup.AsNoTracking().Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).Select(e => new { e.Id, e.Descricao }).ToListAsync(), "Id", "Descricao");
+                var contratosData = await _context.Contratos.AsNoTracking().Where(c => c.ClienteId == ordemServico.ClienteId).Select(c => new { c.Id, c.HorasSLA, c.ValorMensal }).ToListAsync();
+                ViewBag.Contratos = new SelectList(contratosData.Select(c => new { c.Id, NomeDesc = $"Contrato: SLA {c.HorasSLA}h - R$ {c.ValorMensal}" }), "Id", "NomeDesc");
 
                 return View(ordemServico);
             }
