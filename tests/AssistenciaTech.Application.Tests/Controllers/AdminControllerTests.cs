@@ -401,7 +401,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             var os = new OrdemServicoCreateDto { Equipamento = "PC Teste", ClienteId = 1 };
 
             // Act
-            var result = await localController.Create(os);
+            var result = await localController.Create(new OrdemServicoCreateDto { ClienteId = os.ClienteId, Equipamento = os.Equipamento, ProblemaRelatado = os.ProblemaRelatado });
 
             // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Which;
@@ -495,7 +495,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             };
 
             // Act
-            var result = await _controller.Create(novaOs) as RedirectToActionResult;
+            var result = await _controller.Create(new OrdemServicoCreateDto { ClienteId = novaOs.ClienteId, Equipamento = novaOs.Equipamento, ProblemaRelatado = novaOs.ProblemaRelatado, NumeroSerie = novaOs.NumeroSerie }) as RedirectToActionResult;
 
             // Assert
             result.Should().NotBeNull();
