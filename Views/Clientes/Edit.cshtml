@@ -47,11 +47,33 @@
 
                         <div class="row mb-3">
                             <div class="col-md-12 form-group">
-                                <label asp-for="TelegramChatId" class="form-label fw-bold"></label>
-                                <input asp-for="TelegramChatId" class="form-control" />
+                                <label asp-for="TelegramChatId" class="form-label fw-bold">Telegram Chat ID (Automático)</label>
+                                <div class="input-group">
+                                    <input asp-for="TelegramChatId" class="form-control" placeholder="Deixe em branco, o cliente preencherá ao clicar no link abaixo..." />
+                                </div>
                                 <span asp-validation-for="TelegramChatId" class="text-danger"></span>
+                                
+                                <div class="mt-3 p-3 bg-light border rounded">
+                                    <label class="form-label fw-bold text-success"><i class="bi bi-telegram"></i> Automatizar via Link</label>
+                                    <p class="small text-muted mb-2">Envie este link para o cliente no WhatsApp. Quando ele clicar e der 'Start', o sistema salvará o ID automaticamente!</p>
+                                    
+                                    <div class="input-group">
+                                        <input type="text" id="telegramLink" class="form-control form-control-sm text-primary" value="https://t.me/SEUBOT?start=@Model.Id" readonly />
+                                        <button class="btn btn-outline-secondary btn-sm" type="button" onclick="copiarLink()">Copiar Link</button>
+                                    </div>
+                                    <small class="text-danger mt-1 d-block">Troque <b>SEUBOT</b> pelo username correto do seu bot (ex: AssistenciaTechBot).</small>
+                                </div>
                             </div>
                         </div>
+
+                        <script>
+                            function copiarLink() {
+                                var copyText = document.getElementById("telegramLink");
+                                copyText.select();
+                                document.execCommand("copy");
+                                alert("Link copiado! Cole no WhatsApp do cliente.");
+                            }
+                        </script>
 
                         <hr />
                         <div class="d-flex justify-content-between">
