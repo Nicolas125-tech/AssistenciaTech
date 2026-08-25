@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AssistenciaTech.Controllers;
 using AssistenciaTech.Data;
@@ -13,6 +14,43 @@ using Xunit;
 
 namespace AssistenciaTech.Application.Tests.Controllers
 {
+
+    // Custom DbContext to simulate DbUpdateConcurrencyException
+    public class TecnicosConcurrencyAppDbContext : AppDbContext
+    {
+        public bool ThrowConcurrencyException { get; set; } = false;
+        public bool RemoveEntityOnException { get; set; } = false;
+
+        public TecnicosConcurrencyAppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+        {
+        }
+
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            if (ThrowConcurrencyException)
+            {
+                if (RemoveEntityOnException)
+                {
+                    var entity = ChangeTracker.Entries<Tecnico>().FirstOrDefault(e => e.State == EntityState.Modified);
+                    if (entity != null)
+                    {
+                        entity.State = EntityState.Detached;
+                        var tecnico = Set<Tecnico>().Local.FirstOrDefault(c => c.Id == entity.Entity.Id) ??
+                                      Set<Tecnico>().FirstOrDefault(c => c.Id == entity.Entity.Id);
+
+                        if (tecnico != null)
+                        {
+                            Set<Tecnico>().Remove(tecnico);
+                            base.SaveChanges();
+                        }
+                    }
+                }
+                throw new DbUpdateConcurrencyException("Simulated concurrency exception");
+            }
+            return base.SaveChangesAsync(cancellationToken);
+        }
+    }
+
     public class TecnicosControllerTests : IDisposable
     {
         private readonly AppDbContext _context;
@@ -109,6 +147,58 @@ namespace AssistenciaTech.Application.Tests.Controllers
             tecnicosInDb.Should().BeEmpty();
         }
 
+
+
+        [Fact]
+        public async Task Edit_Post_ConcurrencyException_TecnicoDeleted_ShouldReturnNotFound()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var concurrencyContext = new TecnicosConcurrencyAppDbContext(options);
+            using var controller = new TecnicosController(concurrencyContext);
+
+            var tecnico = new Tecnico { Nome = "Old", PercentualComissao = 10, Ativo = true };
+            concurrencyContext.Tecnicos.Add(tecnico);
+            await concurrencyContext.SaveChangesAsync();
+            concurrencyContext.ChangeTracker.Clear();
+
+            var tecnicoAtualizado = new TecnicoUpdateDto { Id = tecnico.Id, Nome = "Nome Novo", PercentualComissao = 15, Ativo = true };
+            concurrencyContext.ThrowConcurrencyException = true;
+            concurrencyContext.RemoveEntityOnException = true;
+
+            // Act
+            var result = await controller.Edit(tecnico.Id, tecnicoAtualizado);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Fact]
+        public async Task Edit_Post_ConcurrencyException_TecnicoExists_ShouldThrow()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var concurrencyContext = new TecnicosConcurrencyAppDbContext(options);
+            using var controller = new TecnicosController(concurrencyContext);
+
+            var tecnico = new Tecnico { Nome = "Old", PercentualComissao = 10, Ativo = true };
+            concurrencyContext.Tecnicos.Add(tecnico);
+            await concurrencyContext.SaveChangesAsync();
+            concurrencyContext.ChangeTracker.Clear();
+
+            var tecnicoAtualizado = new TecnicoUpdateDto { Id = tecnico.Id, Nome = "Nome Novo", PercentualComissao = 15, Ativo = true };
+            concurrencyContext.ThrowConcurrencyException = true;
+            concurrencyContext.RemoveEntityOnException = false; // Entity still exists
+
+            // Act & Assert
+            await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => controller.Edit(tecnico.Id, tecnicoAtualizado));
+        }
 
         [Fact]
         public async Task DeleteConfirmed_WithExistingId_ShouldRemoveTecnicoAndRedirectToIndex()
