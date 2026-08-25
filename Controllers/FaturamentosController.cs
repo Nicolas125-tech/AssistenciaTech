@@ -67,9 +67,11 @@ namespace AssistenciaTech.Controllers
         public async Task<IActionResult> WebhookPix()
         {
             var webhookSecret = _configuration["WebhookSecret"];
-            if (string.IsNullOrEmpty(webhookSecret))
+            if (string.IsNullOrEmpty(webhookSecret) || webhookSecret.Length < 32)
             {
-                return StatusCode(500, "Internal server error.");
+                // To prevent potential brute-force attacks on HMAC signatures,
+                // enforce a minimum secret length (e.g., 32 characters/256 bits).
+                return StatusCode(500, "Internal server error: WebhookSecret is missing or too short.");
             }
 
             if (!Request.Headers.TryGetValue("X-Webhook-Signature", out var providedSignature))

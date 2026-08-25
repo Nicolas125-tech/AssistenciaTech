@@ -100,14 +100,31 @@ namespace AssistenciaTech.Application.Tests.Controllers
             // Assert
             var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
             objectResult.StatusCode.Should().Be(500);
-            objectResult.Value.Should().Be("Internal server error.");
+            objectResult.Value.Should().Be("Internal server error: WebhookSecret is missing or too short.");
+        }
+
+        [Fact]
+        public async Task WebhookPix_Returns500_WhenWebhookSecretIsTooShort()
+        {
+            // Arrange
+            // Provide a secret that is not null but shorter than 32 characters
+            _mockConfiguration.Setup(c => c["WebhookSecret"]).Returns("short-secret");
+            SetHttpContext();
+
+            // Act
+            var result = await _controller.WebhookPix();
+
+            // Assert
+            var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
+            objectResult.StatusCode.Should().Be(500);
+            objectResult.Value.Should().Be("Internal server error: WebhookSecret is missing or too short.");
         }
 
         [Fact]
         public async Task WebhookPix_Returns401_WhenWebhookSignatureHeaderIsMissing()
         {
             // Arrange
-            _mockConfiguration.Setup(c => c["WebhookSecret"]).Returns("my-secret");
+            _mockConfiguration.Setup(c => c["WebhookSecret"]).Returns("my-super-secret-key-that-is-at-least-32-chars-long");
             SetHttpContext(); // Default context has no custom headers
 
             // Act
@@ -122,7 +139,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
         public async Task WebhookPix_Returns401_WhenWebhookSignatureIsInvalid()
         {
             // Arrange
-            _mockConfiguration.Setup(c => c["WebhookSecret"]).Returns("my-secret");
+            _mockConfiguration.Setup(c => c["WebhookSecret"]).Returns("my-super-secret-key-that-is-at-least-32-chars-long");
             SetHttpContext("invalid-secret");
 
             // Act
@@ -152,7 +169,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             await _context.SaveChangesAsync();
             _context.ChangeTracker.Clear();
 
-            string secret = "my-secret";
+            string secret = "my-super-secret-key-that-is-at-least-32-chars-long";
             string payload = $"{{\"pix\":[{{\"txid\":\"{txId}\"}}]}}";
             _mockConfiguration.Setup(c => c["WebhookSecret"]).Returns(secret);
 
@@ -180,7 +197,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
         public async Task WebhookPix_ReturnsBadRequest_WhenJsonIsInvalid()
         {
             // Arrange
-            string secret = "my-secret";
+            string secret = "my-super-secret-key-that-is-at-least-32-chars-long";
             string payload = "invalid-json";
             _mockConfiguration.Setup(c => c["WebhookSecret"]).Returns(secret);
 
