@@ -506,41 +506,40 @@ namespace AssistenciaTech.Controllers
 
                 var uploadTasks = new List<Task>();
 
-                foreach (var foto in fotos)
+                var validationTasks = fotos.Select(async foto =>
                 {
-                    if (foto.Length > 0)
+                    if (foto.Length == 0) return (foto, isValid: false, extension: string.Empty);
+
+                    var extension = Path.GetExtension(foto.FileName).ToLowerInvariant();
+                    if (!_allowedExtensions.Contains(extension)) return (foto, isValid: false, extension);
+
+                    var isValid = await IsValidFileSignatureAsync(foto, extension);
+                    return (foto, isValid, extension);
+                });
+
+                var validationResults = await Task.WhenAll(validationTasks);
+
+                foreach (var result in validationResults.Where(r => r.isValid))
+                {
+                    string uniqueFileName = $"{Guid.NewGuid()}{result.extension}";
+                    string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                    var currentFoto = result.foto;
+                    async Task SaveFileAsync()
                     {
-                        var extension = Path.GetExtension(foto.FileName).ToLowerInvariant();
-                        if (!_allowedExtensions.Contains(extension))
+                        await using (var fileStream = new FileStream(filePath, FileMode.Create))
                         {
-                            continue;
+                            await currentFoto.CopyToAsync(fileStream);
                         }
-
-                        if (!await IsValidFileSignatureAsync(foto, extension))
-                        {
-                            continue;
-                        }
-
-                        string uniqueFileName = $"{Guid.NewGuid()}{extension}";
-                        string filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                        var currentFoto = foto;
-                        async Task SaveFileAsync()
-                        {
-                            await using (var fileStream = new FileStream(filePath, FileMode.Create))
-                            {
-                                await currentFoto.CopyToAsync(fileStream);
-                            }
-                        }
-
-                        uploadTasks.Add(SaveFileAsync());
-
-                        ordemExistente.Evidencias.Add(new Evidencia
-                        {
-                            CaminhoArquivo = $"/Admin/GetEvidencia?fileName={uniqueFileName}",
-                            DataUpload = DateTime.UtcNow
-                        });
                     }
+
+                    uploadTasks.Add(SaveFileAsync());
+
+                    ordemExistente.Evidencias.Add(new Evidencia
+                    {
+                        CaminhoArquivo = $"/Admin/GetEvidencia?fileName={uniqueFileName}",
+                        DataUpload = DateTime.UtcNow
+                    });
                 }
 
                 await Task.WhenAll(uploadTasks);
