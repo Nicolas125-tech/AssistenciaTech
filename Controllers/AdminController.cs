@@ -349,33 +349,27 @@ namespace AssistenciaTech.Controllers
         [HttpGet]
         public IActionResult GetEvidencia(string fileName)
         {
-            if (string.IsNullOrEmpty(fileName) || fileName.Contains("..") || fileName.Contains("/") || fileName.Contains("\\"))
+            if (string.IsNullOrEmpty(fileName))
             {
                 return BadRequest();
             }
 
-            var extension = Path.GetExtension(fileName).ToLowerInvariant();
-            if (!_allowedExtensions.Contains(extension) || Path.GetFileName(fileName) != fileName)
+            var safeFileName = Path.GetFileName(fileName);
+            if (string.IsNullOrEmpty(safeFileName) || safeFileName != fileName)
+            {
+                return BadRequest();
+            }
+
+            var extension = Path.GetExtension(safeFileName).ToLowerInvariant();
+            if (!_allowedExtensions.Contains(extension))
             {
                 return BadRequest();
             }
 
             string uploadsFolder = Path.Combine(_env.ContentRootPath, "SecureUploads", "Evidencias");
-            string filePath = Path.Combine(uploadsFolder, fileName);
+            string filePath = Path.Combine(uploadsFolder, safeFileName);
 
-            var fullUploadsFolder = Path.GetFullPath(uploadsFolder);
-            if (!fullUploadsFolder.EndsWith(Path.DirectorySeparatorChar.ToString()))
-            {
-                fullUploadsFolder += Path.DirectorySeparatorChar;
-            }
-
-            var fullFilePath = Path.GetFullPath(filePath);
-            if (!fullFilePath.StartsWith(fullUploadsFolder, StringComparison.OrdinalIgnoreCase))
-            {
-                return BadRequest();
-            }
-
-            if (!System.IO.File.Exists(fullFilePath))
+            if (!System.IO.File.Exists(filePath))
             {
                 return NotFound();
             }
@@ -390,7 +384,7 @@ namespace AssistenciaTech.Controllers
                 _ => "application/octet-stream"
             };
 
-            return PhysicalFile(fullFilePath, contentType);
+            return PhysicalFile(filePath, contentType);
         }
 
         private static readonly Dictionary<string, List<byte[]>> _fileSignatures = new Dictionary<string, List<byte[]>>

@@ -60,6 +60,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             _mockScopeFactory.Setup(s => s.CreateScope()).Returns(mockScope.Object);
 
             var _mockEquipamentoBackupService = new Mock<IEquipamentoBackupService>();
+            var _mockNotificationService = new Mock<AssistenciaTech.Application.Interfaces.INotificationService>();
             _controller = new AdminController(
                 _context,
                 _mockEstoqueService.Object,
@@ -68,7 +69,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 _mockDashboardService.Object,
                 _mockEquipamentoBackupService.Object,
                 _mockLogger.Object,
-                _mockScopeFactory.Object
+                _mockScopeFactory.Object,
+                _mockNotificationService.Object
             );
         }
 
@@ -1034,6 +1036,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             var exceptionContext = new TestExceptionDbContext(options);
 
             var _mockEquipamentoBackupService = new Mock<IEquipamentoBackupService>();
+            var _mockNotificationService = new Mock<AssistenciaTech.Application.Interfaces.INotificationService>();
             var localController = new AdminController(
                 exceptionContext,
                 _mockEstoqueService.Object,
