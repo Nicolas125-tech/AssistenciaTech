@@ -49,6 +49,16 @@
                                         @item.QuantidadeEstoque un.
                                     </span>
                                 </td>
+                                <td>
+                                    @if (item.QuantidadeMinima > 0)
+                                    {
+                                        <span>@item.QuantidadeMinima un.</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
                                 <td>@item.ValorUnitario.ToString("C")</td>
                                 <td class="text-center">
                                     <div class="d-inline-flex">

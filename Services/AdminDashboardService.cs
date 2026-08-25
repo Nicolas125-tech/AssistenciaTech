@@ -20,6 +20,7 @@ namespace AssistenciaTech.Services
         public int TotalOrdens { get; set; }
         public int CurrentPage { get; set; }
         public int TotalPages { get; set; }
+        public List<AssistenciaTech.Models.Peca> AlertasEstoque { get; set; } = new();
     }
 
     public interface IAdminDashboardService
@@ -42,9 +43,12 @@ namespace AssistenciaTech.Services
         private const string CacheKeyStatusGroup = "AdminDashboard_StatusGroup";
         private const string CacheKeyTotalOrdens = "AdminDashboard_TotalOrdens";
 
-        public AdminDashboardService(AppDbContext context, IMemoryCache? cache = null)
+        private readonly IEstoqueService _estoqueService;
+
+        public AdminDashboardService(AppDbContext context, IEstoqueService estoqueService, IMemoryCache? cache = null)
         {
             _context = context;
+            _estoqueService = estoqueService;
             _cache = cache;
         }
 
@@ -62,6 +66,8 @@ namespace AssistenciaTech.Services
 
             var metrics = CalculateMetrics(statusGroupDb);
 
+            var alertasEstoque = await _estoqueService.ObterAlertasDeEstoqueAsync();
+
             return new DashboardDto
             {
                 Ordens = ordensOrdenadas,
@@ -72,7 +78,8 @@ namespace AssistenciaTech.Services
                 FaturamentoPrevisto = metrics.FaturamentoPrevisto,
                 TotalOrdens = totalOrdens,
                 CurrentPage = page,
-                TotalPages = totalPages
+                TotalPages = totalPages,
+                AlertasEstoque = alertasEstoque
             };
         }
 

@@ -12,6 +12,9 @@ namespace AssistenciaTech.DTOs
         [Display(Name = "Quantidade em Estoque")]
         public int QuantidadeEstoque { get; set; }
 
+        [Display(Name = "Quantidade Mínima (Alerta)")]
+        public int QuantidadeMinima { get; set; } = 0;
+
         [Required]
         [DataType(DataType.Currency)]
         [Display(Name = "Valor Unitário de Venda")]

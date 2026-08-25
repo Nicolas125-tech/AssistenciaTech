@@ -37,8 +37,9 @@ namespace AssistenciaTech.Controllers
         private readonly IEquipamentoBackupService _equipamentoBackupService;
         private readonly ILogger<AdminController> _logger;
         private readonly IServiceScopeFactory _scopeFactory;
+        private readonly INotificationService _notificationService;
 
-        public AdminController(AppDbContext context, IEstoqueService estoqueService, IWebHostEnvironment env, IPdfGeneratorService pdfGeneratorService, IAdminDashboardService dashboardService, IEquipamentoBackupService equipamentoBackupService, ILogger<AdminController> logger, IServiceScopeFactory scopeFactory)
+        public AdminController(AppDbContext context, IEstoqueService estoqueService, IWebHostEnvironment env, IPdfGeneratorService pdfGeneratorService, IAdminDashboardService dashboardService, IEquipamentoBackupService equipamentoBackupService, ILogger<AdminController> logger, IServiceScopeFactory scopeFactory, INotificationService notificationService)
         {
             _context = context;
             _estoqueService = estoqueService;
@@ -48,6 +49,7 @@ namespace AssistenciaTech.Controllers
             _equipamentoBackupService = equipamentoBackupService;
             _logger = logger;
             _scopeFactory = scopeFactory;
+            _notificationService = notificationService;
         }
 
         // GET: Admin/Index
@@ -107,6 +109,7 @@ namespace AssistenciaTech.Controllers
                 ViewBag.CurrentPage = dashboardData.CurrentPage;
                 ViewBag.TotalPages = dashboardData.TotalPages;
                 ViewBag.TotalOrdens = dashboardData.TotalOrdens;
+                ViewBag.AlertasEstoque = dashboardData.AlertasEstoque;
 
                 return View(dashboardData.Ordens);
             }
@@ -244,6 +247,7 @@ namespace AssistenciaTech.Controllers
             try
             {
                 var ordemExistente = await _context.OrdensServico
+                    .Include(o => o.Cliente)
                     .Include(o => o.Evidencias)
                     .FirstOrDefaultAsync(o => o.Id == id);
 
@@ -266,6 +270,19 @@ namespace AssistenciaTech.Controllers
 
                 _context.Update(ordemExistente);
                 await _context.SaveChangesAsync();
+
+                // Dispara notificação automática se o status mudou
+                if (ordemExistente.Status != statusAnterior && ordemExistente.Cliente != null)
+                {
+                    try
+                    {
+                        await _notificationService.EnviarNotificacaoStatusAsync(ordemExistente.Cliente, ordemExistente, statusAnterior);
+                    }
+                    catch (Exception notifEx)
+                    {
+                        _logger.LogError(notifEx, "Erro ao enviar notificação para OS #{OsId}", ordemExistente.Id);
+                    }
+                }
 
                 return RedirectToAction(nameof(Index));
             }

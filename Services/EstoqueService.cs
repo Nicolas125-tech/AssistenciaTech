@@ -10,6 +10,7 @@ namespace AssistenciaTech.Services
     {
         Task<bool> DeduzirEstoque(int ordemServicoId);
         Task<bool> RestaurarEstoque(int ordemServicoId);
+        Task<List<AssistenciaTech.Models.Peca>> ObterAlertasDeEstoqueAsync();
     }
 
     public class EstoqueService : IEstoqueService
@@ -77,6 +78,18 @@ namespace AssistenciaTech.Services
 
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        /// <summary>
+        /// Retorna peças cujo estoque atual é menor ou igual à quantidade mínima configurada.
+        /// </summary>
+        public async Task<List<AssistenciaTech.Models.Peca>> ObterAlertasDeEstoqueAsync()
+        {
+            return await _context.Pecas
+                .Where(p => p.QuantidadeMinima > 0 && p.QuantidadeEstoque <= p.QuantidadeMinima)
+                .OrderBy(p => p.QuantidadeEstoque)
+                .AsNoTracking()
+                .ToListAsync();
         }
     }
 }

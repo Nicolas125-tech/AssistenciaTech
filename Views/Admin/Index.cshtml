@@ -102,6 +102,62 @@
         </div>
     </div>
 
+    <!-- Alertas de Estoque Mínimo -->
+    @if (ViewBag.AlertasEstoque != null && ((IEnumerable<AssistenciaTech.Models.Peca>)ViewBag.AlertasEstoque).Any())
+    {
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card shadow border-danger">
+                    <div class="card-header py-3 bg-danger text-white">
+                        <h6 class="m-0 font-weight-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i>Alertas de Estoque Mínimo</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Peça</th>
+                                        <th class="text-center">Estoque Atual</th>
+                                        <th class="text-center">Mínimo</th>
+                                        <th class="text-center">Situação</th>
+                                        <th class="text-end">Ação</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var peca in (IEnumerable<AssistenciaTech.Models.Peca>)ViewBag.AlertasEstoque)
+                                    {
+                                        <tr>
+                                            <td class="fw-bold">@peca.Nome</td>
+                                            <td class="text-center">
+                                                <span class="badge @(peca.QuantidadeEstoque == 0 ? "bg-danger" : "bg-warning text-dark") fs-6">@peca.QuantidadeEstoque un.</span>
+                                            </td>
+                                            <td class="text-center">@peca.QuantidadeMinima un.</td>
+                                            <td class="text-center">
+                                                @if (peca.QuantidadeEstoque == 0)
+                                                {
+                                                    <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Sem Estoque</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i> Estoque Baixo</span>
+                                                }
+                                            </td>
+                                            <td class="text-end">
+                                                <a asp-controller="Pecas" asp-action="Edit" asp-route-id="@peca.Id" class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-pencil-square"></i> Repor
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
     <!-- Tabela Gerencial -->
     <div class="card shadow mb-4">
         <div class="card-header py-3">

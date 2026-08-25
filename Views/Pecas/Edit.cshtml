@@ -25,12 +25,17 @@
                         </div>
 
                         <div class="row mb-3">
-                            <div class="col-md-6 form-group">
+                            <div class="col-md-4 form-group">
                                 <label asp-for="QuantidadeEstoque" class="form-label fw-bold">Qtd. Estoque</label>
                                 <input asp-for="QuantidadeEstoque" class="form-control" type="number" min="0" required />
                                 <span asp-validation-for="QuantidadeEstoque" class="text-danger"></span>
                             </div>
-                            <div class="col-md-6 form-group">
+                            <div class="col-md-4 form-group">
+                                <label asp-for="QuantidadeMinima" class="form-label fw-bold">Qtd. Mínima (Alerta)</label>
+                                <input asp-for="QuantidadeMinima" class="form-control" type="number" min="0" />
+                                <span asp-validation-for="QuantidadeMinima" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 form-group">
                                 <label asp-for="ValorUnitario" class="form-label fw-bold">Valor Unitário Venda</label>
                                 <input asp-for="ValorUnitario" class="form-control" type="number" step="0.01" min="0" required />
                                 <span asp-validation-for="ValorUnitario" class="text-danger"></span>

@@ -42,6 +42,7 @@ namespace AssistenciaTech.Controllers
                 {
                     Nome = dto.Nome,
                     QuantidadeEstoque = dto.QuantidadeEstoque,
+                    QuantidadeMinima = dto.QuantidadeMinima,
                     ValorUnitario = dto.ValorUnitario
                 };
                 _context.Add(peca);
@@ -64,6 +65,7 @@ namespace AssistenciaTech.Controllers
                 Id = peca.Id,
                 Nome = peca.Nome,
                 QuantidadeEstoque = peca.QuantidadeEstoque,
+                QuantidadeMinima = peca.QuantidadeMinima,
                 ValorUnitario = peca.ValorUnitario
             };
 
@@ -86,6 +88,7 @@ namespace AssistenciaTech.Controllers
 
                     pecaExistente.Nome = dto.Nome;
                     pecaExistente.QuantidadeEstoque = dto.QuantidadeEstoque;
+                    pecaExistente.QuantidadeMinima = dto.QuantidadeMinima;
                     pecaExistente.ValorUnitario = dto.ValorUnitario;
 
                     await _context.SaveChangesAsync();
