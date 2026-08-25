@@ -93,7 +93,13 @@ namespace AssistenciaTech.Controllers
                     clienteExistente.Cpf = clienteDto.Cpf;
                     clienteExistente.Telefone = clienteDto.Telefone;
                     clienteExistente.Email = clienteDto.Email;
-                    clienteExistente.TelegramChatId = clienteDto.TelegramChatId;
+                    
+                    // Só atualiza o Chat ID se vier preenchido do form, para evitar que um clique em Salvar 
+                    // sem querer apague o ID que o Webhook acabou de salvar nos bastidores.
+                    if (clienteDto.TelegramChatId != null)
+                    {
+                        clienteExistente.TelegramChatId = clienteDto.TelegramChatId;
+                    }
 
                     await _context.SaveChangesAsync();
                 }
