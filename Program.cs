@@ -6,9 +6,7 @@ using AssistenciaTech.Data;
 using AssistenciaTech.Services;
 
 using Npgsql;
-
-
-
+using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -96,8 +94,6 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownNetworks.Clear();
     options.KnownProxies.Clear();
 });
-
-using System.Globalization;
 
 var app = builder.Build();
 
