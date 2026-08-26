@@ -34,7 +34,7 @@ namespace AssistenciaTech.Services
                     page.Size(PageSizes.A4);
                     page.Margin(1.5f, Unit.Centimetre);
                     page.PageColor(Colors.White);
-                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Arial"));
+                    page.DefaultTextStyle(x => x.FontSize(10));
 
                     page.Header().Element(c => ComposeHeader(c, os));
                     page.Content().Element(c => ComposeContent(c, os));
@@ -59,7 +59,7 @@ namespace AssistenciaTech.Services
                 });
 
                 // QR Code
-                if (qrCodeImage != null)
+                if (qrCodeImage != null && qrCodeImage.Length > 0)
                 {
                     row.ConstantItem(70).Height(70).Image(qrCodeImage);
                 }
