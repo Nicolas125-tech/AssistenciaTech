@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using AssistenciaTech.Models;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -24,19 +25,16 @@ namespace AssistenciaTech.Services
 
         public byte[] GenerateOsPdf(OrdemServico os)
         {
-            if (os == null)
-            {
-                throw new ArgumentNullException(nameof(os));
-            }
+            if (os == null) throw new ArgumentNullException(nameof(os));
 
             return Document.Create(container =>
             {
                 container.Page(page =>
                 {
                     page.Size(PageSizes.A4);
-                    page.Margin(2, Unit.Centimetre);
+                    page.Margin(1.5f, Unit.Centimetre);
                     page.PageColor(Colors.White);
-                    page.DefaultTextStyle(x => x.FontSize(12));
+                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Arial"));
 
                     page.Header().Element(c => ComposeHeader(c, os));
                     page.Content().Element(c => ComposeContent(c, os));
@@ -49,21 +47,30 @@ namespace AssistenciaTech.Services
         {
             byte[] qrCodeImage = GenerateQrCode(os.Id);
 
-            headerContainer.Row(row =>
+            headerContainer.PaddingBottom(10).BorderBottom(2).BorderColor(Colors.Blue.Darken2).Row(row =>
             {
+                // Dados da Empresa
                 row.RelativeItem().Column(column =>
                 {
-                    column.Item().Text("Assistência Tech").FontSize(24).SemiBold().FontColor(Colors.Blue.Darken2);
-                    column.Item().Text("Soluções em Tecnologia");
-                    column.Item().PaddingTop(5).Text("Acompanhe o status escaneando o QR Code.").FontSize(10).FontColor(Colors.Grey.Medium);
+                    column.Item().Text("ASSISTÊNCIA TECH LTDA").FontSize(20).Black().FontColor(Colors.Blue.Darken2);
+                    column.Item().Text("CNPJ: 00.000.000/0001-00");
+                    column.Item().Text("Av. das Tecnologias, 1000 - Centro, São Paulo/SP");
+                    column.Item().Text("Telefone: (11) 99999-9999 | E-mail: contato@assistenciatech.com");
                 });
 
+                // QR Code
                 if (qrCodeImage != null)
                 {
-                    row.ConstantItem(60).Height(60).Image(qrCodeImage);
+                    row.ConstantItem(70).Height(70).Image(qrCodeImage);
                 }
 
-                row.ConstantItem(150).AlignRight().Text($"Ordem de Serviço Nº {os.Id}").FontSize(16).Bold();
+                // Info da OS
+                row.ConstantItem(150).AlignRight().Column(col =>
+                {
+                    col.Item().Text($"ORDEM DE SERVIÇO").FontSize(14).Bold().FontColor(Colors.Blue.Darken2);
+                    col.Item().Text($"Nº {os.Id:D5}").FontSize(18).Bold().FontColor(Colors.Red.Medium);
+                    col.Item().Text($"Data: {os.DataEntrada:dd/MM/yyyy}");
+                });
             });
         }
 
@@ -72,10 +79,7 @@ namespace AssistenciaTech.Services
             var request = _httpContextAccessor.HttpContext?.Request;
             if (request == null) return Array.Empty<byte>();
 
-            // Monta a URL base dinamicamente (ex: https://localhost:5000)
             var baseUrl = $"{request.Scheme}://{request.Host}{request.PathBase}";
-            
-            // Monta o link apontando para a página de Consulta, já passando o número da OS
             var linkAcompanhamento = $"{baseUrl}/Consulta?numeroOS={osId}";
 
             using var qrGenerator = new QRCodeGenerator();
@@ -87,41 +91,107 @@ namespace AssistenciaTech.Services
 
         private void ComposeContent(IContainer contentContainer, OrdemServico os)
         {
-            contentContainer.PaddingVertical(1, Unit.Centimetre).Column(column =>
+            contentContainer.PaddingVertical(10).Column(column =>
             {
-                column.Spacing(20);
+                column.Spacing(15);
 
-                // Dados do Cliente
-                column.Item().Background(Colors.Grey.Lighten4).Padding(10).Column(c =>
+                // Bloco do Cliente
+                column.Item().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(8).Column(c =>
                 {
-                    c.Item().Text("Dados do Cliente").SemiBold().FontSize(14);
-                    c.Item().Text($"Nome: {os.Cliente?.Nome}");
-                    c.Item().Text($"CPF: {os.Cliente?.Cpf}");
+                    c.Item().Text("DADOS DO CLIENTE").SemiBold().FontSize(12).FontColor(Colors.Grey.Darken3);
+                    c.Item().LineHorizontal(1).LineColor(Colors.Grey.Lighten2).PaddingBottom(5);
+                    c.Item().Row(r => 
+                    {
+                        r.RelativeItem().Text($"Nome: {os.Cliente?.Nome}");
+                        r.RelativeItem().Text($"CPF/CNPJ: {os.Cliente?.Cpf}");
+                    });
+                    c.Item().Row(r => 
+                    {
+                        r.RelativeItem().Text($"Telefone: {os.Cliente?.Telefone}");
+                        r.RelativeItem().Text($"E-mail: {os.Cliente?.Email}");
+                    });
                 });
 
-                // Dados do Equipamento e Serviço
-                column.Item().Background(Colors.Grey.Lighten4).Padding(10).Column(c =>
+                // Bloco do Equipamento
+                column.Item().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(8).Column(c =>
                 {
-                    c.Item().Text("Detalhes do Serviço").SemiBold().FontSize(14);
-                    c.Item().Text($"Equipamento: {os.Equipamento}");
-                    if (!string.IsNullOrEmpty(os.NumeroSerie))
-                        c.Item().Text($"Nº de Série: {os.NumeroSerie}");
+                    c.Item().Text("DADOS DO EQUIPAMENTO").SemiBold().FontSize(12).FontColor(Colors.Grey.Darken3);
+                    c.Item().LineHorizontal(1).LineColor(Colors.Grey.Lighten2).PaddingBottom(5);
+                    c.Item().Row(r => 
+                    {
+                        r.RelativeItem(2).Text($"Equipamento: {os.Equipamento}");
+                        r.RelativeItem(1).Text($"Nº Série: {(string.IsNullOrEmpty(os.NumeroSerie) ? "N/A" : os.NumeroSerie)}");
+                    });
                     c.Item().Text($"Defeito Relatado: {os.ProblemaRelatado}");
-                    if (!string.IsNullOrEmpty(os.LaudoTecnico))
-                        c.Item().Text($"Laudo Técnico: {os.LaudoTecnico}");
+                    c.Item().PaddingTop(5).Text($"Laudo Técnico: {(string.IsNullOrEmpty(os.LaudoTecnico) ? "Aguardando análise" : os.LaudoTecnico)}");
                     if (!string.IsNullOrEmpty(os.AvariasPreExistentes))
-                        c.Item().Text($"Avarias Pré-Existentes: {os.AvariasPreExistentes}");
-                    c.Item().Text($"Status: {os.Status}").FontColor(os.Status == WorkflowStatus.Concluido || os.Status == WorkflowStatus.Entregue ? Colors.Green.Darken2 : Colors.Orange.Darken2).SemiBold();
-                    c.Item().Text($"Data de Entrada: {os.DataEntrada:dd/MM/yyyy HH:mm}");
-                    if (os.DataEntregaCliente.HasValue)
-                    {
-                        c.Item().Text($"Data de Entrega: {os.DataEntregaCliente:dd/MM/yyyy HH:mm}");
-                    }
+                        c.Item().Text($"Avarias Existentes: {os.AvariasPreExistentes}").FontColor(Colors.Red.Darken2);
+                });
 
-                    if (os.DataEntregaCliente.HasValue && os.GarantiaAtiva)
+                // Tabela de Custos e Peças
+                if (os.PecasUtilizadas != null && os.PecasUtilizadas.Any() || os.CustoMaoDeObra > 0)
+                {
+                    column.Item().Text("CUSTOS E SERVIÇOS").SemiBold().FontSize(12).FontColor(Colors.Grey.Darken3);
+                    column.Item().Table(table =>
                     {
-                        c.Item().Text($"Garantia Válida até: {os.DataVencimentoGarantia:dd/MM/yyyy}");
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.RelativeColumn(3); // Descrição
+                            columns.ConstantColumn(70); // Qtd
+                            columns.RelativeColumn(1); // V. Unit
+                            columns.RelativeColumn(1); // Total
+                        });
+
+                        table.Header(header =>
+                        {
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(2).Text("Descrição").SemiBold();
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(2).AlignCenter().Text("Qtd").SemiBold();
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(2).AlignRight().Text("V. Unitário").SemiBold();
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(2).AlignRight().Text("V. Total").SemiBold();
+                        });
+
+                        // Peças
+                        if (os.PecasUtilizadas != null)
+                        {
+                            foreach (var item in os.PecasUtilizadas)
+                            {
+                                table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten4).Padding(2).Text(item.Peca?.Nome ?? "Peça");
+                                table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten4).Padding(2).AlignCenter().Text(item.Quantidade.ToString());
+                                table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten4).Padding(2).AlignRight().Text(item.ValorVenda.ToString("C"));
+                                table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten4).Padding(2).AlignRight().Text((item.Quantidade * item.ValorVenda).ToString("C"));
+                            }
+                        }
+
+                        // Mão de Obra
+                        if (os.CustoMaoDeObra > 0)
+                        {
+                            table.Cell().Padding(2).Text("Mão de Obra / Serviços Técnicos");
+                            table.Cell().Padding(2).AlignCenter().Text("1");
+                            table.Cell().Padding(2).AlignRight().Text(os.CustoMaoDeObra.ToString("C"));
+                            table.Cell().Padding(2).AlignRight().Text(os.CustoMaoDeObra.ToString("C"));
+                        }
+                    });
+                }
+
+                // Resumo Financeiro
+                column.Item().AlignRight().Column(c =>
+                {
+                    c.Item().Text($"Subtotal: {os.CustoPecas + os.CustoMaoDeObra:C}");
+                    if (os.DescontoAplicado > 0)
+                    {
+                        c.Item().Text($"Desconto: -{os.DescontoAplicado:C}").FontColor(Colors.Red.Medium);
                     }
+                    c.Item().PaddingTop(5).Text($"TOTAL FINAL: {os.ValorTotalCalculado:C}").FontSize(16).Bold().FontColor(Colors.Blue.Darken2);
+                });
+
+                // Termos Legais
+                column.Item().PaddingTop(20).Background(Colors.Grey.Lighten4).Padding(10).Text(t =>
+                {
+                    t.Span("TERMO DE GARANTIA E ACEITE: ").Bold().FontSize(9);
+                    t.Span("Declaro ter testado e retirado o equipamento em perfeitas condições de funcionamento. " +
+                           "Garantia de 90 dias para os serviços prestados e peças substituídas, de acordo com o Código de Defesa do Consumidor, " +
+                           "contados a partir da data de entrega. A garantia não cobre mau uso, quedas, líquidos ou rompimento do selo de garantia. " +
+                           "Equipamentos não retirados após 90 dias da conclusão serão considerados abandonados.").FontSize(9);
                 });
             });
         }
@@ -130,13 +200,31 @@ namespace AssistenciaTech.Services
         {
             footerContainer.Column(column =>
             {
-                // Orçamento
-                column.Item().PaddingBottom(2, Unit.Centimetre).AlignRight()
-                    .Text($"Valor do Orçamento: {os.ValorOrcamento:C}").FontSize(16).SemiBold();
+                // Assinaturas
+                column.Item().PaddingTop(30).Row(row =>
+                {
+                    row.RelativeItem().AlignCenter().Column(c =>
+                    {
+                        c.Item().LineHorizontal(1);
+                        c.Item().PaddingTop(5).Text("Assinatura do Cliente").FontSize(10);
+                        c.Item().Text(os.Cliente?.Nome).FontSize(9).FontColor(Colors.Grey.Darken1);
+                    });
 
-                // Assinatura
-                column.Item().AlignCenter().Text("___________________________________________________");
-                column.Item().AlignCenter().Text("Assinatura do Cliente");
+                    row.ConstantItem(50); // Espaçamento
+
+                    row.RelativeItem().AlignCenter().Column(c =>
+                    {
+                        c.Item().LineHorizontal(1);
+                        c.Item().PaddingTop(5).Text("Técnico Responsável").FontSize(10);
+                        c.Item().Text(os.TecnicoResponsavel?.Nome ?? "Assistência Tech").FontSize(9).FontColor(Colors.Grey.Darken1);
+                    });
+                });
+
+                column.Item().PaddingTop(15).AlignCenter().Text(x =>
+                {
+                    x.Span("Gerado pelo sistema em: ").FontSize(8).FontColor(Colors.Grey.Medium);
+                    x.Span(DateTime.Now.ToString("dd/MM/yyyy HH:mm")).FontSize(8).FontColor(Colors.Grey.Medium);
+                });
             });
         }
     }
