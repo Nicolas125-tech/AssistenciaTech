@@ -99,7 +99,7 @@ namespace AssistenciaTech.Services
                 column.Item().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(8).Column(c =>
                 {
                     c.Item().Text("DADOS DO CLIENTE").SemiBold().FontSize(12).FontColor(Colors.Grey.Darken3);
-                    c.Item().LineHorizontal(1).LineColor(Colors.Grey.Lighten2).PaddingBottom(5);
+                    c.Item().PaddingBottom(5).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
                     c.Item().Row(r => 
                     {
                         r.RelativeItem().Text($"Nome: {os.Cliente?.Nome}");
@@ -116,7 +116,7 @@ namespace AssistenciaTech.Services
                 column.Item().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(8).Column(c =>
                 {
                     c.Item().Text("DADOS DO EQUIPAMENTO").SemiBold().FontSize(12).FontColor(Colors.Grey.Darken3);
-                    c.Item().LineHorizontal(1).LineColor(Colors.Grey.Lighten2).PaddingBottom(5);
+                    c.Item().PaddingBottom(5).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
                     c.Item().Row(r => 
                     {
                         r.RelativeItem(2).Text($"Equipamento: {os.Equipamento}");
