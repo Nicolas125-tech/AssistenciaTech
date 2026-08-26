@@ -234,10 +234,12 @@ using (var scope = app.Services.CreateScope())
                 ""OrdemServicoId"" integer NOT NULL,
                 ""Usuario"" text NOT NULL,
                 ""DataAlteracao"" timestamp without time zone NOT NULL,
-                ""CampoAlterado"" text NOT NULL,
+                ""CampoAlterado"" text NULL,
                 ""ValorAntigo"" text NULL,
                 ""ValorNovo"" text NULL
             );
+            ALTER TABLE ""AuditoriaOS"" ADD COLUMN IF NOT EXISTS ""DetalhesAlteracao"" text NULL;
+            ALTER TABLE ""AuditoriaOS"" ALTER COLUMN ""CampoAlterado"" DROP NOT NULL;
         ");
 
         // Garante que a tabela de chaves de proteção exista, pois o EnsureCreated ignora se o banco já existir

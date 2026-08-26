@@ -17,10 +17,14 @@ namespace AssistenciaTech.Models
         [Required]
         public DateTime DataAlteracao { get; set; } = DateTime.UtcNow;
 
-        [Required]
-        public string CampoAlterado { get; set; } = string.Empty;
+        public string? CampoAlterado { get; set; }
 
         public string? ValorAntigo { get; set; }
         public string? ValorNovo { get; set; }
+
+        /// <summary>
+        /// Armazena um JSON com todas as propriedades alteradas, seus valores antigos e novos.
+        /// </summary>
+        public string? DetalhesAlteracao { get; set; }
     }
 }

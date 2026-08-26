@@ -121,36 +121,62 @@ namespace AssistenciaTech.Data
 
         private void AuditModifiedEntry(DbContext context, EntityEntry<OrdemServico> entry, string usuario)
         {
+            var alteracoes = new Dictionary<string, object>();
+
             foreach (var prop in entry.Properties.Where(p => p.IsModified))
             {
+                var nomeCampo = prop.Metadata.Name;
+                
+                // Ignorar campos de controle interno se houver (ex: DataEntrada se não for intencional, etc.)
+                if (nomeCampo == "DataAtualizacao") continue;
+
                 var oldValue = prop.OriginalValue?.ToString();
                 var newValue = prop.CurrentValue?.ToString();
 
                 // Evita logar se o valor for nulo nas duas pontas ou idêntico
                 if (oldValue == newValue) continue;
 
+                alteracoes.Add(nomeCampo, new 
+                { 
+                    De = oldValue ?? "N/A", 
+                    Para = newValue ?? "N/A" 
+                });
+            }
+
+            if (alteracoes.Count > 0)
+            {
+                var jsonDiff = System.Text.Json.JsonSerializer.Serialize(alteracoes);
+
                 var auditoria = new AuditoriaOS
                 {
                     OrdemServicoId = entry.Entity.Id,
                     Usuario = usuario,
                     DataAlteracao = DateTime.UtcNow,
-                    CampoAlterado = prop.Metadata.Name,
-                    ValorAntigo = oldValue,
-                    ValorNovo = newValue
+                    CampoAlterado = "MÚLTIPLOS", // Mantido para compatibilidade, ou poderia ser nulo
+                    ValorAntigo = null,
+                    ValorNovo = null,
+                    DetalhesAlteracao = jsonDiff
                 };
+                
                 context.Add(auditoria);
             }
         }
 
         private void AuditAddedEntry(EntityEntry<OrdemServico> entry, string usuario)
         {
+            var jsonDiff = System.Text.Json.JsonSerializer.Serialize(new { 
+                Acao = "Criação de Ordem de Serviço",
+                StatusInicial = entry.Entity.Status 
+            });
+
             var auditoria = new AuditoriaOS
             {
                 Usuario = usuario,
                 DataAlteracao = DateTime.UtcNow,
                 CampoAlterado = "CRIACAO_OS",
                 ValorAntigo = "",
-                ValorNovo = "OS Criada"
+                ValorNovo = "OS Criada",
+                DetalhesAlteracao = jsonDiff
             };
             _pendingAudits.Add((auditoria, entry.Entity));
         }
