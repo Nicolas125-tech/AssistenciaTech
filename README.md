@@ -39,6 +39,20 @@ O **TechOS** é um sistema completo (MVP) desenvolvido para automatizar e profis
 
 ---
 
+## 🌐 Testar Online (Modo Demo)
+
+Você pode testar a aplicação completa acessando o nosso ambiente de demonstração na nuvem!
+
+**Acesse aqui:** [https://assistenciatech.onrender.com](https://assistenciatech.onrender.com)
+
+**Credenciais de Acesso (Administrador):**
+- **Usuário:** `demo@assistenciatech.com`
+- **Senha:** `Demo@1234`
+
+> ⚠️ **Aviso de Segurança (Filtro Demo):** O sistema está rodando em **Modo Demonstração** de portfólio. O usuário `demo` tem permissão de leitura completa para navegar, visualizar os Dashboards e emitir PDFs. No entanto, por razões de segurança, o filtro `DemoModeFilter` irá **bloquear qualquer tentativa de alteração, inserção ou deleção de dados** reais no banco de dados. Fique à vontade para explorar as telas!
+
+---
+
 ## 🚀 Como Executar o Projeto
 
 O projeto possui suporte completo a contêineres Docker, tornando sua execução local trivial e idêntica ao ambiente de produção.

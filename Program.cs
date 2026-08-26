@@ -13,7 +13,10 @@ using Npgsql;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(options => 
+{
+    options.Filters.Add<AssistenciaTech.Filters.DemoModeFilter>();
+});
 builder.Services.AddScoped<IEstoqueService, EstoqueService>();
 builder.Services.AddScoped<IPdfGeneratorService, PdfGeneratorService>();
 builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
@@ -251,6 +254,24 @@ using (var scope = app.Services.CreateScope())
                 CONSTRAINT ""PK_DataProtectionKeys"" PRIMARY KEY (""Id"")
             );
         ");
+
+        // --- Seed do Usuário Demo ---
+        var demoUsername = "demo@assistenciatech.com";
+        var demoUser = context.Usuarios.FirstOrDefault(u => u.Username == demoUsername);
+        if (demoUser == null)
+        {
+            var newUser = new AssistenciaTech.Models.Usuario
+            {
+                Username = demoUsername,
+                Role = "Administrador"
+            };
+            
+            var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<AssistenciaTech.Models.Usuario>();
+            newUser.PasswordHash = hasher.HashPassword(newUser, "Demo@1234");
+            
+            context.Usuarios.Add(newUser);
+            context.SaveChanges();
+        }
     }
     catch (Exception ex)
     {
