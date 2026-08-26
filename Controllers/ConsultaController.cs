@@ -25,8 +25,12 @@ namespace AssistenciaTech.Controllers
 
         // GET: /Consulta/
         // Exibe o formulário para o cliente digitar os dados
-        public IActionResult Index()
+        public IActionResult Index(int? numeroOS)
         {
+            if (numeroOS.HasValue)
+            {
+                ViewBag.NumeroOS = numeroOS.Value;
+            }
             return View();
         }
 

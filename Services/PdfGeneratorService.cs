@@ -3,6 +3,8 @@ using AssistenciaTech.Models;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using Microsoft.AspNetCore.Http;
+using QRCoder;
 
 namespace AssistenciaTech.Services
 {
@@ -13,6 +15,13 @@ namespace AssistenciaTech.Services
 
     public class PdfGeneratorService : IPdfGeneratorService
     {
+        private readonly IHttpContextAccessor _httpContextAccessor;
+
+        public PdfGeneratorService(IHttpContextAccessor httpContextAccessor)
+        {
+            _httpContextAccessor = httpContextAccessor;
+        }
+
         public byte[] GenerateOsPdf(OrdemServico os)
         {
             if (os == null)
@@ -38,16 +47,42 @@ namespace AssistenciaTech.Services
 
         private void ComposeHeader(IContainer headerContainer, OrdemServico os)
         {
+            byte[] qrCodeImage = GenerateQrCode(os.Id);
+
             headerContainer.Row(row =>
             {
                 row.RelativeItem().Column(column =>
                 {
                     column.Item().Text("Assistência Tech").FontSize(24).SemiBold().FontColor(Colors.Blue.Darken2);
                     column.Item().Text("Soluções em Tecnologia");
+                    column.Item().PaddingTop(5).Text("Acompanhe o status escaneando o QR Code.").FontSize(10).FontColor(Colors.Grey.Medium);
                 });
+
+                if (qrCodeImage != null)
+                {
+                    row.ConstantItem(60).Height(60).Image(qrCodeImage);
+                }
 
                 row.ConstantItem(150).AlignRight().Text($"Ordem de Serviço Nº {os.Id}").FontSize(16).Bold();
             });
+        }
+
+        private byte[] GenerateQrCode(int osId)
+        {
+            var request = _httpContextAccessor.HttpContext?.Request;
+            if (request == null) return Array.Empty<byte>();
+
+            // Monta a URL base dinamicamente (ex: https://localhost:5000)
+            var baseUrl = $"{request.Scheme}://{request.Host}{request.PathBase}";
+            
+            // Monta o link apontando para a página de Consulta, já passando o número da OS
+            var linkAcompanhamento = $"{baseUrl}/Consulta?numeroOS={osId}";
+
+            using var qrGenerator = new QRCodeGenerator();
+            using var qrCodeData = qrGenerator.CreateQrCode(linkAcompanhamento, QRCodeGenerator.ECCLevel.Q);
+            using var qrCode = new PngByteQRCode(qrCodeData);
+            
+            return qrCode.GetGraphic(20);
         }
 
         private void ComposeContent(IContainer contentContainer, OrdemServico os)

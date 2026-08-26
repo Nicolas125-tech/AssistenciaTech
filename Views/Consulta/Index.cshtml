@@ -22,7 +22,7 @@
 
                     <form asp-controller="Consulta" asp-action="Status" method="post">
                         <div class="form-floating mb-3">
-                            <input type="number" class="form-control" id="numeroOS" name="numeroOS" placeholder="Ex: 12345" required>
+                            <input type="number" class="form-control" id="numeroOS" name="numeroOS" value="@ViewBag.NumeroOS" placeholder="Ex: 12345" required>
                             <label for="numeroOS">Número da Ordem de Serviço (OS)</label>
                         </div>
                         
