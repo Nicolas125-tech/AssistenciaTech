@@ -97,7 +97,17 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
+using System.Globalization;
+
 var app = builder.Build();
+
+var supportedCultures = new[] { "pt-BR" };
+var localizationOptions = new RequestLocalizationOptions()
+    .SetDefaultCulture("pt-BR")
+    .AddSupportedCultures(supportedCultures)
+    .AddSupportedUICultures(supportedCultures);
+
+app.UseRequestLocalization(localizationOptions);
 
 app.UseForwardedHeaders(); // Movido para o topo do pipeline
 
