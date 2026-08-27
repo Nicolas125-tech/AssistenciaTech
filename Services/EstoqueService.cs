@@ -1,5 +1,4 @@
 using AssistenciaTech.Data;
-using Microsoft.Extensions.Caching.Distributed;
 using AssistenciaTech.Extensions;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -18,11 +17,11 @@ namespace AssistenciaTech.Services
     public class EstoqueService : IEstoqueService
     {
         private readonly AppDbContext _context;
-        private readonly IDistributedCache? _cache;
+        private readonly IResilientCacheService _cache;
         private const string CacheKeyAlertasEstoque = "Estoque_AlertasEstoque";
         private static readonly TimeSpan CacheDuration = TimeSpan.FromHours(1);
 
-        public EstoqueService(AppDbContext context, IDistributedCache? cache = null)
+        public EstoqueService(AppDbContext context, IResilientCacheService cache)
         {
             _context = context;
             _cache = cache;
@@ -57,18 +56,7 @@ namespace AssistenciaTech.Services
             }
 
             await _context.SaveChangesAsync();
-
-            if (_cache != null)
-            {
-                try
-                {
-                    await _cache.RemoveAsync(CacheKeyAlertasEstoque);
-                }
-                catch
-                {
-                    // Redis indisponível — segue sem invalidar cache
-                }
-            }
+            await _cache.RemoveAsync(CacheKeyAlertasEstoque);
             return true;
         }
 
@@ -95,18 +83,7 @@ namespace AssistenciaTech.Services
             }
 
             await _context.SaveChangesAsync();
-
-            if (_cache != null)
-            {
-                try
-                {
-                    await _cache.RemoveAsync(CacheKeyAlertasEstoque);
-                }
-                catch
-                {
-                    // Redis indisponível — segue sem invalidar cache
-                }
-            }
+            await _cache.RemoveAsync(CacheKeyAlertasEstoque);
             return true;
         }
 
@@ -116,20 +93,10 @@ namespace AssistenciaTech.Services
 
         public async Task<List<AssistenciaTech.Models.Peca>> ObterAlertasDeEstoqueAsync()
         {
-            if (_cache != null)
+            var cached = await _cache.GetAsync<List<AssistenciaTech.Models.Peca>>(CacheKeyAlertasEstoque);
+            if (cached != null)
             {
-                try
-                {
-                    var cached = await _cache.GetRecordAsync<List<AssistenciaTech.Models.Peca>>(CacheKeyAlertasEstoque);
-                    if (cached != null)
-                    {
-                        return cached;
-                    }
-                }
-                catch
-                {
-                    // Redis indisponível — segue para o banco
-                }
+                return cached;
             }
 
             var result = await _context.Pecas
@@ -138,17 +105,7 @@ namespace AssistenciaTech.Services
                 .AsNoTracking()
                 .ToListAsync();
 
-            if (_cache != null)
-            {
-                try
-                {
-                    await _cache.SetRecordAsync(CacheKeyAlertasEstoque, result, absoluteExpireTime: CacheDuration);
-                }
-                catch
-                {
-                    // Falha ao gravar no Redis — segue sem cache
-                }
-            }
+            await _cache.SetAsync(CacheKeyAlertasEstoque, result, CacheDuration);
 
             return result;
         }

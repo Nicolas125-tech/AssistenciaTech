@@ -1,7 +1,6 @@
 using AssistenciaTech.Data;
 using AssistenciaTech.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Distributed;
 using AssistenciaTech.Extensions;
 using System;
 using System.Collections.Generic;
@@ -39,14 +38,14 @@ namespace AssistenciaTech.Services
     public class AdminDashboardService : IAdminDashboardService
     {
         private readonly AppDbContext _context;
-        private readonly IDistributedCache? _cache;
+        private readonly IResilientCacheService _cache;
         private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
         private const string CacheKeyStatusGroup = "AdminDashboard_StatusGroup";
         private const string CacheKeyTotalOrdens = "AdminDashboard_TotalOrdens";
 
         private readonly IEstoqueService _estoqueService;
 
-        public AdminDashboardService(AppDbContext context, IEstoqueService estoqueService, IDistributedCache? cache = null)
+        public AdminDashboardService(AppDbContext context, IEstoqueService estoqueService, IResilientCacheService cache)
         {
             _context = context;
             _estoqueService = estoqueService;
@@ -106,18 +105,9 @@ namespace AssistenciaTech.Services
             List<StatusGroupDto>? statusGroupDb = null;
             int totalOrdens;
 
-
-            if (!hasFilters && _cache != null)
+            if (!hasFilters && _cache.IsAvailable)
             {
-                try
-                {
-                    statusGroupDb = await _cache.GetRecordAsync<List<StatusGroupDto>>(CacheKeyStatusGroup);
-                }
-                catch
-                {
-                    // Redis indisponível — ignora e segue para o banco
-                    statusGroupDb = null;
-                }
+                statusGroupDb = await _cache.GetAsync<List<StatusGroupDto>>(CacheKeyStatusGroup);
 
                 if (statusGroupDb == null)
                 {
@@ -131,44 +121,20 @@ namespace AssistenciaTech.Services
                         })
                         .ToListAsync();
 
-                    try
-                    {
-                        await _cache.SetRecordAsync(CacheKeyStatusGroup, statusGroupDb, absoluteExpireTime: CacheDuration);
-                    }
-                    catch
-                    {
-                        // Falha ao gravar no Redis — segue sem cache
-                    }
+                    await _cache.SetAsync(CacheKeyStatusGroup, statusGroupDb, CacheDuration);
                 }
 
-                int? cachedTotalOrdens = null;
-                try
-                {
-                    cachedTotalOrdens = await _cache.GetRecordAsync<int?>(CacheKeyTotalOrdens);
-                }
-                catch
-                {
-                    // Redis indisponível
-                }
-
+                var cachedTotalOrdens = await _cache.GetAsync<int?>(CacheKeyTotalOrdens);
                 if (cachedTotalOrdens == null)
                 {
                     totalOrdens = await _context.OrdensServico.CountAsync();
-                    try
-                    {
-                        await _cache.SetRecordAsync(CacheKeyTotalOrdens, (int?)totalOrdens, absoluteExpireTime: CacheDuration);
-                    }
-                    catch
-                    {
-                        // Falha ao gravar no Redis
-                    }
+                    await _cache.SetAsync(CacheKeyTotalOrdens, (int?)totalOrdens, CacheDuration);
                 }
                 else
                 {
                     totalOrdens = cachedTotalOrdens.Value;
                 }
             }
-
             else
             {
                 statusGroupDb = await query

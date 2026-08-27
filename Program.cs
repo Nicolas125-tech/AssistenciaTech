@@ -56,7 +56,8 @@ else
     Console.WriteLine("[Cache] Redis não configurado. Usando cache em memória (fallback).");
 }
 
-
+// Registra o serviço de cache resiliente com circuit breaker
+builder.Services.AddSingleton<AssistenciaTech.Extensions.IResilientCacheService, AssistenciaTech.Extensions.ResilientCacheService>();
 
 // Registrando o contexto do banco de dados PostgreSQL
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");

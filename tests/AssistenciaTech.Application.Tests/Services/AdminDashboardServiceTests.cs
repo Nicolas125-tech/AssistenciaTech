@@ -69,7 +69,7 @@ namespace AssistenciaTech.Application.Tests.Services
             // Arrange
             using var context = GetDbContext();
             await SeedDataAsync(context);
-            var service = new AdminDashboardService(context, Moq.Mock.Of<AssistenciaTech.Services.IEstoqueService>(), null);
+            var service = new AdminDashboardService(context, Moq.Mock.Of<AssistenciaTech.Services.IEstoqueService>(), Moq.Mock.Of<AssistenciaTech.Extensions.IResilientCacheService>());
 
             // Act
             var result = await service.GetDashboardDataAsync(string.Empty, string.Empty);
@@ -104,7 +104,7 @@ namespace AssistenciaTech.Application.Tests.Services
             // Arrange
             using var context = GetDbContext();
             await SeedDataAsync(context);
-            var service = new AdminDashboardService(context, Moq.Mock.Of<AssistenciaTech.Services.IEstoqueService>(), null);
+            var service = new AdminDashboardService(context, Moq.Mock.Of<AssistenciaTech.Services.IEstoqueService>(), Moq.Mock.Of<AssistenciaTech.Extensions.IResilientCacheService>());
 
             // Act 1: Search by Client Name ("Maria")
             var result1 = await service.GetDashboardDataAsync("Maria", string.Empty);
@@ -136,7 +136,7 @@ namespace AssistenciaTech.Application.Tests.Services
             // Arrange
             using var context = GetDbContext();
             await SeedDataAsync(context);
-            var service = new AdminDashboardService(context, Moq.Mock.Of<AssistenciaTech.Services.IEstoqueService>(), null);
+            var service = new AdminDashboardService(context, Moq.Mock.Of<AssistenciaTech.Services.IEstoqueService>(), Moq.Mock.Of<AssistenciaTech.Extensions.IResilientCacheService>());
 
             // Act
             var result = await service.GetDashboardDataAsync(string.Empty, WorkflowStatus.Concluido);

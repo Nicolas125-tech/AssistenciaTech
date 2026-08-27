@@ -37,7 +37,7 @@ namespace AssistenciaTech.Application.Tests
             context.OrdemServicoPecas.Add(ordemServicoPeca);
             await context.SaveChangesAsync();
 
-            var service = new EstoqueService(context, Moq.Mock.Of<Microsoft.Extensions.Caching.Distributed.IDistributedCache>());
+            var service = new EstoqueService(context, Moq.Mock.Of<AssistenciaTech.Extensions.IResilientCacheService>());
 
             // Act
             var result = await service.DeduzirEstoque(1);
@@ -67,7 +67,7 @@ namespace AssistenciaTech.Application.Tests
             context.OrdemServicoPecas.Add(ordemServicoPeca);
             await context.SaveChangesAsync();
 
-            var service = new EstoqueService(context, Moq.Mock.Of<Microsoft.Extensions.Caching.Distributed.IDistributedCache>());
+            var service = new EstoqueService(context, Moq.Mock.Of<AssistenciaTech.Extensions.IResilientCacheService>());
 
             // Act
             Func<Task> action = async () => await service.DeduzirEstoque(1);
@@ -84,7 +84,7 @@ namespace AssistenciaTech.Application.Tests
             var dbName = Guid.NewGuid().ToString();
             using var context = GetDbContext(dbName);
 
-            var service = new EstoqueService(context, Moq.Mock.Of<Microsoft.Extensions.Caching.Distributed.IDistributedCache>());
+            var service = new EstoqueService(context, Moq.Mock.Of<AssistenciaTech.Extensions.IResilientCacheService>());
 
             // Act
             var result = await service.DeduzirEstoque(999);
@@ -109,7 +109,7 @@ namespace AssistenciaTech.Application.Tests
             context.OrdemServicoPecas.Add(ordemServicoPeca);
             await context.SaveChangesAsync();
 
-            var service = new EstoqueService(context, Moq.Mock.Of<Microsoft.Extensions.Caching.Distributed.IDistributedCache>());
+            var service = new EstoqueService(context, Moq.Mock.Of<AssistenciaTech.Extensions.IResilientCacheService>());
 
             // Act
             var result = await service.RestaurarEstoque(1);
@@ -130,7 +130,7 @@ namespace AssistenciaTech.Application.Tests
             var dbName = Guid.NewGuid().ToString();
             using var context = GetDbContext(dbName);
 
-            var service = new EstoqueService(context, Moq.Mock.Of<Microsoft.Extensions.Caching.Distributed.IDistributedCache>());
+            var service = new EstoqueService(context, Moq.Mock.Of<AssistenciaTech.Extensions.IResilientCacheService>());
 
             // Act
             var result = await service.RestaurarEstoque(999);

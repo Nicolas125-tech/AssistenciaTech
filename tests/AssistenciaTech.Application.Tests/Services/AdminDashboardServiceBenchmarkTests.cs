@@ -53,7 +53,7 @@ namespace AssistenciaTech.Application.Tests.Services
             using var context = GetDbContext();
             int recordCount = 5000;
             await SeedLargeDataAsync(context, recordCount);
-            var service = new AdminDashboardService(context, Moq.Mock.Of<AssistenciaTech.Services.IEstoqueService>(), null);
+            var service = new AdminDashboardService(context, Moq.Mock.Of<AssistenciaTech.Services.IEstoqueService>(), Moq.Mock.Of<AssistenciaTech.Extensions.IResilientCacheService>());
 
             var sw = new Stopwatch();
 
