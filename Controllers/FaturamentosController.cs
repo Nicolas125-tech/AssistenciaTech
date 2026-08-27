@@ -208,13 +208,10 @@ namespace AssistenciaTech.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> MarcarPago(int id)
         {
-            var faturamento = await _context.Faturamentos.FindAsync(id);
-            if (faturamento != null)
-            {
-                faturamento.StatusPagamento = PagamentoStatus.Pago_Total;
-                _context.Update(faturamento);
-                await _context.SaveChangesAsync();
-            }
+            var affected = await _context.Faturamentos
+                .Where(f => f.Id == id)
+                .ExecuteUpdateAsync(s => s.SetProperty(f => f.StatusPagamento, PagamentoStatus.Pago_Total));
+
             return RedirectToAction(nameof(Index));
         }
 
