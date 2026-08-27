@@ -7,6 +7,9 @@
 ![Bootstrap 5](https://img.shields.io/badge/Bootstrap_5-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker&logoColor=white)
 ![Redis](https://img.shields.io/badge/redis-%23DD0031.svg?style=for-the-badge&logo=redis&logoColor=white)
+![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-07405E?style=for-the-badge&logo=sqlite&logoColor=white)
 
 O **TechOS** é um sistema completo (MVP) desenvolvido para automatizar e profissionalizar a gestão de lojas de informática e a operação de bancada de assistência técnica de computadores, impressoras e notebooks. Ele une uma área de consulta self-service para clientes a um painel administrativo seguro em Dark Mode para os técnicos.
 
@@ -33,15 +36,22 @@ O **TechOS** é um sistema completo (MVP) desenvolvido para automatizar e profis
   - **Admin Dashboard**: Consultas analíticas pesadas (totais de ordens, faturamento, status) cacheadas por 5 minutos, poupando a carga de agrupamentos frequentes no banco de dados.
   - **Gestão de Peças/Estoque**: Consultas de alertas de estoque cacheadas de forma durável (1 hora) com estratégia ativa de invalidação (*cache eviction*) durante a execução transacional de qualquer atualização ou dedução de estoque.
 
+### 📱 Aplicativo Mobile (Offline-First)
+- **App Satélite (React Native)**: Extensão focada em dar autonomia total aos técnicos fora da loja (ex: trabalhos em campo), garantindo que o trabalho não pare caso não haja rede.
+- **Banco de Dados Local Reativo**: Operações de Check-in em campo são salvas em milissegundos no aparelho via **WatermelonDB (SQLite)**.
+- **Motor Inteligente de Sincronização**: Varre os registros pendentes de forma invisível, padroniza as datas (ISO 8601 -> UTC) e dispara os dados de volta para a nuvem em lote via uma API segura autenticada por **JWT**.
+- **Interface Natively Themed**: O mesmo design Premium Dark Mode e componentes desenhados do painel Web recriados com flexibilidade no mobile.
+
 ---
 
 ## 🛠️ Tecnologias Utilizadas
 
-- **Linguagem**: C# (.NET 8)
-- **Arquitetura**: Evoluindo para Clean Architecture com State Pattern no domínio.
-- **Banco de Dados**: PostgreSQL (com Entity Framework Core & Npgsql)
+- **Linguagem**: C# (.NET 8), TypeScript (Mobile)
+- **Arquitetura**: Evoluindo para Clean Architecture com State Pattern no domínio, Offline-First no Mobile.
+- **Banco de Dados**: PostgreSQL (com Entity Framework Core & Npgsql), SQLite / WatermelonDB (Mobile)
 - **Cache Distribuído**: Redis (Hospedado no Render, integração via `Microsoft.Extensions.Caching.StackExchangeRedis`)
-- **Frontend**: Razor Views, HTML5, CSS3 Customizado, Bootstrap 5 e Bootstrap Icons
+- **Frontend Web**: Razor Views, HTML5, CSS3 Customizado, Bootstrap 5 e Bootstrap Icons
+- **Frontend Mobile**: React Native (React Native CLI)
 - **Geração de PDF**: QuestPDF (Licença Community)
 - **Infraestrutura e Deploy**: Docker (Multi-stage build), Docker Compose com persistência de volumes, Cloudflare Tunnel (Quick Tunnels para HTTPS público)
 
