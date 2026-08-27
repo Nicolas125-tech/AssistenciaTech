@@ -257,7 +257,7 @@ namespace AssistenciaTech.Controllers
                     page.Size(PageSizes.A4);
                     page.Margin(2, Unit.Centimetre);
                     page.PageColor(Colors.White);
-                    page.DefaultTextStyle(x => x.FontSize(11).FontFamily(Fonts.Arial));
+                    page.DefaultTextStyle(x => x.FontSize(11));
 
                     page.Header().Element(ComposeHeader);
                     page.Content().Element(ComposeContent);
