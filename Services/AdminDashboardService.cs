@@ -1,7 +1,8 @@
 using AssistenciaTech.Data;
 using AssistenciaTech.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Distributed;
+using AssistenciaTech.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -38,14 +39,14 @@ namespace AssistenciaTech.Services
     public class AdminDashboardService : IAdminDashboardService
     {
         private readonly AppDbContext _context;
-        private readonly IMemoryCache? _cache;
+        private readonly IDistributedCache? _cache;
         private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
         private const string CacheKeyStatusGroup = "AdminDashboard_StatusGroup";
         private const string CacheKeyTotalOrdens = "AdminDashboard_TotalOrdens";
 
         private readonly IEstoqueService _estoqueService;
 
-        public AdminDashboardService(AppDbContext context, IEstoqueService estoqueService, IMemoryCache? cache = null)
+        public AdminDashboardService(AppDbContext context, IEstoqueService estoqueService, IDistributedCache? cache = null)
         {
             _context = context;
             _estoqueService = estoqueService;
@@ -105,9 +106,12 @@ namespace AssistenciaTech.Services
             List<StatusGroupDto>? statusGroupDb = null;
             int totalOrdens;
 
+
             if (!hasFilters && _cache != null)
             {
-                if (!_cache.TryGetValue(CacheKeyStatusGroup, out statusGroupDb) || statusGroupDb == null)
+                statusGroupDb = await _cache.GetRecordAsync<List<StatusGroupDto>>(CacheKeyStatusGroup);
+
+                if (statusGroupDb == null)
                 {
                     statusGroupDb = await _context.OrdensServico
                         .GroupBy(o => o.Status)
@@ -119,15 +123,21 @@ namespace AssistenciaTech.Services
                         })
                         .ToListAsync();
 
-                    _cache.Set(CacheKeyStatusGroup, statusGroupDb, CacheDuration);
+                    await _cache.SetRecordAsync(CacheKeyStatusGroup, statusGroupDb, absoluteExpireTime: CacheDuration);
                 }
 
-                if (!_cache.TryGetValue(CacheKeyTotalOrdens, out totalOrdens))
+                var cachedTotalOrdens = await _cache.GetRecordAsync<int?>(CacheKeyTotalOrdens);
+                if (cachedTotalOrdens == null)
                 {
                     totalOrdens = await _context.OrdensServico.CountAsync();
-                    _cache.Set(CacheKeyTotalOrdens, totalOrdens, CacheDuration);
+                    await _cache.SetRecordAsync(CacheKeyTotalOrdens, (int?)totalOrdens, absoluteExpireTime: CacheDuration);
+                }
+                else
+                {
+                    totalOrdens = cachedTotalOrdens.Value;
                 }
             }
+
             else
             {
                 statusGroupDb = await query
