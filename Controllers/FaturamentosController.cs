@@ -10,6 +10,9 @@ using AssistenciaTech.Data;
 using AssistenciaTech.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Configuration;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 
 namespace AssistenciaTech.Controllers
 {
@@ -230,6 +233,117 @@ namespace AssistenciaTech.Controllers
             var xmlBytes = _xmlGenerator.GerarXml(faturamento);
 
             return File(xmlBytes, "application/xml", $"Nfse_Fatura_{id}.xml");
+        }
+
+        [HttpGet("Faturamentos/GerarReciboPagamento/{id}")]
+        public async Task<IActionResult> GerarReciboPagamento(int id)
+        {
+            var faturamento = await _context.Faturamentos
+                .Include(f => f.OrdemServico)
+                    .ThenInclude(os => os.Cliente)
+                .FirstOrDefaultAsync(f => f.Id == id);
+
+            if (faturamento == null) return NotFound("Faturamento não encontrado.");
+            if (faturamento.StatusPagamento != PagamentoStatus.Pago_Total) return BadRequest("Este faturamento ainda não foi pago.");
+            if (faturamento.OrdemServico == null || faturamento.OrdemServico.Cliente == null) return BadRequest("Dados da OS ou Cliente incompletos.");
+
+            var os = faturamento.OrdemServico;
+            var cliente = os.Cliente;
+
+            var document = Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(2, Unit.Centimetre);
+                    page.PageColor(Colors.White);
+                    page.DefaultTextStyle(x => x.FontSize(11).FontFamily(Fonts.Arial));
+
+                    page.Header().Element(ComposeHeader);
+                    page.Content().Element(ComposeContent);
+                    page.Footer().Element(ComposeFooter);
+
+                    void ComposeHeader(IContainer container)
+                    {
+                        container.Row(row =>
+                        {
+                            row.RelativeItem().Column(column =>
+                            {
+                                column.Item().Text("RECIBO DE PAGAMENTO").FontSize(20).SemiBold().FontColor(Colors.Blue.Darken2);
+                                column.Item().Text($"Fatura #{faturamento.Id} | OS #{os.Id}").FontSize(14).FontColor(Colors.Grey.Darken1);
+                                column.Item().Text($"Emissão: {DateTime.Now:dd/MM/yyyy HH:mm}");
+                            });
+                        });
+                    }
+
+                    void ComposeContent(IContainer container)
+                    {
+                        container.PaddingVertical(1, Unit.Centimetre).Column(column =>
+                        {
+                            column.Spacing(20);
+
+                            column.Item().Text(text =>
+                            {
+                                text.Span("Recebemos de ").SemiBold();
+                                text.Span($"{cliente.Nome} (CPF: {cliente.Cpf}), ").SemiBold();
+                                text.Span($"a importância de ");
+                                text.Span($"{faturamento.ValorTotal:C}").SemiBold().FontColor(Colors.Green.Darken2);
+                                text.Span(" referente ao pagamento integral dos serviços prestados na Ordem de Serviço ");
+                                text.Span($"#{os.Id}").SemiBold();
+                                text.Span($" ({os.Equipamento}).");
+                            });
+
+                            column.Item().Table(table =>
+                            {
+                                table.ColumnsDefinition(columns =>
+                                {
+                                    columns.RelativeColumn();
+                                    columns.RelativeColumn();
+                                });
+
+                                table.Header(header =>
+                                {
+                                    header.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).PaddingBottom(5).Text("Descrição").SemiBold();
+                                    header.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).PaddingBottom(5).AlignRight().Text("Valor").SemiBold();
+                                });
+
+                                table.Cell().PaddingVertical(5).Text("Mão de Obra");
+                                table.Cell().PaddingVertical(5).AlignRight().Text($"{os.CustoMaoDeObra:C}");
+
+                                table.Cell().PaddingVertical(5).Text("Peças");
+                                table.Cell().PaddingVertical(5).AlignRight().Text($"{os.CustoPecas:C}");
+
+                                if (os.DescontoAplicado > 0)
+                                {
+                                    table.Cell().PaddingVertical(5).Text("Desconto");
+                                    table.Cell().PaddingVertical(5).AlignRight().Text($"- {os.DescontoAplicado:C}").FontColor(Colors.Red.Medium);
+                                }
+
+                                table.Cell().BorderTop(1).BorderColor(Colors.Grey.Darken1).PaddingVertical(5).Text("Total Pago").SemiBold();
+                                table.Cell().BorderTop(1).BorderColor(Colors.Grey.Darken1).PaddingVertical(5).AlignRight().Text($"{faturamento.ValorTotal:C}").SemiBold().FontColor(Colors.Green.Darken2);
+                            });
+
+                            column.Item().PaddingTop(40).AlignCenter().Text("__________________________________________________");
+                            column.Item().AlignCenter().Text("AssistenciaTech").SemiBold();
+                            column.Item().AlignCenter().Text("Assinatura do Recebedor");
+                        });
+                    }
+
+                    void ComposeFooter(IContainer container)
+                    {
+                        container.AlignCenter().Text(x =>
+                        {
+                            x.Span("Gerado por TechOS - AssistenciaTech | Página ");
+                            x.CurrentPageNumber();
+                            x.Span(" de ");
+                            x.TotalPages();
+                        });
+                    }
+                });
+            });
+
+            var pdf = document.GeneratePdf();
+            return File(pdf, "application/pdf", $"Recibo_Fatura_{id}.pdf");
         }
     }
 }

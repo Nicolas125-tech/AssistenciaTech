@@ -44,7 +44,13 @@
                                 <a href="/Faturamentos/GerarXmlNfse/@item.Id" class="btn btn-sm btn-outline-secondary mb-1" target="_blank" title="Baixar XML da Nota Fiscal (NFS-e)">
                                     <i class="bi bi-filetype-xml"></i> XML NFS-e
                                 </a>
-                                @if (item.StatusPagamento != AssistenciaTech.Models.PagamentoStatus.Pago_Total)
+                                @if (item.StatusPagamento == AssistenciaTech.Models.PagamentoStatus.Pago_Total)
+                                {
+                                    <a href="/Faturamentos/GerarReciboPagamento/@item.Id" class="btn btn-sm btn-outline-primary mb-1" target="_blank" title="Imprimir Recibo de Pagamento">
+                                        <i class="bi bi-receipt"></i> Recibo
+                                    </a>
+                                }
+                                else
                                 {
                                     <button class="btn btn-sm btn-outline-info mb-1" onclick="alert('BR Code Pix: @item.QrCodePayload')">
                                         <i class="bi bi-qr-code-scan"></i> Ver PIX
