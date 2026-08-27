@@ -1,3 +1,5 @@
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
@@ -113,9 +115,6 @@ builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
 // Configuração do Data Protection (Persistindo chaves no banco de dados para suportar reinícios do contêiner)
 builder.Services.AddDataProtection()
     .PersistKeysToDbContext<AppDbContext>();
-
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
 
 // Configuração de Autenticação baseada em Cookies e JWT
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "UmaChaveSuperSecretaMuitoLongaParaOJWT12345!";
