@@ -6,6 +6,7 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Bootstrap 5](https://img.shields.io/badge/Bootstrap_5-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker&logoColor=white)
+![Redis](https://img.shields.io/badge/redis-%23DD0031.svg?style=for-the-badge&logo=redis&logoColor=white)
 
 O **TechOS** é um sistema completo (MVP) desenvolvido para automatizar e profissionalizar a gestão de lojas de informática e a operação de bancada de assistência técnica de computadores, impressoras e notebooks. Ele une uma área de consulta self-service para clientes a um painel administrativo seguro em Dark Mode para os técnicos.
 
@@ -25,6 +26,9 @@ O **TechOS** é um sistema completo (MVP) desenvolvido para automatizar e profis
 - **Notificações Telegram API**: Vinculação de clientes por webhook (criação automática de Chat IDs) e disparo em tempo real de atualizações do status da OS para o Telegram do cliente.
 - **CRUD e Controle de Status**: Controle rígido do ciclo de vida das Ordens de Serviço (OS) com as regras de negócio integradas e protegidas via State Pattern.
 - **Impressão de Recibos em PDF**: Geração instantânea de comprovantes em formato A4 contendo dados do serviço, diagnóstico e assinatura com a biblioteca **QuestPDF**.
+- **Cache Distribuído com Redis**: Otimização de alta performance com a integração do Redis (`IDistributedCache`) rodando em nuvem no Render.
+  - **Admin Dashboard**: Consultas analíticas pesadas (totais de ordens, faturamento, status) cacheadas por 5 minutos, poupando a carga de agrupamentos frequentes no banco de dados.
+  - **Gestão de Peças/Estoque**: Consultas de alertas de estoque cacheadas de forma durável (1 hora) com estratégia ativa de invalidação (*cache eviction*) durante a execução transacional de qualquer atualização ou dedução de estoque.
 
 ---
 
@@ -33,6 +37,7 @@ O **TechOS** é um sistema completo (MVP) desenvolvido para automatizar e profis
 - **Linguagem**: C# (.NET 8)
 - **Arquitetura**: Evoluindo para Clean Architecture com State Pattern no domínio.
 - **Banco de Dados**: PostgreSQL (com Entity Framework Core & Npgsql)
+- **Cache Distribuído**: Redis (Hospedado no Render, integração via `Microsoft.Extensions.Caching.StackExchangeRedis`)
 - **Frontend**: Razor Views, HTML5, CSS3 Customizado, Bootstrap 5 e Bootstrap Icons
 - **Geração de PDF**: QuestPDF (Licença Community)
 - **Infraestrutura e Deploy**: Docker (Multi-stage build), Docker Compose com persistência de volumes, Cloudflare Tunnel (Quick Tunnels para HTTPS público)
