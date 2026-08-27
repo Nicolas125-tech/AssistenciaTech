@@ -30,7 +30,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             // Arrange
 
             // Act
-            var result = _controller.Index();
+            var result = _controller.Index(null);
 
             // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Which;

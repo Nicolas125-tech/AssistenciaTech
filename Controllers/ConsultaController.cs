@@ -40,44 +40,53 @@ namespace AssistenciaTech.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Status(int numeroOS, string cpf)
         {
-            // Validação básica de campos
-            if (numeroOS <= 0 || string.IsNullOrWhiteSpace(cpf) || cpf.Length > 20)
+            try
             {
-                ViewBag.Erro = "Por favor, preencha o número da OS e o CPF.";
-                return View("Index");
-            }
-
-            // Remove pontuação do CPF para consulta, caso o cliente digite formatado
-            string cpfLimpo = ObterApenasNumeros(cpf);
-
-            // Busca a Ordem de Serviço pelo número e verifica se o CPF do cliente está correto (ignorando pontuações salvas no banco)
-            var ordem = await _context.OrdensServico
-                                .AsNoTracking()
-                                .Include(o => o.Cliente) // Faz o JOIN com a tabela de Clientes
-                                .FirstOrDefaultAsync(o => o.Id == numeroOS);
-
-            if (ordem != null)
-            {
-                if (ordem.Cliente?.Cpf == null)
+                // Validação básica de campos
+                if (numeroOS <= 0 || string.IsNullOrWhiteSpace(cpf) || cpf.Length > 20)
                 {
-                    ordem = null;
+                    ViewBag.Erro = "Por favor, preencha o número da OS e o CPF.";
+                    return View("Index");
                 }
-                else
+
+                // Remove pontuação do CPF para consulta, caso o cliente digite formatado
+                string cpfLimpo = ObterApenasNumeros(cpf ?? string.Empty);
+
+                // Busca a Ordem de Serviço pelo número e verifica se o CPF do cliente está correto (ignorando pontuações salvas no banco)
+                var ordem = await _context.OrdensServico
+                                    .AsNoTracking()
+                                    .Include(o => o.Cliente) // Faz o JOIN com a tabela de Clientes
+                                    .FirstOrDefaultAsync(o => o.Id == numeroOS);
+
+                if (ordem != null)
                 {
-                    string cpfBancoLimpo = ObterApenasNumeros(ordem.Cliente.Cpf);
-                    if (cpfBancoLimpo != cpfLimpo)
+                    if (ordem.Cliente?.Cpf == null)
+                    {
                         ordem = null;
+                    }
+                    else
+                    {
+                        string cpfBancoLimpo = ObterApenasNumeros(ordem.Cliente.Cpf);
+                        if (cpfBancoLimpo != cpfLimpo)
+                            ordem = null;
+                    }
                 }
-            }
 
-            if (ordem == null)
+                if (ordem == null)
+                {
+                    ViewBag.Erro = "Ordem de Serviço não encontrada ou CPF inválido.";
+                    return View("Index");
+                }
+
+                // Se encontrou, retorna uma View mostrando os detalhes e o status
+                return View("Detalhes", ordem);
+            }
+            catch (Exception ex)
             {
-                ViewBag.Erro = "Ordem de Serviço não encontrada ou CPF inválido.";
+                // Log the exception here if a logger is available
+                ViewBag.Erro = "Ocorreu um erro ao processar sua solicitação: " + ex.Message;
                 return View("Index");
             }
-
-            // Se encontrou, retorna uma View mostrando os detalhes e o status
-            return View("Detalhes", ordem);
         }
 
         private static string ObterApenasNumeros(string? input)
