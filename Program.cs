@@ -114,13 +114,39 @@ builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
 builder.Services.AddDataProtection()
     .PersistKeysToDbContext<AppDbContext>();
 
-// Configuração de Autenticação baseada em Cookies
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+
+// Configuração de Autenticação baseada em Cookies e JWT
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "UmaChaveSuperSecretaMuitoLongaParaOJWT12345!";
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "AssistenciaTech";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "AssistenciaTechMobile";
+
+builder.Services.AddAuthentication(options => 
+{
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+})
     .AddCookie(options =>
     {
         options.LoginPath = "/Account/Login";
         options.AccessDeniedPath = "/Account/AccessDenied";
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
+    })
+    .AddJwtBearer(options =>
+    {
+        options.RequireHttpsMetadata = false; // Em produção, configure como true se usar HTTPS
+        options.SaveToken = true;
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            ValidateIssuer = true,
+            ValidIssuer = jwtIssuer,
+            ValidateAudience = true,
+            ValidAudience = jwtAudience,
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
     });
 
 // Configuração da Licença do QuestPDF

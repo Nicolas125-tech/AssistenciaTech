@@ -6,19 +6,69 @@ using Microsoft.EntityFrameworkCore;
 using AssistenciaTech.Data;
 using AssistenciaTech.Models;
 using System.Security.Claims;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace AssistenciaTech.Controllers
 {
     [ApiController]
     [Route("api/mobile")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class MobileApiController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public MobileApiController(AppDbContext context)
+        public MobileApiController(AppDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
+        }
+
+        public class MobileLoginRequest
+        {
+            public string Username { get; set; } = string.Empty;
+            public string Password { get; set; } = string.Empty;
+        }
+
+        [AllowAnonymous]
+        [HttpPost("login")]
+        public IActionResult Login([FromBody] MobileLoginRequest request)
+        {
+            // MOCK: Em produção você deve checar no _context.Usuarios e validar a senha (hash).
+            // Para testar, vamos permitir o usuário "admin" / "Admin@123" e associar ao Técnico ID 1
+            if (request.Username == "admin" && request.Password == "Admin@123")
+            {
+                var claims = new[]
+                {
+                    new Claim(ClaimTypes.NameIdentifier, "1"), // TecnicoId 1
+                    new Claim(ClaimTypes.Name, request.Username)
+                };
+
+                var keyStr = _configuration["Jwt:Key"] ?? "UmaChaveSuperSecretaMuitoLongaParaOJWT123456789_AppMobile_AssistenciaTech!";
+                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyStr));
+                var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+                var token = new JwtSecurityToken(
+                    issuer: _configuration["Jwt:Issuer"] ?? "AssistenciaTech",
+                    audience: _configuration["Jwt:Audience"] ?? "AssistenciaTechMobile",
+                    claims: claims,
+                    expires: DateTime.Now.AddDays(7),
+                    signingCredentials: creds
+                );
+
+                return Ok(new
+                {
+                    token = new JwtSecurityTokenHandler().WriteToken(token),
+                    tecnicoId = 1,
+                    nome = "Técnico Administrador"
+                });
+            }
+
+            return Unauthorized(new { error = "Usuário ou senha inválidos." });
         }
 
         public class CheckInRequest
@@ -104,6 +154,51 @@ namespace AssistenciaTech.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new { status = "success", message = "Visita finalizada e OS atualizada." });
+        }
+        public class VisitaCampoSyncDto
+        {
+            public string? OfflineId { get; set; } // ID no app local
+            public int OrdemServicoId { get; set; }
+            public DateTime CheckIn { get; set; }
+            public DateTime? CheckOut { get; set; }
+            public decimal? Latitude { get; set; }
+            public decimal? Longitude { get; set; }
+            public string? AssinaturaClienteBase64 { get; set; }
+        }
+
+        [HttpPost("sync/visitas")]
+        public async Task<IActionResult> SyncVisitas([FromBody] List<VisitaCampoSyncDto> visitasDto)
+        {
+            var tecnicoIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(tecnicoIdClaim) || !int.TryParse(tecnicoIdClaim, out int tecnicoId))
+            {
+                return Unauthorized(new { error = "Técnico não autenticado." });
+            }
+
+            if (visitasDto == null || !visitasDto.Any())
+                return BadRequest(new { error = "Nenhum dado para sincronizar." });
+
+            var novasVisitas = new List<VisitaCampo>();
+
+            foreach (var dto in visitasDto)
+            {
+                var visita = new VisitaCampo
+                {
+                    OrdemServicoId = dto.OrdemServicoId,
+                    TecnicoId = tecnicoId,
+                    CheckIn = dto.CheckIn,
+                    CheckOut = dto.CheckOut,
+                    Latitude = dto.Latitude,
+                    Longitude = dto.Longitude,
+                    AssinaturaClienteBase64 = dto.AssinaturaClienteBase64
+                };
+                novasVisitas.Add(visita);
+            }
+
+            _context.VisitasCampo.AddRange(novasVisitas);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { status = "success", message = $"{novasVisitas.Count} visitas sincronizadas com sucesso." });
         }
     }
 }
