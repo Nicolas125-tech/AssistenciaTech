@@ -18,11 +18,19 @@ namespace AssistenciaTech.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly AssistenciaTech.Services.ITributacaoService _tributacaoService;
+        private readonly AssistenciaTech.Services.INfseXmlGeneratorService _xmlGenerator;
 
-        public FaturamentosController(AppDbContext context, IConfiguration configuration)
+        public FaturamentosController(
+            AppDbContext context, 
+            IConfiguration configuration,
+            AssistenciaTech.Services.ITributacaoService tributacaoService,
+            AssistenciaTech.Services.INfseXmlGeneratorService xmlGenerator)
         {
             _context = context;
             _configuration = configuration;
+            _tributacaoService = tributacaoService;
+            _xmlGenerator = xmlGenerator;
         }
 
         public async Task<IActionResult> Index()
@@ -41,6 +49,9 @@ namespace AssistenciaTech.Controllers
 
             decimal total = (os.CustoPecas + os.CustoMaoDeObra) - os.DescontoAplicado;
 
+            // Calcular Tributos via Domain Service
+            var tributos = _tributacaoService.CalcularTributos(os);
+
             // Simulação de geração de Payload PIX Dinâmico (BR Code)
             string txId = Guid.NewGuid().ToString("N").Substring(0, 25);
             string qrcodeBase = $"00020101021226580014br.gov.bcb.pix0136{Guid.NewGuid()}5204000053039865405{total.ToString("0.00").Replace(",", ".")}5802BR5915AssistenciaTech6009Sao Paulo62290525{txId}6304ABCD";
@@ -52,7 +63,16 @@ namespace AssistenciaTech.Controllers
                 DataVencimento = DateTime.UtcNow.AddDays(3),
                 StatusPagamento = PagamentoStatus.Pendente,
                 TxIdPix = txId,
-                QrCodePayload = qrcodeBase
+                QrCodePayload = qrcodeBase,
+                
+                // Gravar os impostos desmembrados
+                BaseCalculoISS = tributos.BaseCalculoISS,
+                AliquotaISS = tributos.AliquotaISS,
+                ValorISS = tributos.ValorISS,
+                
+                BaseCalculoICMS = tributos.BaseCalculoICMS,
+                AliquotaICMS = tributos.AliquotaICMS,
+                ValorICMS = tributos.ValorICMS
             };
 
             _context.Faturamentos.Add(faturamento);
@@ -196,6 +216,23 @@ namespace AssistenciaTech.Controllers
                 await _context.SaveChangesAsync();
             }
             return RedirectToAction(nameof(Index));
+        }
+
+        [HttpGet("Faturamentos/GerarXmlNfse/{id}")]
+        public async Task<IActionResult> GerarXmlNfse(int id)
+        {
+            var faturamento = await _context.Faturamentos
+                .Include(f => f.OrdemServico)
+                    .ThenInclude(os => os.Cliente)
+                .FirstOrDefaultAsync(f => f.Id == id);
+
+            if (faturamento == null) return NotFound("Faturamento não encontrado.");
+            if (faturamento.OrdemServico == null || faturamento.OrdemServico.Cliente == null)
+                return BadRequest("Dados da OS ou Cliente estão incompletos.");
+
+            var xmlBytes = _xmlGenerator.GerarXml(faturamento);
+
+            return File(xmlBytes, "application/xml", $"Nfse_Fatura_{id}.xml");
         }
     }
 }

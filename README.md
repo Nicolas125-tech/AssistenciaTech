@@ -26,6 +26,9 @@ O **TechOS** é um sistema completo (MVP) desenvolvido para automatizar e profis
 - **Notificações Telegram API**: Vinculação de clientes por webhook (criação automática de Chat IDs) e disparo em tempo real de atualizações do status da OS para o Telegram do cliente.
 - **CRUD e Controle de Status**: Controle rígido do ciclo de vida das Ordens de Serviço (OS) com as regras de negócio integradas e protegidas via State Pattern.
 - **Impressão de Recibos em PDF**: Geração instantânea de comprovantes em formato A4 contendo dados do serviço, diagnóstico e assinatura com a biblioteca **QuestPDF**.
+- **Módulo de Tributação e NFS-e**: Arquitetura DDD aplicada para isolar regras de negócio na precificação e faturamento.
+  - **Cálculo Tributário Automático**: Desmembramento dinâmico de ISS (5% sobre mão de obra) e ICMS (18% sobre peças) executado isoladamente na camada de Domain Services durante o fechamento da OS.
+  - **Geração de XML (Padrão ABRASF)**: Exportação programática (`System.Xml.Linq`) do arquivo XML de Nota Fiscal de Serviço eletrônica (NFS-e), com codificação UTF-8 rigorosa e injeção automática de namespaces, tags do Prestador, Tomador e valores declarados, pronto para envio ao webservice da prefeitura.
 - **Cache Distribuído com Redis**: Otimização de alta performance com a integração do Redis (`IDistributedCache`) rodando em nuvem no Render.
   - **Admin Dashboard**: Consultas analíticas pesadas (totais de ordens, faturamento, status) cacheadas por 5 minutos, poupando a carga de agrupamentos frequentes no banco de dados.
   - **Gestão de Peças/Estoque**: Consultas de alertas de estoque cacheadas de forma durável (1 hora) com estratégia ativa de invalidação (*cache eviction*) durante a execução transacional de qualquer atualização ou dedução de estoque.
