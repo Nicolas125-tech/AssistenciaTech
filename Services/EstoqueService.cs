@@ -60,7 +60,14 @@ namespace AssistenciaTech.Services
 
             if (_cache != null)
             {
-                await _cache.RemoveAsync(CacheKeyAlertasEstoque);
+                try
+                {
+                    await _cache.RemoveAsync(CacheKeyAlertasEstoque);
+                }
+                catch
+                {
+                    // Redis indisponível — segue sem invalidar cache
+                }
             }
             return true;
         }
@@ -91,7 +98,14 @@ namespace AssistenciaTech.Services
 
             if (_cache != null)
             {
-                await _cache.RemoveAsync(CacheKeyAlertasEstoque);
+                try
+                {
+                    await _cache.RemoveAsync(CacheKeyAlertasEstoque);
+                }
+                catch
+                {
+                    // Redis indisponível — segue sem invalidar cache
+                }
             }
             return true;
         }
@@ -104,10 +118,17 @@ namespace AssistenciaTech.Services
         {
             if (_cache != null)
             {
-                var cached = await _cache.GetRecordAsync<List<AssistenciaTech.Models.Peca>>(CacheKeyAlertasEstoque);
-                if (cached != null)
+                try
                 {
-                    return cached;
+                    var cached = await _cache.GetRecordAsync<List<AssistenciaTech.Models.Peca>>(CacheKeyAlertasEstoque);
+                    if (cached != null)
+                    {
+                        return cached;
+                    }
+                }
+                catch
+                {
+                    // Redis indisponível — segue para o banco
                 }
             }
 
@@ -119,7 +140,14 @@ namespace AssistenciaTech.Services
 
             if (_cache != null)
             {
-                await _cache.SetRecordAsync(CacheKeyAlertasEstoque, result, absoluteExpireTime: CacheDuration);
+                try
+                {
+                    await _cache.SetRecordAsync(CacheKeyAlertasEstoque, result, absoluteExpireTime: CacheDuration);
+                }
+                catch
+                {
+                    // Falha ao gravar no Redis — segue sem cache
+                }
             }
 
             return result;

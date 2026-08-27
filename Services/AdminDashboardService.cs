@@ -109,7 +109,15 @@ namespace AssistenciaTech.Services
 
             if (!hasFilters && _cache != null)
             {
-                statusGroupDb = await _cache.GetRecordAsync<List<StatusGroupDto>>(CacheKeyStatusGroup);
+                try
+                {
+                    statusGroupDb = await _cache.GetRecordAsync<List<StatusGroupDto>>(CacheKeyStatusGroup);
+                }
+                catch
+                {
+                    // Redis indisponível — ignora e segue para o banco
+                    statusGroupDb = null;
+                }
 
                 if (statusGroupDb == null)
                 {
@@ -123,14 +131,37 @@ namespace AssistenciaTech.Services
                         })
                         .ToListAsync();
 
-                    await _cache.SetRecordAsync(CacheKeyStatusGroup, statusGroupDb, absoluteExpireTime: CacheDuration);
+                    try
+                    {
+                        await _cache.SetRecordAsync(CacheKeyStatusGroup, statusGroupDb, absoluteExpireTime: CacheDuration);
+                    }
+                    catch
+                    {
+                        // Falha ao gravar no Redis — segue sem cache
+                    }
                 }
 
-                var cachedTotalOrdens = await _cache.GetRecordAsync<int?>(CacheKeyTotalOrdens);
+                int? cachedTotalOrdens = null;
+                try
+                {
+                    cachedTotalOrdens = await _cache.GetRecordAsync<int?>(CacheKeyTotalOrdens);
+                }
+                catch
+                {
+                    // Redis indisponível
+                }
+
                 if (cachedTotalOrdens == null)
                 {
                     totalOrdens = await _context.OrdensServico.CountAsync();
-                    await _cache.SetRecordAsync(CacheKeyTotalOrdens, (int?)totalOrdens, absoluteExpireTime: CacheDuration);
+                    try
+                    {
+                        await _cache.SetRecordAsync(CacheKeyTotalOrdens, (int?)totalOrdens, absoluteExpireTime: CacheDuration);
+                    }
+                    catch
+                    {
+                        // Falha ao gravar no Redis
+                    }
                 }
                 else
                 {

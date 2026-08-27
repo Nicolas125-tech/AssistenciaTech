@@ -32,16 +32,28 @@ if (string.IsNullOrEmpty(redisConnectionString))
 }
 if (!string.IsNullOrEmpty(redisConnectionString))
 {
+    // Garante timeouts curtos e abortConnect=false para não travar a app se o Redis estiver fora
+    if (!redisConnectionString.Contains("abortConnect", StringComparison.OrdinalIgnoreCase))
+    {
+        redisConnectionString += ",abortConnect=false";
+    }
+    if (!redisConnectionString.Contains("connectTimeout", StringComparison.OrdinalIgnoreCase))
+    {
+        redisConnectionString += ",connectTimeout=2000,syncTimeout=2000";
+    }
+
     builder.Services.AddStackExchangeRedisCache(options =>
     {
         options.Configuration = redisConnectionString;
         options.InstanceName = "AssistenciaTech_";
     });
+    Console.WriteLine("[Cache] Redis configurado com sucesso.");
 }
 else
 {
     // Fallback para memória se o Redis não estiver configurado
     builder.Services.AddDistributedMemoryCache();
+    Console.WriteLine("[Cache] Redis não configurado. Usando cache em memória (fallback).");
 }
 
 
