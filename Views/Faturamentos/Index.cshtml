@@ -1,10 +1,10 @@
 @model IEnumerable<AssistenciaTech.Models.Faturamento>
 @{
-    ViewData["Title"] = "Gestão de Faturamentos (PIX)";
+    ViewData["Title"] = "Gestão de Faturamentos (PIX e Tributação)";
 }
 <div class="container-fluid mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Faturamentos & PIX Dinâmico</h2>
+        <h2>Faturamentos, Tributação e PIX</h2>
     </div>
     <div class="card shadow mb-4">
         <div class="card-body">
@@ -14,6 +14,7 @@
                         <th>ID Fatura</th>
                         <th>OS #</th>
                         <th>Valor Total</th>
+                        <th>Tributos Calculados (NFS-e)</th>
                         <th>Vencimento</th>
                         <th>Status</th>
                         <th class="text-center">Ações</th>
@@ -25,6 +26,10 @@
                             <td class="fw-bold">@item.Id</td>
                             <td>@item.OrdemServicoId</td>
                             <td>@item.ValorTotal.ToString("C")</td>
+                            <td style="font-size: 0.85rem;">
+                                <strong>ISS (Mão de Obra):</strong> @item.ValorISS.ToString("C") <br/>
+                                <strong>ICMS (Peças):</strong> @item.ValorICMS.ToString("C")
+                            </td>
                             <td>@item.DataVencimento.ToString("dd/MM/yyyy")</td>
                             <td>
                                 @if (item.StatusPagamento == AssistenciaTech.Models.PagamentoStatus.Pago_Total) {
@@ -36,13 +41,16 @@
                                 }
                             </td>
                             <td class="text-center">
+                                <a href="/Faturamentos/GerarXmlNfse/@item.Id" class="btn btn-sm btn-outline-secondary mb-1" target="_blank" title="Baixar XML da Nota Fiscal (NFS-e)">
+                                    <i class="bi bi-filetype-xml"></i> XML NFS-e
+                                </a>
                                 @if (item.StatusPagamento != AssistenciaTech.Models.PagamentoStatus.Pago_Total)
                                 {
-                                    <button class="btn btn-sm btn-outline-info" onclick="alert('BR Code Pix: @item.QrCodePayload')">
+                                    <button class="btn btn-sm btn-outline-info mb-1" onclick="alert('BR Code Pix: @item.QrCodePayload')">
                                         <i class="bi bi-qr-code-scan"></i> Ver PIX
                                     </button>
                                     <form asp-action="MarcarPago" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Marcar como Pago Totalmente?');">
-                                        <button type="submit" class="btn btn-sm btn-outline-success"><i class="bi bi-check-circle"></i> Marcar Pago</button>
+                                        <button type="submit" class="btn btn-sm btn-outline-success mb-1"><i class="bi bi-check-circle"></i> Marcar Pago</button>
                                     </form>
                                 }
                             </td>
