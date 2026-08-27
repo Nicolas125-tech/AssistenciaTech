@@ -16,3 +16,7 @@ obj/
 agy.exe
 appsettings.Development.json
 perf_test/
+
+agy.exe.*
+*.zip
+gitguard-report-*
