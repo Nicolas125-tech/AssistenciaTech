@@ -389,5 +389,52 @@ namespace AssistenciaTech.Application.Tests
             equipamentoInDb.Descricao.Should().Be("Notebook Lenovo ThinkPad");
             equipamentoInDb.NumeroSerie.Should().Be("SN001-UPDATED");
         }
+
+
+        [Fact]
+        public async Task DeleteConfirmed_WhenEquipamentoExists_RemovesFromDatabaseAndRedirects()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var context = new AppDbContext(options);
+            var equipamento = new EquipamentoBackup { Id = 1, Descricao = "Test", NumeroSerie = "123", Disponivel = true };
+            context.EquipamentosBackup.Add(equipamento);
+            await context.SaveChangesAsync();
+            context.ChangeTracker.Clear();
+
+            var controller = new EquipamentoBackupController(context);
+
+            // Act
+            var result = await controller.DeleteConfirmed(1);
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectResult.ActionName.Should().Be("Index");
+
+            var equipamentoInDb = await context.EquipamentosBackup.FindAsync(1);
+            equipamentoInDb.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task DeleteConfirmed_WhenEquipamentoDoesNotExist_DoesNothingAndRedirects()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var context = new AppDbContext(options);
+            var controller = new EquipamentoBackupController(context);
+
+            // Act
+            var result = await controller.DeleteConfirmed(999);
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectResult.ActionName.Should().Be("Index");
+        }
     }
 }
