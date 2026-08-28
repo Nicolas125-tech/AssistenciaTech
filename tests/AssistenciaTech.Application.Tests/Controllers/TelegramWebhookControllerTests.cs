@@ -216,5 +216,36 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 Times.Once
             );
         }
+
+        [Fact]
+        public async Task Webhook_NoTelegramToken_ReturnsOkAndDoesNotSendHttpClient()
+        {
+            // Arrange
+            var _mockConfigEmpty = new Mock<IConfiguration>();
+            _mockConfigEmpty.Setup(c => c["TelegramBotToken"]).Returns(string.Empty);
+
+            var _controllerEmptyToken = new TelegramWebhookController(_context, _mockLogger.Object, _httpClient, _mockConfigEmpty.Object);
+
+            var cliente = new Cliente { Nome = "Test Cliente", Email = "test@example.com" };
+            _context.Clientes.Add(cliente);
+            await _context.SaveChangesAsync();
+
+            var chatId = 987654321;
+            var json = CreateUpdateJson($"/start {cliente.Id}", chatId);
+
+            // Act
+            var result = await _controllerEmptyToken.Webhook(json);
+
+            // Assert
+            result.Should().BeOfType<OkResult>();
+
+            // Verify HttpClient was NOT called to send message because token is empty
+            _mockHttpMessageHandler.Protected().Verify(
+                "SendAsync",
+                Times.Never(),
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>()
+            );
+        }
     }
 }
