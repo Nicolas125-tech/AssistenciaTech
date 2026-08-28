@@ -9,6 +9,7 @@ using AssistenciaTech.Data;
 using AssistenciaTech.Models;
 using AssistenciaTech.DTOs;
 using AssistenciaTech.Services;
+
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -22,10 +23,6 @@ using Xunit;
 
 namespace AssistenciaTech.Application.Tests.Controllers
 {
-    public class TestDbException : System.Data.Common.DbException
-    {
-        public TestDbException(string message) : base(message) { }
-    }
 
     public class AdminControllerTests : IDisposable
     {
@@ -60,7 +57,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             _mockScopeFactory.Setup(s => s.CreateScope()).Returns(mockScope.Object);
 
             var _mockEquipamentoBackupService = new Mock<IEquipamentoBackupService>();
-            var _mockNotificationService = new Mock<AssistenciaTech.Application.Interfaces.INotificationService>();
+            var _mockNotificationService = new Mock<AssistenciaTech.Services.INotificationService>();
             _controller = new AdminController(
                 _context,
                 _mockEstoqueService.Object,
@@ -393,7 +390,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 _mockDashboardService.Object,
                 new Mock<IEquipamentoBackupService>().Object,
                 _mockLogger.Object,
-                _mockScopeFactory.Object
+                _mockScopeFactory.Object,
+                new Mock<INotificationService>().Object
             );
 
             var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
@@ -416,7 +414,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
                     It.IsAny<EventId>(),
                     It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Erro ao salvar a Ordem de Serviço")),
                     It.IsAny<Exception>(),
-                    It.Is<Func<It.IsAnyType, Exception, string>>((v, t) => true)),
+                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
                 Times.Once);
 
             localController.Dispose();
@@ -436,7 +434,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 _mockDashboardService.Object,
                 new Mock<IEquipamentoBackupService>().Object,
                 _mockLogger.Object,
-                _mockScopeFactory.Object
+                _mockScopeFactory.Object,
+                new Mock<INotificationService>().Object
             );
 
             var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
@@ -764,7 +763,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 _mockDashboardService.Object,
                 mockEquipamentoBackupService.Object,
                 _mockLogger.Object,
-                _mockScopeFactory.Object
+                _mockScopeFactory.Object,
+                new Mock<INotificationService>().Object
             );
 
             var osAlterada = new OrdemServico { Id = 102, Equipamento = "PC Atualizado", Status = "Orçamento", ClienteId = 1 };
@@ -783,7 +783,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
                     It.IsAny<EventId>(),
                     It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("DB_UPDATE_ERROR_EDIT")),
                     It.IsAny<Exception>(),
-                    It.Is<Func<It.IsAnyType, Exception, string>>((v, t) => true)),
+                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
                 Times.Once);
 
             localController.Dispose();
@@ -851,6 +851,44 @@ namespace AssistenciaTech.Application.Tests.Controllers
         }
 
 
+
+
+        [Fact]
+        public async Task ImprimirOs_ReturnsFileResult_WithExpectedFileName_WhenClienteIsNull()
+        {
+            // Arrange
+            var cliente = new Cliente { Nome = "Cliente Temp", Email = "x@x.com", Telefone = "123" };
+            _context.Clientes.Add(cliente);
+            await _context.SaveChangesAsync();
+
+            var os = new OrdemServico { ClienteId = cliente.Id, Status = "Orçamento", Equipamento = "PC Sem Cliente" };
+            _context.OrdensServico.Add(os);
+            await _context.SaveChangesAsync();
+
+            var savedId = os.Id;
+
+            var dummyPdfBytes = new byte[] { 4, 5, 6 };
+            _mockPdfGeneratorService.Setup(s => s.GenerateOsPdf(It.IsAny<OrdemServico>()))
+                                    .Returns(dummyPdfBytes);
+
+            // Mock an OS with null client directly in memory by fetching it and setting client to null
+            var fetchedOs = await _context.OrdensServico.Include(o => o.Cliente).FirstOrDefaultAsync(o => o.Id == savedId);
+            fetchedOs.Cliente = null; // Setting to null manually to test ImprimirOs string formatting
+
+            // Act
+            var result = await _controller.ImprimirOs(savedId);
+
+            // Assert
+            var fileResult = result.Should().BeOfType<FileContentResult>().Subject;
+            fileResult.ContentType.Should().Be("application/pdf");
+            // Since we mocked fetchedOs.Cliente = null, but the controller executes its own query `_context.OrdensServico.Include...`
+            // the controller will fetch it fresh from the InMemory db, which means Cliente will be loaded.
+            // Oh, since they share the same _context instance, the object is tracked!
+            // Wait, if it's tracked and we set it to null, will EF Core return it with null? Yes, because FirstOrDefaultAsync returns the tracked entity instance!
+
+            fileResult.FileDownloadName.Should().Be($"OS_{savedId}_.pdf");
+            fileResult.FileContents.Should().BeEquivalentTo(dummyPdfBytes);
+        }
 
         [Fact]
         public async Task Delete_OSComPecasUtilizadas_DeveRetornarRedirectComErro()
@@ -1036,7 +1074,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             var exceptionContext = new TestExceptionDbContext(options);
 
             var _mockEquipamentoBackupService = new Mock<IEquipamentoBackupService>();
-            var _mockNotificationService = new Mock<AssistenciaTech.Application.Interfaces.INotificationService>();
+            var _mockNotificationService = new Mock<AssistenciaTech.Services.INotificationService>();
             var localController = new AdminController(
                 exceptionContext,
                 _mockEstoqueService.Object,
@@ -1045,7 +1083,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 _mockDashboardService.Object,
                 _mockEquipamentoBackupService.Object,
                 _mockLogger.Object,
-                _mockScopeFactory.Object
+                _mockScopeFactory.Object,
+                new Mock<INotificationService>().Object
             );
 
             // Act
@@ -1064,7 +1103,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
                     It.IsAny<EventId>(),
                     It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("DB_DELETE_ERROR")),
                     It.IsAny<Exception>(),
-                    It.Is<Func<It.IsAnyType, Exception, string>>((v, t) => true)),
+                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
                 Times.Once);
 
             localController.Dispose();
