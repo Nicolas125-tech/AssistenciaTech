@@ -1089,12 +1089,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
         public void Dispose()
         {
             // We might have disposed the context in the test above, so we handle it gracefully
-            try
-            {
-                _context.Database.EnsureDeleted();
-                _context.Dispose();
-            }
-            catch (Exception ex) { Console.WriteLine($"Error during test teardown: {ex.Message}"); }
+            _context.Database.EnsureDeleted();
+            _context.Dispose();
             _controller.Dispose();
         }
     }
