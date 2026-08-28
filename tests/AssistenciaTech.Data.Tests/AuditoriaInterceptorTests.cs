@@ -131,16 +131,13 @@ namespace AssistenciaTech.Data.Tests
 
             // Assert
             var auditLogs = await testContext.AuditoriaOS.ToListAsync();
-            auditLogs.Should().HaveCount(2);
+            auditLogs.Should().HaveCount(1);
 
-            var statusLog = auditLogs.Single(a => a.CampoAlterado == nameof(OrdemServico.Status));
-            statusLog.Usuario.Should().Be("TechUser");
-            statusLog.ValorAntigo.Should().Be("Aberto");
-            statusLog.ValorNovo.Should().Be("Em Andamento");
-
-            var equipLog = auditLogs.Single(a => a.CampoAlterado == nameof(OrdemServico.Equipamento));
-            equipLog.ValorAntigo.Should().Be("Equip 1");
-            equipLog.ValorNovo.Should().Be("Equip 1 - Modified");
+            var log = auditLogs.Single();
+            log.CampoAlterado.Should().Be("MÚLTIPLOS");
+            log.Usuario.Should().Be("TechUser");
+            log.DetalhesAlteracao.Should().Contain("Equip 1 - Modified");
+            log.DetalhesAlteracao.Should().Contain("Em Andamento");
         }
 
         [Fact]
