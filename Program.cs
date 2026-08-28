@@ -193,8 +193,9 @@ using (var scope = app.Services.CreateScope())
 
         if (string.IsNullOrEmpty(adminHash))
         {
-            var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<AssistenciaTech.Models.Usuario>();
-            adminHash = hasher.HashPassword(new AssistenciaTech.Models.Usuario(), "Admin@123");
+            var logger = services.GetRequiredService<ILogger<Program>>();
+            logger.LogCritical("CRITICAL SECURITY ERROR: The administrator password hash is not configured. You must provide a secure password hash via the 'AdminCredentials:PasswordHash' configuration or environment variable (AdminCredentials__PasswordHash).");
+            throw new InvalidOperationException("Missing required configuration: AdminCredentials:PasswordHash is not set.");
         }
 
         if (!context.Usuarios.Any(u => u.Username == adminUser))
