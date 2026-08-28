@@ -29,6 +29,24 @@ namespace AssistenciaTech.Application.Tests
         }
 
         [Fact]
+        public void Create_Get_ReturnsViewResult()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var context = new AppDbContext(options);
+            var controller = new EquipamentoBackupController(context);
+
+            // Act
+            var result = controller.Create();
+
+            // Assert
+            result.Should().BeOfType<ViewResult>();
+        }
+
+        [Fact]
         public async Task Edit_WhenIdIsNull_ReturnsNotFound()
         {
             // Arrange
