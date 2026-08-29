@@ -44,6 +44,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             _context = new AppDbContext(options);
             _mockEstoqueService = new Mock<IEstoqueService>();
             _mockEnv = new Mock<IWebHostEnvironment>();
+            _mockEnv.Setup(m => m.ContentRootPath).Returns(Path.Combine(Path.GetTempPath(), "AssistenciaTechTests_" + Guid.NewGuid().ToString()));
             _mockPdfGeneratorService = new Mock<IPdfGeneratorService>();
             _mockDashboardService = new Mock<IAdminDashboardService>();
             _mockLogger = new Mock<ILogger<AdminController>>();
@@ -547,18 +548,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             result.Should().BeOfType<BadRequestResult>();
         }
 
-        [Theory]
-        [InlineData("..file.jpg")]
-        [InlineData("file/name.jpg")]
-        [InlineData("file\\name.jpg")]
-        public void GetEvidencia_InvalidCharactersInFileName_ReturnsBadRequest(string fileName)
-        {
-            // Act
-            var result = _controller.GetEvidencia(fileName);
 
-            // Assert
-            result.Should().BeOfType<BadRequestResult>();
-        }
 
         [Theory]
         [InlineData("test.txt")]
@@ -1108,6 +1098,76 @@ namespace AssistenciaTech.Application.Tests.Controllers
 
             localController.Dispose();
             exceptionContext.Dispose();
+        }
+
+
+
+        [Fact]
+        public void GetEvidencia_NullFileName_NoArg_ReturnsBadRequest()
+        {
+            // Act
+            var result = _controller.GetEvidencia(null);
+
+            // Assert
+            result.Should().BeOfType<BadRequestResult>();
+        }
+
+        [Fact]
+        public void GetEvidencia_EmptyFileName_NoArg_ReturnsBadRequest()
+        {
+            // Act
+            var result = _controller.GetEvidencia("");
+
+            // Assert
+            result.Should().BeOfType<BadRequestResult>();
+        }
+
+        [Fact]
+        public void GetEvidencia_PathTraversal_NoArg_ReturnsBadRequest()
+        {
+            // Act
+            var result = _controller.GetEvidencia("../secret.txt");
+
+            // Assert
+            result.Should().BeOfType<BadRequestResult>();
+        }
+
+        [Fact]
+        public void GetEvidencia_FileNotFound_NoArg_ReturnsNotFound()
+        {
+            // Act
+            var result = _controller.GetEvidencia("nonexistent.jpg");
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Fact]
+        public void GetEvidencia_ValidFile_NoArg_ReturnsPhysicalFile()
+        {
+            // Arrange
+            string tempPath = _mockEnv.Object.ContentRootPath;
+            string uploadsFolder = Path.Combine(tempPath, "SecureUploads", "Evidencias");
+            Directory.CreateDirectory(uploadsFolder);
+            string filePath = Path.Combine(uploadsFolder, "test.jpg");
+            File.WriteAllText(filePath, "dummy content");
+
+            try
+            {
+                // Act
+                var result = _controller.GetEvidencia("test.jpg");
+
+                // Assert
+                var fileResult = result.Should().BeOfType<PhysicalFileResult>().Which;
+                fileResult.FileName.Should().Be(filePath);
+                fileResult.ContentType.Should().Be("image/jpeg");
+            }
+            finally
+            {
+                // Cleanup
+                File.Delete(filePath);
+                Directory.Delete(uploadsFolder, true);
+            }
         }
 
         private class TestExceptionDbContext : AppDbContext
