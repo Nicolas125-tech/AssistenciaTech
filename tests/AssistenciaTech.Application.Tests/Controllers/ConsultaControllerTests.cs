@@ -175,6 +175,128 @@ namespace AssistenciaTech.Application.Tests.Controllers
             ordens[1].Id.Should().Be(os1.Id);
         }
 
+
+        [Fact]
+        public async Task VisualizarOS_SemEmail_DeveRedirecionarParaIndex()
+        {
+            // Arrange
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(new ClaimsIdentity())
+                }
+            };
+
+            // Act
+            var result = await _controller.VisualizarOS(1);
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectResult.ActionName.Should().Be("Index");
+        }
+
+        [Fact]
+        public async Task VisualizarOS_OrdemInexistente_DeveRetornarNotFound()
+        {
+            // Arrange
+            var userEmail = "cliente@teste.com";
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(new ClaimsIdentity(new[]
+                    {
+                        new Claim(ClaimTypes.Email, userEmail)
+                    }))
+                }
+            };
+
+            // Act
+            var result = await _controller.VisualizarOS(999);
+
+            // Assert
+            var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
+            notFoundResult.Value.Should().Be("Ordem de Serviço não encontrada ou acesso não autorizado.");
+        }
+
+        [Fact]
+        public async Task VisualizarOS_OrdemDeOutroCliente_DeveRetornarNotFound()
+        {
+            // Arrange
+            var userEmail = "cliente@teste.com";
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(new ClaimsIdentity(new[]
+                    {
+                        new Claim(ClaimTypes.Email, userEmail)
+                    }))
+                }
+            };
+
+            var outroCliente = new Cliente
+            {
+                Nome = "Outro",
+                Cpf = "22222222222",
+                Telefone = "11888888888",
+                Email = "outro@teste.com"
+            };
+            _context.Clientes.Add(outroCliente);
+            await _context.SaveChangesAsync();
+
+            var os = new OrdemServico { ClienteId = outroCliente.Id, Equipamento = "PC", ProblemaRelatado = "P1", DataEntrada = System.DateTime.UtcNow };
+            _context.OrdensServico.Add(os);
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _controller.VisualizarOS(os.Id);
+
+            // Assert
+            var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
+            notFoundResult.Value.Should().Be("Ordem de Serviço não encontrada ou acesso não autorizado.");
+        }
+
+        [Fact]
+        public async Task VisualizarOS_OrdemPertenceAoCliente_DeveRetornarViewDetalhes()
+        {
+            // Arrange
+            var userEmail = "cliente@teste.com";
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(new ClaimsIdentity(new[]
+                    {
+                        new Claim(ClaimTypes.Email, userEmail)
+                    }))
+                }
+            };
+
+            var clienteLogado = new Cliente
+            {
+                Nome = "Logado",
+                Cpf = "11111111111",
+                Telefone = "11999999999",
+                Email = userEmail
+            };
+            _context.Clientes.Add(clienteLogado);
+            await _context.SaveChangesAsync();
+
+            var os = new OrdemServico { ClienteId = clienteLogado.Id, Equipamento = "PC", ProblemaRelatado = "P1", DataEntrada = System.DateTime.UtcNow };
+            _context.OrdensServico.Add(os);
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _controller.VisualizarOS(os.Id);
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            viewResult.ViewName.Should().Be("Detalhes");
+            var ordemRetornada = viewResult.Model.Should().BeAssignableTo<OrdemServico>().Subject;
+            ordemRetornada.Id.Should().Be(os.Id);
+        }
         public void Dispose()
         {
             _context.Database.EnsureDeleted();
