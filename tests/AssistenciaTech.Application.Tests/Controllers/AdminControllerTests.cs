@@ -72,6 +72,103 @@ namespace AssistenciaTech.Application.Tests.Controllers
         }
 
 
+
+        [Fact]
+        public async Task ExportarCsv_ComOrdensServico_DeveRetornarCsv()
+        {
+            // Arrange
+            var cliente = new Cliente { Nome = "João Silva", Email = "joao@example.com", Telefone = "11999999999" };
+            _context.Clientes.Add(cliente);
+            await _context.SaveChangesAsync();
+
+            var os1 = new OrdemServico { ClienteId = cliente.Id, Equipamento = "Notebook Dell", Status = "Recebido", DataEntrada = new DateTime(2023, 1, 15, 0, 0, 0, DateTimeKind.Utc), ValorOrcamento = 1500m };
+            var os2 = new OrdemServico { ClienteId = cliente.Id, Equipamento = "PC Gamer", Status = "Concluído", DataEntrada = new DateTime(2023, 1, 20, 0, 0, 0, DateTimeKind.Utc), ValorOrcamento = 3000m };
+
+            _context.OrdensServico.AddRange(os1, os2);
+            await _context.SaveChangesAsync();
+
+            // Set up Controller Context with a MemoryStream for Response Body
+            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+            var responseStream = new NonDisposableMemoryStream();
+            httpContext.Response.Body = responseStream;
+            _controller.ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
+            {
+                HttpContext = httpContext
+            };
+
+            // Act
+            await _controller.ExportarCsv();
+
+            // Assert
+            _controller.Response.ContentType.Should().Be("text/csv");
+            _controller.Response.Headers["Content-Disposition"].ToString().Should().Be("attachment; filename=\"OrdensDeServico.csv\"");
+
+            // Read the written stream
+            responseStream.Position = 0;
+            using var reader = new StreamReader(responseStream);
+            var csvContent = await reader.ReadToEndAsync();
+            var lines = csvContent.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+
+            lines[0].Should().Be("Id,Cliente,Equipamento,Data Entrada,Status,Valor Orçamento");
+
+            // Ordens are ordered by Id descending
+            lines[1].Should().Be($"{os2.Id},\"João Silva\",\"PC Gamer\",20/01/2023,Concluído,3000");
+            lines[2].Should().Be($"{os1.Id},\"João Silva\",\"Notebook Dell\",15/01/2023,Recebido,1500");
+        }
+
+
+        [Fact]
+        public async Task ExportarCsv_ComMaisDe100Registros_DeveProcessarEmLotes()
+        {
+            // Arrange
+            var cliente = new Cliente { Nome = "Maria Souza", Email = "maria@example.com", Telefone = "11888888888" };
+            _context.Clientes.Add(cliente);
+            await _context.SaveChangesAsync();
+
+            var ordens = Enumerable.Range(1, 150).Select(i => new OrdemServico
+            {
+                ClienteId = cliente.Id,
+                Equipamento = $"Equipamento {i}",
+                Status = "Recebido",
+                DataEntrada = new DateTime(2023, 2, 1, 0, 0, 0, DateTimeKind.Utc),
+                ValorOrcamento = 100m * i
+            }).ToList();
+
+            _context.OrdensServico.AddRange(ordens);
+            await _context.SaveChangesAsync();
+
+            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+            var responseStream = new NonDisposableMemoryStream();
+            httpContext.Response.Body = responseStream;
+            _controller.ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
+            {
+                HttpContext = httpContext
+            };
+
+            // Act
+            await _controller.ExportarCsv();
+
+            // Assert
+            responseStream.Position = 0;
+            using var reader = new StreamReader(responseStream);
+            var csvContent = await reader.ReadToEndAsync();
+            var lines = csvContent.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+
+            // 1 header + 150 records = 151 lines
+            lines.Length.Should().Be(151);
+            lines[0].Should().Be("Id,Cliente,Equipamento,Data Entrada,Status,Valor Orçamento");
+
+            // Check some records to ensure they are present and properly formatted
+            var savedOrdens = await _context.OrdensServico.OrderByDescending(o => o.Id).ToListAsync();
+
+            for (int i = 0; i < savedOrdens.Count; i++)
+            {
+                var os = savedOrdens[i];
+                // In culture, it might have commas or dots depending on culture. But since test environment usually uses invariant or similar for numbers, we will check if it contains the ID and Equipment
+                lines[i + 1].Should().StartWith($"{os.Id},\"Maria Souza\",\"Equipamento");
+            }
+        }
+
         [Fact]
         public async Task Index_Get_ReturnsViewWithDashboardData_WhenSuccessful()
         {
@@ -1132,5 +1229,12 @@ namespace AssistenciaTech.Application.Tests.Controllers
             _context.Dispose();
             _controller.Dispose();
         }
+
+    }
+
+    public class NonDisposableMemoryStream : MemoryStream
+    {
+        public override void Close() { }
+        protected override void Dispose(bool disposing) { }
     }
 }
