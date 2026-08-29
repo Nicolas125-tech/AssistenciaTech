@@ -464,6 +464,66 @@ namespace AssistenciaTech.Application.Tests.Controllers
             ((object)viewBag.Clientes).Should().BeOfType<Microsoft.AspNetCore.Mvc.Rendering.SelectList>();
         }
         [Fact]
+        public async Task Create_Post_ReturnsRedirectToActionResult_WhenModelStateIsValid()
+        {
+            // Arrange
+            var cliente = new Cliente { Id = 1, Nome = "Cliente Teste", Cpf = "12345678901", Telefone = "123456789" };
+            _context.Clientes.Add(cliente);
+            await _context.SaveChangesAsync();
+
+            var dto = new OrdemServicoCreateDto
+            {
+                ClienteId = cliente.Id,
+                Equipamento = "PC Teste",
+                NumeroSerie = "123456",
+                ProblemaRelatado = "Não liga",
+                Prioridade = 1,
+                CustoPecas = 100,
+                CustoMaoDeObra = 50,
+                DescontoAplicado = 10
+            };
+
+            // Act
+            var result = await _controller.Create(dto);
+
+            // Assert
+            var redirectToActionResult = result.Should().BeOfType<RedirectToActionResult>().Which;
+            redirectToActionResult.ActionName.Should().Be("Index");
+
+            var osSaved = await _context.OrdensServico.FirstOrDefaultAsync(o => o.NumeroSerie == "123456");
+            osSaved.Should().NotBeNull();
+            osSaved.Equipamento.Should().Be("PC Teste");
+            osSaved.ValorOrcamento.Should().Be(140); // (100 + 50) - 10
+            osSaved.Status.Should().Be(WorkflowStatus.Recebido);
+        }
+
+        [Fact]
+        public async Task Create_Post_ReturnsViewResult_WhenModelStateIsInvalid()
+        {
+            // Arrange
+            _controller.ModelState.AddModelError("Equipamento", "Required");
+
+            _context.Clientes.Add(new Cliente { Id = 1, Nome = "Cliente Teste", Cpf = "12345678901", Telefone = "123456789" });
+            await _context.SaveChangesAsync();
+
+            var dto = new OrdemServicoCreateDto
+            {
+                ClienteId = 1
+            };
+
+            // Act
+            var result = await _controller.Create(dto);
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Which;
+            viewResult.Model.Should().BeEquivalentTo(dto);
+
+            var viewBag = _controller.ViewBag;
+            ((object)viewBag.Clientes).Should().NotBeNull();
+            ((object)viewBag.Clientes).Should().BeOfType<Microsoft.AspNetCore.Mvc.Rendering.SelectList>();
+        }
+
+        [Fact]
         public async Task Create_Post_ReturnsViewResult_WhenDatabaseFails()
         {
             // Arrange
