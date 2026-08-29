@@ -28,6 +28,55 @@ namespace AssistenciaTech.Application.Tests
             }
         }
 
+
+        [Fact]
+        public async Task Create_Post_WhenModelStateIsValid_AddsEquipamentoAndRedirectsToIndex()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var context = new AppDbContext(options);
+            var controller = new EquipamentoBackupController(context);
+            var equipamento = new EquipamentoBackup { Descricao = "Test", NumeroSerie = "123", Disponivel = true };
+
+            // Act
+            var result = await controller.Create(equipamento);
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectResult.ActionName.Should().Be("Index");
+
+            var equipamentoInDb = await context.EquipamentosBackup.FirstOrDefaultAsync(e => e.NumeroSerie == "123");
+            equipamentoInDb.Should().NotBeNull();
+            equipamentoInDb.Descricao.Should().Be("Test");
+        }
+
+        [Fact]
+        public async Task Create_Post_WhenModelStateIsInvalid_ReturnsViewResultWithEquipamento()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var context = new AppDbContext(options);
+            var controller = new EquipamentoBackupController(context);
+            controller.ModelState.AddModelError("Descricao", "Required");
+            var equipamento = new EquipamentoBackup { NumeroSerie = "123", Disponivel = true };
+
+            // Act
+            var result = await controller.Create(equipamento);
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            viewResult.Model.Should().BeEquivalentTo(equipamento);
+
+            var count = await context.EquipamentosBackup.CountAsync();
+            count.Should().Be(0);
+        }
+
         [Fact]
         public void Create_Get_ReturnsViewResult()
         {
