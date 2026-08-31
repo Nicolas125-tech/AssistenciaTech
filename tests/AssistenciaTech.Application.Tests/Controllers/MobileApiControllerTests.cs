@@ -24,7 +24,11 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 .Options;
 
             _context = new AppDbContext(options);
-            _controller = new MobileApiController(_context);
+            var mockConfig = new Moq.Mock<Microsoft.Extensions.Configuration.IConfiguration>();
+            mockConfig.Setup(c => c["Jwt:Key"]).Returns("UmaChaveSuperSecretaMuitoLongaParaOJWT123456789_AppMobile_AssistenciaTech_TESTS!");
+            mockConfig.Setup(c => c["Jwt:Issuer"]).Returns("TestIssuer");
+            mockConfig.Setup(c => c["Jwt:Audience"]).Returns("TestAudience");
+            _controller = new MobileApiController(_context, mockConfig.Object);
         }
 
         private void SetUserContext(int tecnicoId)
