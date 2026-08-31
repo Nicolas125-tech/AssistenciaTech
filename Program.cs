@@ -117,7 +117,7 @@ builder.Services.AddDataProtection()
     .PersistKeysToDbContext<AppDbContext>();
 
 // Configuração de Autenticação baseada em Cookies e JWT
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "UmaChaveSuperSecretaMuitoLongaParaOJWT12345!";
+var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key is not configured. Please set the 'Jwt:Key' configuration value.");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "AssistenciaTech";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "AssistenciaTechMobile";
 
