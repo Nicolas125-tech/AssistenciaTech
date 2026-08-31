@@ -19,12 +19,13 @@ namespace AssistenciaTech.Application.Tests.Controllers
 
         public MobileApiControllerTests()
         {
+            var mockConfiguration = new Moq.Mock<Microsoft.Extensions.Configuration.IConfiguration>();
             var options = new DbContextOptionsBuilder<AppDbContext>()
                 .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
                 .Options;
 
             _context = new AppDbContext(options);
-            _controller = new MobileApiController(_context);
+            _controller = new MobileApiController(_context, mockConfiguration.Object);
         }
 
         private void SetUserContext(int tecnicoId)
@@ -438,6 +439,78 @@ namespace AssistenciaTech.Application.Tests.Controllers
             var visitaInDb = await _context.VisitasCampo.FindAsync(1);
             visitaInDb!.AssinaturaClienteBase64.Should().Be("base64string");
         }
+
+        [Fact]
+        public async Task Login_ReturnsOk_WhenCredentialsAreValid()
+        {
+            // Arrange
+            var user = new Usuario
+            {
+                Username = "admin",
+                PasswordHash = new Microsoft.AspNetCore.Identity.PasswordHasher<Usuario>().HashPassword(null, "Admin@123")
+            };
+            _context.Usuarios.Add(user);
+
+            var tecnico = new Tecnico
+            {
+                Nome = "admin",
+                PercentualComissao = 10,
+                Ativo = true
+            };
+            _context.Tecnicos.Add(tecnico);
+            await _context.SaveChangesAsync();
+
+            var mockConfiguration = new Moq.Mock<Microsoft.Extensions.Configuration.IConfiguration>();
+            mockConfiguration.Setup(x => x["Jwt:Key"]).Returns("UmaChaveSuperSecretaMuitoLongaParaOJWT123456789_AppMobile_AssistenciaTech!");
+            mockConfiguration.Setup(x => x["Jwt:Issuer"]).Returns("AssistenciaTech");
+            mockConfiguration.Setup(x => x["Jwt:Audience"]).Returns("AssistenciaTechMobile");
+
+            var controller = new MobileApiController(_context, mockConfiguration.Object);
+
+            var request = new MobileApiController.MobileLoginRequest
+            {
+                Username = "admin",
+                Password = "Admin@123"
+            };
+
+            // Act
+            var result = await controller.Login(request);
+
+            // Assert
+            var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
+            okResult.Value.Should().NotBeNull();
+        }
+
+        [Fact]
+        public async Task Login_ReturnsUnauthorized_WhenCredentialsAreInvalid()
+        {
+            // Arrange
+            var user = new Usuario
+            {
+                Username = "admin",
+                PasswordHash = new Microsoft.AspNetCore.Identity.PasswordHasher<Usuario>().HashPassword(null, "Admin@123")
+            };
+            _context.Usuarios.Add(user);
+            await _context.SaveChangesAsync();
+
+            var mockConfiguration = new Moq.Mock<Microsoft.Extensions.Configuration.IConfiguration>();
+            var controller = new MobileApiController(_context, mockConfiguration.Object);
+
+            var request = new MobileApiController.MobileLoginRequest
+            {
+                Username = "admin",
+                Password = "wrongpassword"
+            };
+
+            // Act
+            var result = await controller.Login(request);
+
+            // Assert
+            var unauthorizedResult = result.Should().BeOfType<UnauthorizedObjectResult>().Subject;
+            unauthorizedResult.Value.Should().BeEquivalentTo(new { error = "Usuário ou senha inválidos." });
+        }
+
+
 
         public void Dispose()
         {
