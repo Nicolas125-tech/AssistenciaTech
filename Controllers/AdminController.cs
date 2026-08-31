@@ -53,35 +53,46 @@ namespace AssistenciaTech.Controllers
         }
 
         // GET: Admin/Index
+
         [HttpGet]
-        public async Task ExportarCsv()
+        public async Task<IActionResult> ExportarCsv()
         {
-            var todasOS = _context.OrdensServico.Include(o => o.Cliente).OrderByDescending(o => o.Id).AsNoTracking().AsAsyncEnumerable();
-
-            Response.Clear();
-            Response.ContentType = "text/csv";
-            Response.Headers.Append("Content-Disposition", "attachment; filename=\"OrdensDeServico.csv\"");
-
-            await using var streamWriter = new StreamWriter(Response.Body, new System.Text.UTF8Encoding(false));
-            await streamWriter.WriteLineAsync("Id,Cliente,Equipamento,Data Entrada,Status,Valor Orçamento");
-
-            var sb = new System.Text.StringBuilder();
-            int batchCount = 0;
-            await foreach (var os in todasOS)
+            try
             {
-                sb.AppendLine($"{os.Id},\"{os.Cliente?.Nome}\",\"{os.Equipamento}\",{os.DataEntrada:dd/MM/yyyy},{os.Status},{os.ValorOrcamento}");
+                var todasOS = _context.OrdensServico.Include(o => o.Cliente).OrderByDescending(o => o.Id).AsNoTracking().AsAsyncEnumerable();
 
-                batchCount++;
-                if (batchCount >= 100)
+                Response.Clear();
+                Response.ContentType = "text/csv";
+                Response.Headers.Append("Content-Disposition", "attachment; filename=\"OrdensDeServico.csv\"");
+
+                await using var streamWriter = new StreamWriter(Response.Body, new System.Text.UTF8Encoding(false));
+                await streamWriter.WriteLineAsync("Id,Cliente,Equipamento,Data Entrada,Status,Valor Orçamento");
+
+                var sb = new System.Text.StringBuilder();
+                int batchCount = 0;
+                await foreach (var os in todasOS)
+                {
+                    sb.AppendLine($"{os.Id},\"{os.Cliente?.Nome}\",\"{os.Equipamento}\",{os.DataEntrada:dd/MM/yyyy},{os.Status},{os.ValorOrcamento}");
+
+                    batchCount++;
+                    if (batchCount >= 100)
+                    {
+                        await streamWriter.WriteAsync(sb, default);
+                        sb.Clear();
+                        batchCount = 0;
+                    }
+                }
+                if (sb.Length > 0)
                 {
                     await streamWriter.WriteAsync(sb, default);
-                    sb.Clear();
-                    batchCount = 0;
                 }
+                return new EmptyResult();
             }
-            if (sb.Length > 0)
+            catch (Exception ex)
             {
-                await streamWriter.WriteAsync(sb, default);
+                _logger.LogError(ex, "DB_CONNECTION_ERROR (Admin/ExportarCsv)");
+                TempData["ErroBanco"] = "Erro ao exportar os dados. O banco de dados está inacessível.";
+                return RedirectToAction(nameof(Index));
             }
         }
 
