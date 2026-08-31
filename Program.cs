@@ -335,21 +335,26 @@ using (var scope = app.Services.CreateScope())
         ");
 
         // --- Seed do Usuário Demo ---
-        var demoUsername = "demo@assistenciatech.com";
-        var demoUser = context.Usuarios.FirstOrDefault(u => u.Username == demoUsername);
-        if (demoUser == null)
+        var enableDemoAccount = app.Configuration.GetValue<bool>("EnableDemoAccount");
+        if (enableDemoAccount)
         {
-            var newUser = new AssistenciaTech.Models.Usuario
+            var demoUsername = app.Configuration.GetValue<string>("DemoCredentials:Username") ?? "demo@assistenciatech.com";
+            var demoUser = context.Usuarios.FirstOrDefault(u => u.Username == demoUsername);
+            if (demoUser == null)
             {
-                Username = demoUsername,
-                Role = "Administrador"
-            };
-            
-            var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<AssistenciaTech.Models.Usuario>();
-            newUser.PasswordHash = hasher.HashPassword(newUser, "Demo@1234");
-            
-            context.Usuarios.Add(newUser);
-            context.SaveChanges();
+                var newUser = new AssistenciaTech.Models.Usuario
+                {
+                    Username = demoUsername,
+                    Role = "Administrador"
+                };
+
+                var demoPassword = app.Configuration.GetValue<string>("DemoCredentials:Password") ?? "Demo@1234";
+                var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<AssistenciaTech.Models.Usuario>();
+                newUser.PasswordHash = hasher.HashPassword(newUser, demoPassword);
+
+                context.Usuarios.Add(newUser);
+                context.SaveChanges();
+            }
         }
     }
     catch (Exception ex)
