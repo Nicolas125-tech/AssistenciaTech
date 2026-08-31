@@ -1326,6 +1326,70 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 Directory.Delete(uploadsFolder, true);
             }
         }
+        [Fact]
+        public async Task ExportarCsv_DbExceptionThrown_ReturnsRedirectWithErro()
+        {
+            // Arrange
+            var dbName = Guid.NewGuid().ToString();
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: dbName)
+                .Options;
+
+            var exceptionContext = new AppDbContext(options);
+
+            var _mockEquipamentoBackupService = new Mock<IEquipamentoBackupService>();
+            var _mockNotificationService = new Mock<AssistenciaTech.Services.INotificationService>();
+            var localController = new AdminController(
+                exceptionContext,
+                _mockEstoqueService.Object,
+                _mockEnv.Object,
+                _mockPdfGeneratorService.Object,
+                _mockDashboardService.Object,
+                _mockEquipamentoBackupService.Object,
+                _mockLogger.Object,
+                _mockScopeFactory.Object,
+                _mockNotificationService.Object
+            );
+
+            // Set up Controller Context for TempData and Response
+            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+            var responseStream = new NonDisposableMemoryStream();
+            httpContext.Response.Body = responseStream;
+            localController.ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
+            {
+                HttpContext = httpContext
+            };
+            var tempData = new Microsoft.AspNetCore.Mvc.ViewFeatures.TempDataDictionary(
+                httpContext,
+                Mock.Of<Microsoft.AspNetCore.Mvc.ViewFeatures.ITempDataProvider>()
+            );
+            localController.TempData = tempData;
+
+            // Dispose context to force ObjectDisposedException
+            exceptionContext.Dispose();
+
+            // Act
+            var result = await localController.ExportarCsv();
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Which;
+            redirectResult.ActionName.Should().Be("Index");
+            localController.TempData["ErroBanco"].Should().Be("Erro ao exportar os dados. O banco de dados está inacessível.");
+
+            // Verify logger was called
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("DB_CONNECTION_ERROR (Admin/ExportarCsv)")),
+                    It.IsAny<Exception>(),
+                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
+                Times.Once);
+
+            localController.Dispose();
+        }
+
+
 
         private class TestExceptionDbContext : AppDbContext
         {
