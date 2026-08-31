@@ -11,6 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 
 namespace AssistenciaTech.Controllers
 {
@@ -36,16 +37,32 @@ namespace AssistenciaTech.Controllers
 
         [AllowAnonymous]
         [HttpPost("login")]
-        public IActionResult Login([FromBody] MobileLoginRequest request)
+        public async Task<IActionResult> Login([FromBody] MobileLoginRequest request)
         {
-            // MOCK: Em produção você deve checar no _context.Usuarios e validar a senha (hash).
-            // Para testar, vamos permitir o usuário "admin" / "Admin@123" e associar ao Técnico ID 1
-            if (request.Username == "admin" && request.Password == "Admin@123")
+            var user = await _context.Usuarios.FirstOrDefaultAsync(u => u.Username == request.Username);
+            bool isAuthenticated = false;
+
+            if (user != null && !string.IsNullOrEmpty(user.PasswordHash))
             {
+                var hasher = new PasswordHasher<Usuario>();
+                var result = hasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
+
+                if (result == PasswordVerificationResult.Success || result == PasswordVerificationResult.SuccessRehashNeeded)
+                {
+                    isAuthenticated = true;
+                }
+            }
+
+            if (isAuthenticated)
+            {
+                var tecnico = await _context.Tecnicos.FirstOrDefaultAsync(t => t.Nome == user!.Username);
+                var tecnicoId = tecnico?.Id ?? 1;
+                var tecnicoNome = tecnico?.Nome ?? user!.Username;
+
                 var claims = new[]
                 {
-                    new Claim(ClaimTypes.NameIdentifier, "1"), // TecnicoId 1
-                    new Claim(ClaimTypes.Name, request.Username)
+                    new Claim(ClaimTypes.NameIdentifier, tecnicoId.ToString()),
+                    new Claim(ClaimTypes.Name, user!.Username)
                 };
 
                 var keyStr = _configuration["Jwt:Key"] ?? "UmaChaveSuperSecretaMuitoLongaParaOJWT123456789_AppMobile_AssistenciaTech!";
@@ -63,8 +80,8 @@ namespace AssistenciaTech.Controllers
                 return Ok(new
                 {
                     token = new JwtSecurityTokenHandler().WriteToken(token),
-                    tecnicoId = 1,
-                    nome = "Técnico Administrador"
+                    tecnicoId = tecnicoId,
+                    nome = tecnicoNome
                 });
             }
 
