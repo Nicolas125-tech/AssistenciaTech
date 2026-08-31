@@ -11,7 +11,10 @@ namespace AssistenciaTech.Filters
             var user = context.HttpContext.User;
 
             // Verifica se está autenticado e se é o usuário demo
-            if (user.Identity != null && user.Identity.IsAuthenticated && user.Identity.Name == "demo@assistenciatech.com")
+            var config = context.HttpContext.RequestServices.GetService(typeof(Microsoft.Extensions.Configuration.IConfiguration)) as Microsoft.Extensions.Configuration.IConfiguration;
+            var demoUsername = config?.GetValue<string>("DemoCredentials:Username") ?? "demo@assistenciatech.com";
+
+            if (user.Identity != null && user.Identity.IsAuthenticated && user.Identity.Name == demoUsername)
             {
                 var method = context.HttpContext.Request.Method.ToUpper();
 
