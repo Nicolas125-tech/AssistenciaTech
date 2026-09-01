@@ -349,7 +349,11 @@ namespace AssistenciaTech.Controllers
         [HttpGet]
         public async Task<IActionResult> ImprimirOs(int id)
         {
-            var os = await _context.OrdensServico.Include(o => o.Cliente).FirstOrDefaultAsync(o => o.Id == id);
+            var os = await _context.OrdensServico
+                .Include(o => o.Cliente)
+                .Include(o => o.PecasUtilizadas)
+                    .ThenInclude(p => p.Peca)
+                .FirstOrDefaultAsync(o => o.Id == id);
 
             if (os == null) return NotFound();
 
