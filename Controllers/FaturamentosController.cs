@@ -190,12 +190,12 @@ namespace AssistenciaTech.Controllers
 
                 if (faturamentosToUpdate.Count > 0)
                 {
-                    foreach (var faturamento in faturamentosToUpdate)
+                    for (int i = 0; i < faturamentosToUpdate.Count; i++)
                     {
-                        faturamento.StatusPagamento = PagamentoStatus.Pago_Total;
+                        faturamentosToUpdate[i].StatusPagamento = PagamentoStatus.Pago_Total;
                     }
 
-                    _context.UpdateRange(faturamentosToUpdate);
+                    // Entities are already tracked, no need for _context.UpdateRange which forces all fields to modified
                     await _context.SaveChangesAsync();
                 }
             }
