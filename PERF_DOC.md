@@ -4,11 +4,11 @@
 Added `.AsNoTracking()` to the read-only Entity Framework Core query in `Controllers/ConsultaController.cs`.
 
 **Why:**
-The `.AsNoTracking()` method prevents Entity Framework Core from tracking entities retrieved from the database. When a query is read-only and its results won't be modified or saved back, tracking adds significant overhead in memory allocation and CPU cycles to maintain snapshots.
+Entity Framework Core tracks entities from the database by default. If a query is read-only, tracking wastes memory and CPU cycles to maintain those snapshots.
 
-By disabling tracking for the `ConsultaController.Status` endpoint, we reduce the computational footprint of each query, especially during high-traffic spikes on this public-facing endpoint.
+Disabling tracking for the `ConsultaController.Status` endpoint reduces overhead per query. This helps during traffic spikes on public endpoints.
 
 **Measurements:**
-An attempt was made to measure the specific performance boost using BenchmarkDotNet within this repository. Due to compilation limitations running BenchmarkDotNet smoothly alongside the complex ASP.NET MVC codebase logic, specific empirical data could not be immediately isolated.
+I tried to measure the performance difference using BenchmarkDotNet, but compiling it alongside the ASP.NET MVC codebase made it hard to isolate the data. 
 
-However, Microsoft officially recommends using `.AsNoTracking()` for all read-only scenarios precisely due to its universal reduction in overhead, making this a strictly net-positive optimization.
+Microsoft recommends `.AsNoTracking()` for read-only queries because it consistently reduces overhead.

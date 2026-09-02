@@ -11,117 +11,90 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-07405E?style=for-the-badge&logo=sqlite&logoColor=white)
 
-O **TechOS** é um sistema completo (MVP) desenvolvido para automatizar e profissionalizar a gestão de lojas de informática e a operação de bancada de assistência técnica de computadores, impressoras e notebooks. Ele une uma área de consulta self-service para clientes a um painel administrativo seguro em Dark Mode para os técnicos.
+O **TechOS** é um sistema (MVP) para gerenciar lojas de informática e assistência técnica. Ele tem uma área de consulta para clientes e um painel administrativo para os técnicos.
 
----
+## Funcionalidades
 
-## ✨ Funcionalidades
+### Área Pública (Cliente)
+- **Landing Page**: Exibe os serviços.
+- **Consulta de OS**: O cliente consulta o status do equipamento usando o Nº da Ordem de Serviço e o CPF.
+- **Contato**: Links diretos para WhatsApp.
 
-### 🌐 Área Pública (Cliente)
-- **Landing Page Moderna**: Design responsivo com identidade visual escura e moderna para exibição de serviços.
-- **Consulta de OS**: Uma ferramenta self-service onde o cliente consulta o andamento do seu equipamento utilizando o **Nº da Ordem de Serviço + CPF** (com validação robusta contra formatações no banco).
-- **Integração de Contato**: Botões de ação direta para contato ágil via WhatsApp.
+### Backoffice (Painel do Técnico)
+- **Painel Dark Mode**: Interface escura para reduzir o cansaço visual.
+- **Dashboard**: Mostra ordens de serviço (Abertas, Prontas) e previsão de faturamento.
+- **Gestão de Peças**: Controla o estoque e avisa quando itens chegam ao limite mínimo.
+- **Notificações no Telegram**: Envia mensagens automáticas com o status da OS para o cliente.
+- **Controle de OS**: Gerencia as Ordens de Serviço usando o State Pattern.
+- **Impressão de Recibos**: Gera PDFs tamanho A4 com os dados do serviço e diagnóstico (QuestPDF).
+- **Tributação e NFS-e**: Isola regras de negócio com DDD.
+  - Calcula automaticamente o ISS (5% sobre mão de obra) e ICMS (18% sobre peças) ao fechar a OS.
+  - Gera o arquivo XML padrão ABRASF para emissão de Nota Fiscal de Serviço eletrônica (NFS-e).
+- **Cache (Redis)**: Otimiza as consultas principais no banco de dados.
+  - Os dados do dashboard ficam em cache por 5 minutos.
+  - Alertas de estoque ficam armazenados por 1 hora e são atualizados automaticamente a cada movimentação.
 
-### 🔒 Backoffice (Painel do Técnico)
-- **Design Premium Dark Mode**: Interface otimizada em Grafite Azulado com alta legibilidade e suavidade visual para longas jornadas de trabalho na bancada.
-- **Dashboard de Bancada**: Cards de resumo com barras indicadoras em Neon contendo o status das ordens de serviço (Abertas, Prontas) e Faturamento Previsto.
-- **Gestão de Suprimentos**: Controle e avisos automatizados de **Estoque Mínimo** de peças diretamente no Dashboard.
-- **Notificações Telegram API**: Vinculação de clientes por webhook (criação automática de Chat IDs) e disparo em tempo real de atualizações do status da OS para o Telegram do cliente.
-- **CRUD e Controle de Status**: Controle rígido do ciclo de vida das Ordens de Serviço (OS) com as regras de negócio integradas e protegidas via State Pattern.
-- **Impressão de Recibos em PDF**: Geração instantânea de comprovantes em formato A4 contendo dados do serviço, diagnóstico e assinatura com a biblioteca **QuestPDF**.
-- **Módulo de Tributação e NFS-e**: Arquitetura DDD aplicada para isolar regras de negócio na precificação e faturamento.
-  - **Cálculo Tributário Automático**: Desmembramento dinâmico de ISS (5% sobre mão de obra) e ICMS (18% sobre peças) executado isoladamente na camada de Domain Services durante o fechamento da OS.
-  - **Geração de XML (Padrão ABRASF)**: Exportação programática (`System.Xml.Linq`) do arquivo XML de Nota Fiscal de Serviço eletrônica (NFS-e), com codificação UTF-8 rigorosa e injeção automática de namespaces, tags do Prestador, Tomador e valores declarados, pronto para envio ao webservice da prefeitura.
-- **Cache Distribuído com Redis**: Otimização de alta performance com a integração do Redis (`IDistributedCache`) rodando em nuvem no Render.
-  - **Admin Dashboard**: Consultas analíticas pesadas (totais de ordens, faturamento, status) cacheadas por 5 minutos, poupando a carga de agrupamentos frequentes no banco de dados.
-  - **Gestão de Peças/Estoque**: Consultas de alertas de estoque cacheadas de forma durável (1 hora) com estratégia ativa de invalidação (*cache eviction*) durante a execução transacional de qualquer atualização ou dedução de estoque.
+### Aplicativo Mobile
+- **App (React Native)**: Permite que os técnicos registrem serviços fora da loja, mesmo offline.
+- **Banco de Dados Local**: Salva os dados no aparelho usando WatermelonDB (SQLite).
+- **Sincronização**: Envia as informações para o servidor automaticamente quando a conexão é restabelecida.
 
-### 📱 Aplicativo Mobile (Offline-First)
-- **App Satélite (React Native)**: Extensão focada em dar autonomia total aos técnicos fora da loja (ex: trabalhos em campo), garantindo que o trabalho não pare caso não haja rede.
-- **Banco de Dados Local Reativo**: Operações de Check-in em campo são salvas em milissegundos no aparelho via **WatermelonDB (SQLite)**.
-- **Motor Inteligente de Sincronização**: Varre os registros pendentes de forma invisível, padroniza as datas (ISO 8601 -> UTC) e dispara os dados de volta para a nuvem em lote via uma API segura autenticada por **JWT**.
-- **Interface Natively Themed**: O mesmo design Premium Dark Mode e componentes desenhados do painel Web recriados com flexibilidade no mobile.
-
----
-
-## 🛠️ Tecnologias Utilizadas
+## Tecnologias Utilizadas
 
 - **Linguagem**: C# (.NET 8), TypeScript (Mobile)
-- **Arquitetura**: Evoluindo para Clean Architecture com State Pattern no domínio, Offline-First no Mobile.
-- **Banco de Dados**: PostgreSQL (com Entity Framework Core & Npgsql), SQLite / WatermelonDB (Mobile)
-- **Cache Distribuído**: Redis (Hospedado no Render, integração via `Microsoft.Extensions.Caching.StackExchangeRedis`)
-- **Frontend Web**: Razor Views, HTML5, CSS3 Customizado, Bootstrap 5 e Bootstrap Icons
-- **Frontend Mobile**: React Native (React Native CLI)
-- **Geração de PDF**: QuestPDF (Licença Community)
-- **Infraestrutura e Deploy**: Docker (Multi-stage build), Docker Compose com persistência de volumes, Cloudflare Tunnel (Quick Tunnels para HTTPS público)
+- **Arquitetura**: Clean Architecture, State Pattern, Offline-First
+- **Banco de Dados**: PostgreSQL, SQLite / WatermelonDB (Mobile)
+- **Cache**: Redis
+- **Frontend Web**: Razor Views, HTML5, CSS3, Bootstrap 5
+- **Frontend Mobile**: React Native
+- **PDF**: QuestPDF
+- **Infraestrutura**: Docker, Cloudflare Tunnel
 
----
+## Testar Online (Modo Demo)
 
-## 🌐 Testar Online (Modo Demo)
+Acesse a demonstração na nuvem:
+[https://assistenciatech.onrender.com](https://assistenciatech.onrender.com)
 
-Você pode testar a aplicação completa acessando o nosso ambiente de demonstração na nuvem!
-
-**Acesse aqui:** [https://assistenciatech.onrender.com](https://assistenciatech.onrender.com)
-
-**Credenciais de Acesso (Administrador):**
+**Credenciais (Administrador):**
 - **Usuário:** `demo@assistenciatech.com`
 - **Senha:** `Demo@1234`
 
-> ⚠️ **Aviso de Segurança (Filtro Demo):** O sistema está rodando em **Modo Demonstração** de portfólio. O usuário `demo` tem permissão de leitura completa para navegar, visualizar os Dashboards e emitir PDFs. No entanto, por razões de segurança, o filtro `DemoModeFilter` irá **bloquear qualquer tentativa de alteração, inserção ou deleção de dados** reais no banco de dados. Fique à vontade para explorar as telas!
+*O sistema está em Modo Demonstração. O usuário demo pode navegar e visualizar os dados, mas o filtro `DemoModeFilter` impede alterações no banco.*
 
----
+## Como Executar o Projeto
 
-## 🚀 Como Executar o Projeto
+Você pode rodar o projeto localmente com o Docker, replicando o ambiente de produção.
 
-O projeto possui suporte completo a contêineres Docker, tornando sua execução local trivial e idêntica ao ambiente de produção.
-
-### 🐳 Via Docker Compose (Recomendado)
-Certifique-se de ter o **Docker Desktop** instalado. O banco de dados PostgreSQL e a aplicação serão iniciados de forma integrada. O banco será inicializado e tabelado automaticamente (`EnsureCreated`) no primeiro boot, e os dados persistirão em volume seguro.
-
+### Via Docker Compose
 1. Clone o repositório.
-2. Abra o terminal na raiz do projeto.
-3. Suba o ambiente completo:
+2. Na raiz do projeto, execute:
    ```bash
    docker-compose up -d --build
    ```
-4. Acesse o sistema localmente em: `http://localhost:8080`.
-*(O Cloudflare Tunnel irá gerar uma URL pública temporária com HTTPS seguro visível nos logs do container `tunnel`)*.
+3. Acesse `http://localhost:8080`.
 
-### 💻 Rodando Nativo (Para Desenvolvimento)
-Para rodar a aplicação localmente fora do Docker, você precisará de uma instância do PostgreSQL rodando no seu host (ou rodar apenas o container do banco).
-
-1. Suba apenas o banco de dados via Docker (opcional se você já tiver Postgres local):
+### Rodando Nativo
+Para rodar sem Docker, você precisa do PostgreSQL instalado.
+1. Suba o banco (opcional):
    ```bash
    docker-compose up -d database
    ```
-2. Certifique-se de que o SDK do .NET 8 esteja instalado.
-3. Restaure as dependências e inicie a aplicação:
+2. Inicie a aplicação:
    ```bash
    dotnet restore
    dotnet run
    ```
-4. O terminal exibirá a URL local (geralmente `http://localhost:5000` ou similar).
 
----
+## Desenvolvedor
 
-## 👨‍💻 Desenvolvedor
-
-Este projeto foi desenhado e arquitetado por **Nicolas**.
-
+Desenvolvido por **Nicolas**.
 📱 **WhatsApp**: [(43) 98444-5767](https://wa.me/5543984445767)  
 📸 **Instagram**: [@_nicolas_mb](https://instagram.com/_nicolas_mb)
 
-*Sinta-se à vontade para entrar em contato para feedbacks ou oportunidades!*
-
 ## Acesso Administrativo Local
 
-Para desenvolvimento local, a aplicação requer a configuração de credenciais no arquivo `appsettings.Development.json`.
-Você pode gerar este arquivo automaticamente utilizando o script incluso:
-
+Para gerar as credenciais locais iniciais, rode:
 ```bash
 ./setup_local_admin.sh
 ```
-
-Isto configurará o ambiente com as seguintes credenciais padrão:
-- **Usuário:** `admin`
-- **Senha:** Senha informada durante o setup (ou uma senha aleatória gerada e exibida no terminal, caso deixado em branco)
+Isso criará o usuário `admin` com a senha que você definir.
