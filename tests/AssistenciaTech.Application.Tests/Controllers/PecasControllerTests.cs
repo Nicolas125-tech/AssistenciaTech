@@ -28,6 +28,24 @@ namespace AssistenciaTech.Application.Tests.Controllers
         }
 
         [Fact]
+        public async Task Index_ReturnsViewResult_WithListOfPecas()
+        {
+            // Arrange
+            _context.Pecas.Add(new Peca { Nome = "Peca 1", QuantidadeEstoque = 10, ValorUnitario = 50.0m });
+            _context.Pecas.Add(new Peca { Nome = "Peca 2", QuantidadeEstoque = 20, ValorUnitario = 150.0m });
+            await _context.SaveChangesAsync();
+            _context.ChangeTracker.Clear();
+
+            // Act
+            var result = await _controller.Index();
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            var model = viewResult.Model.Should().BeAssignableTo<System.Collections.Generic.IEnumerable<Peca>>().Subject;
+            model.Should().HaveCount(2);
+        }
+
+        [Fact]
         public async Task Create_Post_ValidModel_ShouldAddPecaAndRedirectToIndex()
         {
             // Arrange
