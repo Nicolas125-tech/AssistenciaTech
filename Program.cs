@@ -25,6 +25,10 @@ builder.Services.AddMemoryCache();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient<INotificationService, TelegramNotificationService>();
 
+// Registrando TelegramCommandHandler
+builder.Services.AddScoped<AssistenciaTech.Services.TelegramCommands.ITelegramCommandHandler, AssistenciaTech.Services.TelegramCommands.TelegramCommandHandler>();
+
+
 // Configurando o Redis (IDistributedCache)
 var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
 // Se não achar, tenta ler da variável de ambiente do Render diretamente
