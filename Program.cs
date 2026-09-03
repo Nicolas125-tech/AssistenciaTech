@@ -24,10 +24,8 @@ builder.Services.AddScoped<IEquipamentoBackupService, EquipamentoBackupService>(
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient<INotificationService, TelegramNotificationService>();
-
-// Registrando TelegramCommandHandler
+builder.Services.AddHttpClient();
 builder.Services.AddScoped<AssistenciaTech.Services.TelegramCommands.ITelegramCommandHandler, AssistenciaTech.Services.TelegramCommands.TelegramCommandHandler>();
-
 
 // Configurando o Redis (IDistributedCache)
 var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
