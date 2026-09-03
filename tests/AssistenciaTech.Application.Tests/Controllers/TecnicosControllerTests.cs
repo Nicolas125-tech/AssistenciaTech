@@ -150,6 +150,52 @@ namespace AssistenciaTech.Application.Tests.Controllers
 
 
         [Fact]
+        public async Task Edit_Get_NullId_ShouldReturnNotFound()
+        {
+            // Act
+            var result = await _controller.Edit((int?)null);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Fact]
+        public async Task Edit_Get_NonExistingId_ShouldReturnNotFound()
+        {
+            // Act
+            var result = await _controller.Edit(999);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Fact]
+        public async Task Edit_Get_ExistingId_ShouldReturnViewWithTecnicoDto()
+        {
+            // Arrange
+            var tecnico = new Tecnico
+            {
+                Nome = "Tecnico Edit Test",
+                PercentualComissao = 12.5m,
+                Ativo = true
+            };
+            _context.Tecnicos.Add(tecnico);
+            await _context.SaveChangesAsync();
+            _context.ChangeTracker.Clear();
+
+            // Act
+            var result = await _controller.Edit(tecnico.Id);
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            var model = viewResult.Model.Should().BeAssignableTo<TecnicoUpdateDto>().Subject;
+
+            model.Id.Should().Be(tecnico.Id);
+            model.Nome.Should().Be("Tecnico Edit Test");
+            model.PercentualComissao.Should().Be(12.5m);
+            model.Ativo.Should().BeTrue();
+        }
+        [Fact]
         public async Task Edit_Post_ConcurrencyException_TecnicoDeleted_ShouldReturnNotFound()
         {
             // Arrange

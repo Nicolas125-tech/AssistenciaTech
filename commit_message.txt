@@ -1,5 +1,5 @@
-🔒 Fix hardcoded JWT Key
+🧪 Missing Edit GET Test in TecnicosController
 
-🎯 What: Removed the hardcoded fallback JWT secret key in Program.cs.
-⚠️ Risk: If the configuration for `Jwt:Key` is missing, the application would silently use a known, publicly available string (`UmaChaveSuperSecretaMuitoLongaParaOJWT12345!`) to sign and verify JWT tokens. An attacker who knows or discovers this hardcoded key could forge valid JWT tokens, gaining unauthorized access or elevating privileges, potentially compromising the entire application.
-🛡️ Solution: Replaced the hardcoded fallback string with a `throw new InvalidOperationException(...)`. This implements a fail-fast mechanism; if the required secure key is not provided via configuration, the application will refuse to start, preventing an insecure deployment.
+🎯 What: Addressed a testing gap in `TecnicosController.cs` by implementing tests for the `Edit` GET method.
+📊 Coverage: Tested scenarios for passing `null` as ID (returns NotFound), a non-existent ID (returns NotFound), and an existing ID (returns ViewResult with correct `TecnicoUpdateDto`).
+✨ Result: Increased test coverage and reliability of the `TecnicosController`, protecting the `Edit` endpoint from future regressions.
