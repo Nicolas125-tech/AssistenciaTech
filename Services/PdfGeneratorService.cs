@@ -96,104 +96,120 @@ namespace AssistenciaTech.Services
             {
                 column.Spacing(15);
 
-                // Bloco do Cliente
-                column.Item().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(8).Column(c =>
+                ComposeClienteBlock(column, os);
+                ComposeEquipamentoBlock(column, os);
+                ComposeCustosServicosTable(column, os);
+                ComposeResumoFinanceiro(column, os);
+                ComposeTermosLegais(column);
+            });
+        }
+
+        private void ComposeClienteBlock(ColumnDescriptor column, OrdemServico os)
+        {
+            column.Item().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(8).Column(c =>
+            {
+                c.Item().Text("DADOS DO CLIENTE").SemiBold().FontSize(12).FontColor(Colors.Grey.Darken3);
+                c.Item().PaddingBottom(5).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+                c.Item().Row(r =>
                 {
-                    c.Item().Text("DADOS DO CLIENTE").SemiBold().FontSize(12).FontColor(Colors.Grey.Darken3);
-                    c.Item().PaddingBottom(5).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
-                    c.Item().Row(r => 
-                    {
-                        r.RelativeItem().Text($"Nome: {os.Cliente?.Nome}");
-                        r.RelativeItem().Text($"CPF/CNPJ: {os.Cliente?.Cpf}");
-                    });
-                    c.Item().Row(r => 
-                    {
-                        r.RelativeItem().Text($"Telefone: {os.Cliente?.Telefone}");
-                        r.RelativeItem().Text($"E-mail: {os.Cliente?.Email}");
-                    });
+                    r.RelativeItem().Text($"Nome: {os.Cliente?.Nome}");
+                    r.RelativeItem().Text($"CPF/CNPJ: {os.Cliente?.Cpf}");
                 });
-
-                // Bloco do Equipamento
-                column.Item().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(8).Column(c =>
+                c.Item().Row(r =>
                 {
-                    c.Item().Text("DADOS DO EQUIPAMENTO").SemiBold().FontSize(12).FontColor(Colors.Grey.Darken3);
-                    c.Item().PaddingBottom(5).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
-                    c.Item().Row(r => 
-                    {
-                        r.RelativeItem(2).Text($"Equipamento: {os.Equipamento}");
-                        r.RelativeItem(1).Text($"Nº Série: {(string.IsNullOrEmpty(os.NumeroSerie) ? "N/A" : os.NumeroSerie)}");
-                    });
-                    c.Item().Text($"Defeito Relatado: {os.ProblemaRelatado}");
-                    c.Item().PaddingTop(5).Text($"Laudo Técnico: {(string.IsNullOrEmpty(os.LaudoTecnico) ? "Aguardando análise" : os.LaudoTecnico)}");
-                    if (!string.IsNullOrEmpty(os.AvariasPreExistentes))
-                        c.Item().Text($"Avarias Existentes: {os.AvariasPreExistentes}").FontColor(Colors.Red.Darken2);
+                    r.RelativeItem().Text($"Telefone: {os.Cliente?.Telefone}");
+                    r.RelativeItem().Text($"E-mail: {os.Cliente?.Email}");
                 });
+            });
+        }
 
-                // Tabela de Custos e Peças
-                if (os.PecasUtilizadas != null && os.PecasUtilizadas.Any() || os.CustoMaoDeObra > 0)
+        private void ComposeEquipamentoBlock(ColumnDescriptor column, OrdemServico os)
+        {
+            column.Item().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(8).Column(c =>
+            {
+                c.Item().Text("DADOS DO EQUIPAMENTO").SemiBold().FontSize(12).FontColor(Colors.Grey.Darken3);
+                c.Item().PaddingBottom(5).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+                c.Item().Row(r =>
                 {
-                    column.Item().Text("CUSTOS E SERVIÇOS").SemiBold().FontSize(12).FontColor(Colors.Grey.Darken3);
-                    column.Item().Table(table =>
+                    r.RelativeItem(2).Text($"Equipamento: {os.Equipamento}");
+                    r.RelativeItem(1).Text($"Nº Série: {(string.IsNullOrEmpty(os.NumeroSerie) ? "N/A" : os.NumeroSerie)}");
+                });
+                c.Item().Text($"Defeito Relatado: {os.ProblemaRelatado}");
+                c.Item().PaddingTop(5).Text($"Laudo Técnico: {(string.IsNullOrEmpty(os.LaudoTecnico) ? "Aguardando análise" : os.LaudoTecnico)}");
+                if (!string.IsNullOrEmpty(os.AvariasPreExistentes))
+                    c.Item().Text($"Avarias Existentes: {os.AvariasPreExistentes}").FontColor(Colors.Red.Darken2);
+            });
+        }
+
+        private void ComposeCustosServicosTable(ColumnDescriptor column, OrdemServico os)
+        {
+            if (os.PecasUtilizadas != null && os.PecasUtilizadas.Any() || os.CustoMaoDeObra > 0)
+            {
+                column.Item().Text("CUSTOS E SERVIÇOS").SemiBold().FontSize(12).FontColor(Colors.Grey.Darken3);
+                column.Item().Table(table =>
+                {
+                    table.ColumnsDefinition(columns =>
                     {
-                        table.ColumnsDefinition(columns =>
-                        {
-                            columns.RelativeColumn(3); // Descrição
-                            columns.ConstantColumn(70); // Qtd
-                            columns.RelativeColumn(1); // V. Unit
-                            columns.RelativeColumn(1); // Total
-                        });
-
-                        table.Header(header =>
-                        {
-                            header.Cell().Background(Colors.Grey.Lighten3).Padding(2).Text("Descrição").SemiBold();
-                            header.Cell().Background(Colors.Grey.Lighten3).Padding(2).AlignCenter().Text("Qtd").SemiBold();
-                            header.Cell().Background(Colors.Grey.Lighten3).Padding(2).AlignRight().Text("V. Unitário").SemiBold();
-                            header.Cell().Background(Colors.Grey.Lighten3).Padding(2).AlignRight().Text("V. Total").SemiBold();
-                        });
-
-                        // Peças
-                        if (os.PecasUtilizadas != null)
-                        {
-                            foreach (var item in os.PecasUtilizadas)
-                            {
-                                table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten4).Padding(2).Text(item.Peca?.Nome ?? "Peça");
-                                table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten4).Padding(2).AlignCenter().Text(item.Quantidade.ToString());
-                                table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten4).Padding(2).AlignRight().Text(item.ValorVenda.ToString("C"));
-                                table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten4).Padding(2).AlignRight().Text((item.Quantidade * item.ValorVenda).ToString("C"));
-                            }
-                        }
-
-                        // Mão de Obra
-                        if (os.CustoMaoDeObra > 0)
-                        {
-                            table.Cell().Padding(2).Text("Mão de Obra / Serviços Técnicos");
-                            table.Cell().Padding(2).AlignCenter().Text("1");
-                            table.Cell().Padding(2).AlignRight().Text(os.CustoMaoDeObra.ToString("C"));
-                            table.Cell().Padding(2).AlignRight().Text(os.CustoMaoDeObra.ToString("C"));
-                        }
+                        columns.RelativeColumn(3); // Descrição
+                        columns.ConstantColumn(70); // Qtd
+                        columns.RelativeColumn(1); // V. Unit
+                        columns.RelativeColumn(1); // Total
                     });
-                }
 
-                // Resumo Financeiro
-                column.Item().AlignRight().Column(c =>
-                {
-                    c.Item().Text($"Subtotal: {os.CustoPecas + os.CustoMaoDeObra:C}");
-                    if (os.DescontoAplicado > 0)
+                    table.Header(header =>
                     {
-                        c.Item().Text($"Desconto: -{os.DescontoAplicado:C}").FontColor(Colors.Red.Medium);
+                        header.Cell().Background(Colors.Grey.Lighten3).Padding(2).Text("Descrição").SemiBold();
+                        header.Cell().Background(Colors.Grey.Lighten3).Padding(2).AlignCenter().Text("Qtd").SemiBold();
+                        header.Cell().Background(Colors.Grey.Lighten3).Padding(2).AlignRight().Text("V. Unitário").SemiBold();
+                        header.Cell().Background(Colors.Grey.Lighten3).Padding(2).AlignRight().Text("V. Total").SemiBold();
+                    });
+
+                    // Peças
+                    if (os.PecasUtilizadas != null)
+                    {
+                        foreach (var item in os.PecasUtilizadas)
+                        {
+                            table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten4).Padding(2).Text(item.Peca?.Nome ?? "Peça");
+                            table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten4).Padding(2).AlignCenter().Text(item.Quantidade.ToString());
+                            table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten4).Padding(2).AlignRight().Text(item.ValorVenda.ToString("C"));
+                            table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten4).Padding(2).AlignRight().Text((item.Quantidade * item.ValorVenda).ToString("C"));
+                        }
                     }
-                    c.Item().PaddingTop(5).Text($"TOTAL FINAL: {os.ValorTotalCalculado:C}").FontSize(16).Bold().FontColor(Colors.Blue.Darken2);
-                });
 
-                // Termos Legais
-                column.Item().PaddingTop(20).Background(Colors.Grey.Lighten4).Padding(10).Text(t =>
-                {
-                    t.Span("TERMO DE GARANTIA E ACEITE: ").Bold().FontSize(9);
-                    t.Span("Declaro ter testado e retirado o equipamento em perfeitas condições de funcionamento. " +
-                           "Garantia de 90 dias para os serviços prestados e peças substituídas, de acordo com o Código de Defesa do Consumidor, " +
-                           "contados a partir da data de entrega. A garantia não cobre mau uso, quedas, líquidos ou rompimento do selo de garantia. " +
-                           "Equipamentos não retirados após 90 dias da conclusão serão considerados abandonados.").FontSize(9);
+                    // Mão de Obra
+                    if (os.CustoMaoDeObra > 0)
+                    {
+                        table.Cell().Padding(2).Text("Mão de Obra / Serviços Técnicos");
+                        table.Cell().Padding(2).AlignCenter().Text("1");
+                        table.Cell().Padding(2).AlignRight().Text(os.CustoMaoDeObra.ToString("C"));
+                        table.Cell().Padding(2).AlignRight().Text(os.CustoMaoDeObra.ToString("C"));
+                    }
                 });
+            }
+        }
+
+        private void ComposeResumoFinanceiro(ColumnDescriptor column, OrdemServico os)
+        {
+            column.Item().AlignRight().Column(c =>
+            {
+                c.Item().Text($"Subtotal: {os.CustoPecas + os.CustoMaoDeObra:C}");
+                if (os.DescontoAplicado > 0)
+                {
+                    c.Item().Text($"Desconto: -{os.DescontoAplicado:C}").FontColor(Colors.Red.Medium);
+                }
+                c.Item().PaddingTop(5).Text($"TOTAL FINAL: {os.ValorTotalCalculado:C}").FontSize(16).Bold().FontColor(Colors.Blue.Darken2);
+            });
+        }
+
+        private void ComposeTermosLegais(ColumnDescriptor column)
+        {
+            column.Item().PaddingTop(20).Background(Colors.Grey.Lighten4).Padding(10).Text(t =>
+            {
+                t.Span("TERMO DE GARANTIA E ACEITE: ").Bold().FontSize(9);
+                t.Span("Declaro ter testado e retirado o equipamento em perfeitas condições de funcionamento. " +
+                       "Garantia de 90 dias para os serviços prestados e peças substituídas, de acordo com o Código de Defesa do Consumidor, " +
+                       "contados a partir da data de entrega. A garantia não cobre mau uso, quedas, líquidos ou rompimento do selo de garantia. " +
+                       "Equipamentos não retirados após 90 dias da conclusão serão considerados abandonados.").FontSize(9);
             });
         }
 
