@@ -112,6 +112,7 @@ namespace AssistenciaTech.Services
                 if (statusGroupDb == null)
                 {
                     statusGroupDb = await _context.OrdensServico
+                        .AsNoTracking()
                         .GroupBy(o => o.Status)
                         .Select(g => new StatusGroupDto
                         {
