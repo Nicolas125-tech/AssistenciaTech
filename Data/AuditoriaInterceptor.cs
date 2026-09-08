@@ -121,7 +121,7 @@ namespace AssistenciaTech.Data
 
         private void AuditModifiedEntry(DbContext context, EntityEntry<OrdemServico> entry, string usuario)
         {
-            var alteracoes = new Dictionary<string, object>();
+            var alteracoes = new Dictionary<string, AuditChange>();
 
             foreach (var prop in entry.Properties.Where(p => p.IsModified))
             {
@@ -136,7 +136,7 @@ namespace AssistenciaTech.Data
                 // Evita logar se o valor for nulo nas duas pontas ou idêntico
                 if (oldValue == newValue) continue;
 
-                alteracoes.Add(nomeCampo, new 
+                alteracoes.Add(nomeCampo, new AuditChange
                 { 
                     De = oldValue ?? "N/A", 
                     Para = newValue ?? "N/A" 
@@ -145,7 +145,7 @@ namespace AssistenciaTech.Data
 
             if (alteracoes.Count > 0)
             {
-                var jsonDiff = System.Text.Json.JsonSerializer.Serialize(alteracoes);
+                var jsonDiff = System.Text.Json.JsonSerializer.Serialize(alteracoes, AuditoriaJsonContext.Default.DictionaryStringAuditChange);
 
                 var auditoria = new AuditoriaOS
                 {
@@ -164,10 +164,10 @@ namespace AssistenciaTech.Data
 
         private void AuditAddedEntry(EntityEntry<OrdemServico> entry, string usuario)
         {
-            var jsonDiff = System.Text.Json.JsonSerializer.Serialize(new { 
+            var jsonDiff = System.Text.Json.JsonSerializer.Serialize(new AuditCreate {
                 Acao = "Criação de Ordem de Serviço",
                 StatusInicial = entry.Entity.Status 
-            });
+            }, AuditoriaJsonContext.Default.AuditCreate);
 
             var auditoria = new AuditoriaOS
             {
@@ -180,5 +180,23 @@ namespace AssistenciaTech.Data
             };
             _pendingAudits.Add((auditoria, entry.Entity));
         }
+    }
+
+    public struct AuditChange
+    {
+        public string De { get; set; }
+        public string Para { get; set; }
+    }
+
+    public struct AuditCreate
+    {
+        public string Acao { get; set; }
+        public string StatusInicial { get; set; }
+    }
+
+    [System.Text.Json.Serialization.JsonSerializable(typeof(Dictionary<string, AuditChange>))]
+    [System.Text.Json.Serialization.JsonSerializable(typeof(AuditCreate))]
+    public partial class AuditoriaJsonContext : System.Text.Json.Serialization.JsonSerializerContext
+    {
     }
 }
