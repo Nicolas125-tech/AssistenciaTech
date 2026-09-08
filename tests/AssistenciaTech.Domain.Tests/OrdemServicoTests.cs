@@ -89,4 +89,27 @@ public class OrdemServicoTests
         os.CancelarOS("Motivo");
         estadoMock.Verify(x => x.Cancelar(os, "Motivo"), Times.Once);
     }
+
+    [Theory]
+    [InlineData(null, null, null, null, null)]
+    [InlineData("", "", "", "", "")]
+    [InlineData(" ", " ", " ", " ", " ")]
+    public void Constructor_EdgeCases_VaziosOuNulos_NaoLancaExcecao(
+        string? numeroOS, string? clientCpf, string? equipamentoModelo, string? numeroSerie, string? defeitoRelatado)
+    {
+        // Act
+        #pragma warning disable CS8604 // Possible null reference argument.
+        var os = new OrdemServico(numeroOS, clientCpf, equipamentoModelo, numeroSerie, defeitoRelatado);
+#pragma warning restore CS8604 // Possible null reference argument.
+
+        // Assert
+        os.Id.Should().NotBeEmpty();
+        os.NumeroOS.Should().Be(numeroOS);
+        os.ClientCpf.Should().Be(clientCpf);
+        os.EquipamentoModelo.Should().Be(equipamentoModelo);
+        os.NumeroSerie.Should().Be(numeroSerie);
+        os.DefeitoRelatado.Should().Be(defeitoRelatado);
+        os.EstadoAtual.Should().BeOfType<RecebidoState>();
+        os.DataEntrada.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+    }
 }
