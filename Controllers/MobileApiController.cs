@@ -65,7 +65,7 @@ namespace AssistenciaTech.Controllers
                     new Claim(ClaimTypes.Name, user!.Username)
                 };
 
-                var keyStr = _configuration["Jwt:Key"] ?? "UmaChaveSuperSecretaMuitoLongaParaOJWT123456789_AppMobile_AssistenciaTech!";
+                var keyStr = _configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key is not configured. Please set the 'Jwt:Key' configuration value.");
                 var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyStr));
                 var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 

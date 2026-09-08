@@ -461,7 +461,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             await _context.SaveChangesAsync();
 
             var mockConfiguration = new Moq.Mock<Microsoft.Extensions.Configuration.IConfiguration>();
-            mockConfiguration.Setup(x => x["Jwt:Key"]).Returns("UmaChaveSuperSecretaMuitoLongaParaOJWT123456789_AppMobile_AssistenciaTech!");
+            mockConfiguration.Setup(x => x["Jwt:Key"]).Returns("UmaChaveSuperSecretaMuitoLongaParaOJWT123456789_AppMobile_AssistenciaTech_IsNowRequired_123456789_AppMobile_AssistenciaTech!");
             mockConfiguration.Setup(x => x["Jwt:Issuer"]).Returns("AssistenciaTech");
             mockConfiguration.Setup(x => x["Jwt:Audience"]).Returns("AssistenciaTechMobile");
 
@@ -494,6 +494,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             await _context.SaveChangesAsync();
 
             var mockConfiguration = new Moq.Mock<Microsoft.Extensions.Configuration.IConfiguration>();
+            mockConfiguration.Setup(x => x["Jwt:Key"]).Returns("UmaChaveSuperSecretaMuitoLongaParaOJWT123456789_AppMobile_AssistenciaTech_IsNowRequired_123456789_AppMobile_AssistenciaTech!");
             var controller = new MobileApiController(_context, mockConfiguration.Object);
 
             var request = new MobileApiController.MobileLoginRequest
