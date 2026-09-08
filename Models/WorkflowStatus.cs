@@ -9,16 +9,5 @@ namespace AssistenciaTech.Models
         public const string EmReparo = "Em Reparo";
         public const string Concluido = "Concluído";
         public const string Entregue = "Entregue ao Cliente";
-
-        public static readonly string[] Todos = new[]
-        {
-            Recebido,
-            EmAnalise,
-            AguardandoAprovacao,
-            AguardandoPecas,
-            EmReparo,
-            Concluido,
-            Entregue
-        };
     }
 }
