@@ -84,7 +84,7 @@ namespace AssistenciaTech.Controllers
             catch (Exception ex)
             {
                 // Log the exception here if a logger is available
-                ViewBag.Erro = "Ocorreu um erro ao processar sua solicitação: " + ex.Message;
+                ViewBag.Erro = "Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente mais tarde.";
                 return View("Index");
             }
         }
