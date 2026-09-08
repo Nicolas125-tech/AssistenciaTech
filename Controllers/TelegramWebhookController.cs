@@ -20,18 +20,26 @@ namespace AssistenciaTech.Controllers
     {
         private readonly ILogger<TelegramWebhookController> _logger;
         private readonly ITelegramCommandHandler _commandHandler;
+        private readonly IConfiguration _configuration;
 
-        public TelegramWebhookController(ILogger<TelegramWebhookController> logger, ITelegramCommandHandler commandHandler)
+        public TelegramWebhookController(ILogger<TelegramWebhookController> logger, ITelegramCommandHandler commandHandler, IConfiguration configuration)
         {
             _logger = logger;
             _commandHandler = commandHandler;
+            _configuration = configuration;
         }
 
         [HttpPost("webhook")]
-        public async Task<IActionResult> Webhook([FromBody] JsonElement update)
+        public async Task<IActionResult> Webhook([FromBody] JsonElement update, [FromHeader(Name = "X-Telegram-Bot-Api-Secret-Token")] string? secretToken = null)
         {
             try
             {
+                var configuredToken = _configuration["Telegram:WebhookSecretToken"];
+                if (!string.IsNullOrEmpty(configuredToken) && secretToken != configuredToken)
+                {
+                    _logger.LogWarning("Unauthorized webhook request. Token mismatch.");
+                    return Unauthorized();
+                }
                 // Verifica se há uma mensagem de texto no update
                 if (update.TryGetProperty("message", out JsonElement message) &&
                     message.TryGetProperty("text", out JsonElement textElement) &&
