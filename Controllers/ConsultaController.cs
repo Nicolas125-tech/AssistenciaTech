@@ -137,6 +137,7 @@ namespace AssistenciaTech.Controllers
             }
 
             var ordens = await _context.OrdensServico
+                                .AsNoTracking()
                                 .Include(o => o.Cliente)
                                 .Where(o => o.Cliente != null && o.Cliente.Email == email)
                                 .OrderByDescending(o => o.DataEntrada)
@@ -157,6 +158,7 @@ namespace AssistenciaTech.Controllers
             }
 
             var ordem = await _context.OrdensServico
+                                .AsNoTracking()
                                 .Include(o => o.Cliente)
                                 .Include(o => o.PecasUtilizadas)
                                     .ThenInclude(p => p.Peca)
