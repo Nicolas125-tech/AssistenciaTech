@@ -1,5 +1,0 @@
-🧪 Missing Edit GET Test in TecnicosController
-
-🎯 What: Addressed a testing gap in `TecnicosController.cs` by implementing tests for the `Edit` GET method.
-📊 Coverage: Tested scenarios for passing `null` as ID (returns NotFound), a non-existent ID (returns NotFound), and an existing ID (returns ViewResult with correct `TecnicoUpdateDto`).
-✨ Result: Increased test coverage and reliability of the `TecnicosController`, protecting the `Edit` endpoint from future regressions.
