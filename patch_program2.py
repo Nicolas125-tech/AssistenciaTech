@@ -1,13 +1,13 @@
-import re
+import sys
 
-with open("Program.cs", "r") as f:
+with open('Program.cs', 'r') as f:
     content = f.read()
 
-if "builder.Services.AddScoped<ITelegramCommandHandler, TelegramCommandHandler>();" not in content and "ITelegramCommandHandler" not in content:
-    content = content.replace(
-        "builder.Services.AddHttpClient<INotificationService, TelegramNotificationService>();",
-        "builder.Services.AddHttpClient<INotificationService, TelegramNotificationService>();\nbuilder.Services.AddHttpClient();\nbuilder.Services.AddScoped<AssistenciaTech.Services.TelegramCommands.ITelegramCommandHandler, AssistenciaTech.Services.TelegramCommands.TelegramCommandHandler>();"
-    )
+# Add UseRateLimiter
+if 'app.UseRateLimiter();' not in content:
+    content = content.replace('app.UseRouting();', 'app.UseRouting();\napp.UseRateLimiter();')
 
-with open("Program.cs", "w") as f:
+with open('Program.cs', 'w') as f:
     f.write(content)
+
+print("Program.cs patched successfully 2.")

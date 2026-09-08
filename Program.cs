@@ -9,8 +9,27 @@ using AssistenciaTech.Services;
 
 using Npgsql;
 using System.Globalization;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("LoginRateLimit", opt =>
+    {
+        opt.PermitLimit = 5;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 0;
+    });
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.StatusCode = 429;
+        await context.HttpContext.Response.WriteAsync("Muitas tentativas de login. Tente novamente em 1 minuto.", cancellationToken: token);
+    };
+});
+
 
 // Add services to the container.
 builder.Services.AddControllersWithViews(options => 
@@ -373,6 +392,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+app.UseRateLimiter();
 
 // Middlewares de Segurança
 app.UseAuthentication();

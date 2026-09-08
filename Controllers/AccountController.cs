@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Identity;
 using System;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace AssistenciaTech.Controllers
 {
@@ -41,6 +42,7 @@ namespace AssistenciaTech.Controllers
         // POST: /Account/Login
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [EnableRateLimiting("LoginRateLimit")]
         public async Task<IActionResult> Login(string username, string password, string? returnUrl = null)
         {
             ViewData["ReturnUrl"] = returnUrl;

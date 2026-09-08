@@ -1,0 +1,5 @@
+🎯 **What:** Implemented rate limiting on the `/Account/Login` endpoint (5 attempts per minute per IP).
+
+⚠️ **Risk:** The login endpoint was vulnerable to brute-force attacks and credential stuffing, which could allow attackers to guess passwords and gain unauthorized access to the application.
+
+🛡️ **Solution:** Added `Microsoft.AspNetCore.RateLimiting` services in `Program.cs`, configuring a `FixedWindowLimiter` named `LoginRateLimit`. Applied the `[EnableRateLimiting("LoginRateLimit")]` attribute to the POST `Login` action in `Controllers/AccountController.cs`. If the limit is exceeded, the server now returns a 429 Too Many Requests response with a helpful message.
