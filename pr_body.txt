@@ -1,0 +1,12 @@
+🎯 **What:**
+The `TributacaoService` component lacked unit tests despite encapsulating pure tax calculation logic with no external dependencies. This PR introduces a test suite for this service.
+
+📊 **Coverage:**
+The new tests cover the following scenarios:
+- **Valid Inputs:** Proper computation of ISS and ICMS values based on specific part/labor costs.
+- **Zero Costs:** Ensures calculations properly evaluate to 0 when inputs are 0.
+- **Fractional Inputs:** Asserts that mathematical rounding to two decimal places is correct.
+- **Null Checks:** Validates that `CalcularTributos` correctly throws an `ArgumentNullException` when passed a null `OrdemServico`.
+
+✨ **Result:**
+Test coverage has significantly increased for the taxation business logic, ensuring safe refactoring in the future.
