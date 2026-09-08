@@ -519,9 +519,9 @@ namespace AssistenciaTech.Controllers
 
             await Task.WhenAll(tecnicosTask, equipamentosTask, contratosTask);
 
-            ViewBag.Tecnicos = new SelectList(tecnicosTask.Result, "Id", "Nome", ordemServico.TecnicoId);
-            ViewBag.EquipamentosBackup = new SelectList(equipamentosTask.Result, "Id", "Descricao", ordemServico.EquipamentoBackupId);
-            ViewBag.Contratos = new SelectList(contratosTask.Result, "Id", "NomeDesc", ordemServico.ContratoId);
+            ViewBag.Tecnicos = new SelectList(await tecnicosTask, "Id", "Nome", ordemServico.TecnicoId);
+            ViewBag.EquipamentosBackup = new SelectList(await equipamentosTask, "Id", "Descricao", ordemServico.EquipamentoBackupId);
+            ViewBag.Contratos = new SelectList(await contratosTask, "Id", "NomeDesc", ordemServico.ContratoId);
         }
 
         private async Task ProcessEvidenciaUploadsAsync(OrdemServico ordemExistente, IFormFileCollection fotos)
