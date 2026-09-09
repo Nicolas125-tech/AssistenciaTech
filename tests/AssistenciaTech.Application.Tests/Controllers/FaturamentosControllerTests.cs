@@ -217,5 +217,72 @@ namespace AssistenciaTech.Application.Tests.Controllers
             updatedFaturamento2.Should().NotBeNull();
             updatedFaturamento2!.StatusPagamento.Should().Be(PagamentoStatus.Pago_Total);
         }
+
+                [Fact]
+        public async Task GerarReciboPagamento_ReturnsNotFound_WhenFaturamentoDoesNotExist()
+        {
+            // Act
+            var result = await _controller.GerarReciboPagamento(999);
+
+            // Assert
+            var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
+            notFoundResult.Value.Should().Be("Faturamento não encontrado.");
+        }
+
+        [Fact]
+        public async Task GerarReciboPagamento_ReturnsBadRequest_WhenStatusIsNotPagoTotal()
+        {
+            // Arrange
+            var faturamento = new Faturamento
+            {
+                Id = 1,
+                OrdemServicoId = 1,
+                ValorTotal = 100,
+                DataVencimento = DateTime.Now,
+                StatusPagamento = PagamentoStatus.Pendente, // Not Pago_Total
+                OrdemServico = new OrdemServico { Id = 1, Cliente = new Cliente { Id = 1 } }
+            };
+            _context.Faturamentos.Add(faturamento);
+            await _context.SaveChangesAsync();
+            _context.ChangeTracker.Clear();
+
+            // Act
+            var result = await _controller.GerarReciboPagamento(1);
+
+            // Assert
+            var badRequestResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
+            badRequestResult.Value.Should().Be("Este faturamento ainda não foi pago.");
+        }
+
+        [Fact]
+        public async Task GerarReciboPagamento_ReturnsFile_WhenValid()
+        {
+            // Arrange
+            var faturamento = new Faturamento
+            {
+                Id = 3,
+                OrdemServicoId = 3,
+                ValorTotal = 100,
+                DataVencimento = DateTime.Now,
+                StatusPagamento = PagamentoStatus.Pago_Total,
+                OrdemServico = new OrdemServico { Id = 3, Cliente = new Cliente { Id = 3 } }
+            };
+            _context.Faturamentos.Add(faturamento);
+            await _context.SaveChangesAsync();
+            _context.ChangeTracker.Clear();
+
+            var expectedPdfBytes = new byte[] { 1, 2, 3 };
+            _mockPdfGenerator.Setup(p => p.GenerateReciboPagamentoPdf(It.IsAny<Faturamento>()))
+                             .Returns(expectedPdfBytes);
+
+            // Act
+            var result = await _controller.GerarReciboPagamento(3);
+
+            // Assert
+            var fileResult = result.Should().BeOfType<FileContentResult>().Subject;
+            fileResult.ContentType.Should().Be("application/pdf");
+            fileResult.FileDownloadName.Should().Be("Recibo_Fatura_3.pdf");
+            fileResult.FileContents.Should().BeEquivalentTo(expectedPdfBytes);
+        }
     }
 }
