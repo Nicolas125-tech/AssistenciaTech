@@ -895,6 +895,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
             using (var seedContext = new AppDbContext(options))
             {
                 var os = new OrdemServico { Id = 102, Equipamento = "Teste DB Error", Status = "Orçamento", ClienteId = 1 };
+                var cliente = new Cliente { Id = 1, Nome = "Cliente Teste", Cpf = "11111111111", Telefone = "11999999999" };
+                seedContext.Clientes.Add(cliente);
                 seedContext.OrdensServico.Add(os);
                 await seedContext.SaveChangesAsync();
             }
@@ -1335,12 +1337,13 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 .UseInMemoryDatabase(databaseName: dbName)
                 .Options;
 
-            var exceptionContext = new AppDbContext(options);
+            var mockContext = new Mock<AppDbContext>(options);
+            mockContext.Setup(c => c.OrdensServico).Throws(new Exception("Simulated DB connection error"));
 
             var _mockEquipamentoBackupService = new Mock<IEquipamentoBackupService>();
             var _mockNotificationService = new Mock<AssistenciaTech.Services.INotificationService>();
             var localController = new AdminController(
-                exceptionContext,
+                mockContext.Object,
                 _mockEstoqueService.Object,
                 _mockEnv.Object,
                 _mockPdfGeneratorService.Object,
@@ -1364,9 +1367,6 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 Mock.Of<Microsoft.AspNetCore.Mvc.ViewFeatures.ITempDataProvider>()
             );
             localController.TempData = tempData;
-
-            // Dispose context to force ObjectDisposedException
-            exceptionContext.Dispose();
 
             // Act
             var result = await localController.ExportarCsv();
@@ -1409,9 +1409,9 @@ namespace AssistenciaTech.Application.Tests.Controllers
         public void Dispose()
         {
             // We might have disposed the context in the test above, so we handle it gracefully
-            _context.Database.EnsureDeleted();
-            _context.Dispose();
-            _controller.Dispose();
+            try { _context.Database.EnsureDeleted(); } catch { }
+            try { _context.Dispose(); } catch { }
+            try { _controller.Dispose(); } catch { }
         }
 
     }

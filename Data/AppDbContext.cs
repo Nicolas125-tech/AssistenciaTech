@@ -16,7 +16,7 @@ namespace AssistenciaTech.Data
 
         // Representação das tabelas no banco de dados
         public DbSet<Cliente> Clientes { get; set; }
-        public DbSet<OrdemServico> OrdensServico { get; set; }
+        public virtual DbSet<OrdemServico> OrdensServico { get; set; }
         public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
 
         public DbSet<Peca> Pecas { get; set; }
