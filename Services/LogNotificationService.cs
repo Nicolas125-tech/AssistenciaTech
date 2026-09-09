@@ -1,4 +1,5 @@
 using AssistenciaTech.Models;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
@@ -12,10 +13,12 @@ namespace AssistenciaTech.Services
     public class LogNotificationService : INotificationService
     {
         private readonly ILogger<LogNotificationService> _logger;
+        private readonly IConfiguration _configuration;
 
-        public LogNotificationService(ILogger<LogNotificationService> logger)
+        public LogNotificationService(ILogger<LogNotificationService> logger, IConfiguration configuration)
         {
             _logger = logger;
+            _configuration = configuration;
         }
 
         public Task EnviarNotificacaoStatusAsync(Cliente cliente, OrdemServico os, string statusAnterior)
@@ -26,7 +29,7 @@ namespace AssistenciaTech.Services
                 return Task.CompletedTask;
             }
 
-            var mensagem = GerarMensagem(cliente, os, statusAnterior);
+            var mensagem = NotificationMessageHelper.GerarMensagem(_configuration, cliente, os, statusAnterior);
 
             // Simula envio via WhatsApp
             if (!string.IsNullOrEmpty(cliente.Telefone))
@@ -52,23 +55,6 @@ namespace AssistenciaTech.Services
             }
 
             return Task.CompletedTask;
-        }
-
-        private static string GerarMensagem(Cliente cliente, OrdemServico os, string statusAnterior)
-        {
-            var novoStatus = os.Status;
-
-            return novoStatus switch
-            {
-                WorkflowStatus.Recebido => $"Olá {cliente.Nome}, seu equipamento '{os.Equipamento}' foi recebido na assistência técnica. OS #{os.Id}.",
-                WorkflowStatus.EmAnalise => $"Olá {cliente.Nome}, seu equipamento '{os.Equipamento}' (OS #{os.Id}) está sendo analisado pelo nosso técnico.",
-                WorkflowStatus.AguardandoAprovacao => $"Olá {cliente.Nome}, o orçamento da OS #{os.Id} ({os.Equipamento}) está pronto: {os.ValorOrcamento:C}. Aguardamos sua aprovação.",
-                WorkflowStatus.AguardandoPecas => $"Olá {cliente.Nome}, estamos aguardando a chegada de peças para o reparo do seu equipamento '{os.Equipamento}' (OS #{os.Id}).",
-                WorkflowStatus.EmReparo => $"Olá {cliente.Nome}, seu equipamento '{os.Equipamento}' (OS #{os.Id}) está em reparo.",
-                WorkflowStatus.Concluido => $"Olá {cliente.Nome}, o reparo do seu equipamento '{os.Equipamento}' (OS #{os.Id}) foi concluído! Valor: {os.ValorOrcamento:C}. Já está disponível para retirada.",
-                WorkflowStatus.Entregue => $"Olá {cliente.Nome}, confirmamos a entrega do seu equipamento '{os.Equipamento}' (OS #{os.Id}). Obrigado pela preferência!",
-                _ => $"Olá {cliente.Nome}, o status da sua OS #{os.Id} ({os.Equipamento}) foi atualizado de '{statusAnterior}' para '{novoStatus}'."
-            };
         }
     }
 }
