@@ -854,35 +854,53 @@ namespace AssistenciaTech.Application.Tests.Controllers
             viewData["Contratos"].Should().BeOfType<SelectList>();
         }
 
+
         [Fact]
         public async Task Edit_Get_ReturnsRedirectToIndex_WhenDatabaseFails()
         {
             // Arrange
-            // We set up a new controller where TempData throws to simulate an issue, but wait,
-            // the exception is caught in the controller
-            // The catch block uses TempData. We need TempData to be initialized!
+            var mockConnection = new Mock<System.Data.Common.DbConnection>();
+            mockConnection.Setup(m => m.Open()).Throws(new Exception("Simulated DB connection error"));
+            mockConnection.Setup(m => m.OpenAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new Exception("Simulated DB connection error"));
+            mockConnection.Setup(m => m.State).Returns(System.Data.ConnectionState.Closed);
+
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseSqlite(mockConnection.Object)
+                .Options;
+
+            var exceptionContext = new AppDbContext(options);
+
+            var localController = new AdminController(
+                exceptionContext,
+                _mockEstoqueService.Object,
+                _mockEnv.Object,
+                _mockPdfGeneratorService.Object,
+                _mockDashboardService.Object,
+                new Mock<IEquipamentoBackupService>().Object,
+                _mockLogger.Object,
+                _mockScopeFactory.Object,
+                new Mock<INotificationService>().Object
+            );
+
             var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
             var tempData = new TempDataDictionary(httpContext, Mock.Of<ITempDataProvider>());
 
-            _controller.ControllerContext = new ControllerContext
+            localController.ControllerContext = new ControllerContext
             {
                 HttpContext = httpContext
             };
-            _controller.TempData = tempData;
-
-            // We dispose the context so that accessing the DB throws an exception
-            _context.Dispose();
+            localController.TempData = tempData;
 
             // Act
-            var result = await _controller.Edit(1) as RedirectToActionResult;
+            var result = await localController.Edit(1) as RedirectToActionResult;
 
             // Assert
             result.Should().NotBeNull();
             result.ActionName.Should().Be("Index");
-            _controller.TempData["ErroBanco"].Should().Be("Não foi possível carregar a tela de edição. O banco de dados está inacessível.");
+            localController.TempData["ErroBanco"].Should().Be("Não foi possível carregar a tela de edição. O banco de dados está inacessível.");
+
+            exceptionContext.Dispose();
         }
-
-
         [Fact]
         public async Task Edit_Post_ReturnsNotFound_WhenIdMismatch()
         {
