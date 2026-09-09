@@ -217,5 +217,74 @@ namespace AssistenciaTech.Application.Tests.Controllers
             updatedFaturamento2.Should().NotBeNull();
             updatedFaturamento2!.StatusPagamento.Should().Be(PagamentoStatus.Pago_Total);
         }
+
+        [Fact]
+        public async Task GerarDaOS_WhenOsNotFound_ReturnsNotFoundResult()
+        {
+            // Arrange
+            int osId = 999;
+
+            // Act
+            var result = await _controller.GerarDaOS(osId);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Fact]
+        public async Task GerarDaOS_WhenOsFound_CalculatesTotalsAndTributosAndSaves_ReturnsRedirectToIndex()
+        {
+            // Arrange
+            var os = new OrdemServico
+            {
+                Id = 1,
+                ClienteId = 1,
+                Equipamento = "PC",
+                ProblemaRelatado = "Lento",
+                Status = "Em andamento",
+                CustoPecas = 100,
+                CustoMaoDeObra = 200,
+                DescontoAplicado = 50
+            };
+
+            _context.OrdensServico.Add(os);
+            await _context.SaveChangesAsync();
+            _context.ChangeTracker.Clear();
+
+            var tributos = new TributacaoResultadoDto
+            {
+                BaseCalculoISS = 200,
+                AliquotaISS = 0.05m,
+                ValorISS = 10,
+                BaseCalculoICMS = 100,
+                AliquotaICMS = 0.18m,
+                ValorICMS = 18
+            };
+
+            _mockTributacaoService.Setup(s => s.CalcularTributos(It.IsAny<OrdemServico>())).Returns(tributos);
+
+            // Act
+            var result = await _controller.GerarDaOS(os.Id);
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectResult.ActionName.Should().Be("Index");
+
+            var faturamento = await _context.Faturamentos.FirstOrDefaultAsync(f => f.OrdemServicoId == os.Id);
+            faturamento.Should().NotBeNull();
+            faturamento!.ValorTotal.Should().Be(250); // (100 + 200) - 50 = 250
+            faturamento.DataVencimento.Should().BeCloseTo(DateTime.UtcNow.AddDays(3), TimeSpan.FromMinutes(1));
+            faturamento.StatusPagamento.Should().Be(PagamentoStatus.Pendente);
+            faturamento.TxIdPix.Should().NotBeNullOrEmpty();
+            faturamento.QrCodePayload.Should().NotBeNullOrEmpty();
+
+            faturamento.BaseCalculoISS.Should().Be(200);
+            faturamento.AliquotaISS.Should().Be(0.05m);
+            faturamento.ValorISS.Should().Be(10);
+
+            faturamento.BaseCalculoICMS.Should().Be(100);
+            faturamento.AliquotaICMS.Should().Be(0.18m);
+            faturamento.ValorICMS.Should().Be(18);
+        }
     }
 }
