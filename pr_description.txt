@@ -1,0 +1,11 @@
+🎯 **What:** The `EnviarNotificacaoStatusAsync` method in `LogNotificationService` generates different notification messages based on the `WorkflowStatus` via the `GerarMensagem` method. Several status-specific message formats were previously untested.
+
+📊 **Coverage:** Added a parameterized test (`EnviarNotificacaoStatusAsync_ShouldGenerateCorrectMessage_ForAllKnownStatuses`) covering all previously untested `WorkflowStatus` variants, including:
+- `EmAnalise`
+- `AguardandoAprovacao`
+- `AguardandoPecas`
+- `EmReparo`
+- `Concluido`
+- `Entregue`
+
+✨ **Result:** Test coverage for `EnviarNotificacaoStatusAsync`'s message generation logic is now comprehensive, ensuring any future changes to message formats or statuses will be properly verified.

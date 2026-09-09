@@ -202,5 +202,32 @@ namespace AssistenciaTech.Application.Tests.Services
                     It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
                 Times.Once);
         }
-    }
+
+        [Theory]
+        [InlineData(WorkflowStatus.EmAnalise, "está sendo analisado pelo nosso técnico")]
+        [InlineData(WorkflowStatus.AguardandoAprovacao, "está pronto:")]
+        [InlineData(WorkflowStatus.AguardandoPecas, "estamos aguardando a chegada de peças para o reparo")]
+        [InlineData(WorkflowStatus.EmReparo, "está em reparo")]
+        [InlineData(WorkflowStatus.Concluido, "foi concluído! Valor:")]
+        [InlineData(WorkflowStatus.Entregue, "confirmamos a entrega do seu equipamento")]
+        public async Task EnviarNotificacaoStatusAsync_ShouldGenerateCorrectMessage_ForAllKnownStatuses(string status, string expectedMessageFragment)
+        {
+            // Arrange
+            var cliente = new Cliente { Id = 1, Nome = "Test", Telefone = "123" };
+            var os = new OrdemServico { Id = 1, Equipamento = "PC", Status = status, ValorOrcamento = 100 };
+
+            // Act
+            await _sut.EnviarNotificacaoStatusAsync(cliente, os, "Anterior");
+
+            // Assert
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains(expectedMessageFragment)),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
+        }
+}
 }
