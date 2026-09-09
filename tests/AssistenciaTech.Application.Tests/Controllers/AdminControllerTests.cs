@@ -252,6 +252,15 @@ namespace AssistenciaTech.Application.Tests.Controllers
             viewData["TotalAbertas"].Should().Be(0);
             viewData["EquipamentosProntos"].Should().Be(0);
             viewData["FaturamentoPrevisto"].Should().Be(0m);
+
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("DB_CONNECTION_ERROR (Admin/Index)")),
+                    It.IsAny<Exception>(),
+                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
+                Times.Once);
         }
 
         [Fact]
@@ -447,7 +456,64 @@ namespace AssistenciaTech.Application.Tests.Controllers
         }
 
 
+
+
+
         [Fact]
+        public async Task Create_Post_ReturnsViewResult_WithModelStateError_WhenDatabaseFails()
+        {
+            // Arrange
+            var dbName = Guid.NewGuid().ToString();
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: dbName)
+                .Options;
+
+            var exceptionContext = new TestExceptionDbContext(options);
+
+            var localController = new AdminController(
+                exceptionContext,
+                _mockEstoqueService.Object,
+                _mockEnv.Object,
+                _mockPdfGeneratorService.Object,
+                _mockDashboardService.Object,
+                new Mock<IEquipamentoBackupService>().Object,
+                _mockLogger.Object,
+                _mockScopeFactory.Object,
+                new Mock<INotificationService>().Object
+            );
+
+            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+            var tempData = new TempDataDictionary(httpContext, Mock.Of<ITempDataProvider>());
+            localController.TempData = tempData;
+
+            var dto = new OrdemServicoCreateDto
+            {
+                ClienteId = 1,
+                Equipamento = "PC Teste",
+                ProblemaRelatado = "Falha"
+            };
+
+            // Act
+            var result = await localController.Create(dto);
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Which;
+            localController.ModelState.ErrorCount.Should().BeGreaterThan(0);
+
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Erro ao salvar a Ordem de Serviço")),
+                    It.IsAny<Exception>(),
+                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
+                Times.Once);
+
+            localController.Dispose();
+            exceptionContext.Dispose();
+        }
+
+[Fact]
         public void Create_Get_ReturnsViewResult()
         {
             // Arrange

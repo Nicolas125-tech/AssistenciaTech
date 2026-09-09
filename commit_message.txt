@@ -1,5 +1,11 @@
-🧪 Add test for unrecognized telegram commands
+🧪 Add missing error path tests in AdminController
 
-🎯 **What:** Tested `HandleCommandAsync` in `TelegramCommandHandler.cs` to ensure that unrecognized commands (such as a random string or other non-start commands) do not trigger Telegram messages.
-📊 **Coverage:** Added coverage for early return / no-op cases in `HandleCommandAsync` when text is unrecognized.
-✨ **Result:** Increased testing confidence on the command handler correctly ignoring arbitrary text.
+🎯 **What:**
+Addressed testing gaps in `AdminController.cs` database failure paths. Specifically added verification for the `Create` (POST) error path (which writes exceptions to `ModelState`) and missing logger assertions for the `Index` (GET) `DbException` error path. The `Create` (GET) error path was investigated, but since `PopulateClientesViewBag` uses deferred execution with `SelectList`, the query is evaluated in the view, rendering synchronous catch blocks in the controller logic unreachable during typical unit tests.
+
+📊 **Coverage:**
+- Assertions for `_mockLogger.Verify` added to the existing `DbException` test in `Index` (GET).
+- Created a new test `Create_Post_ReturnsViewResult_WithModelStateError_WhenDatabaseFails` to cover `Exception` catching in `Create` (POST).
+
+✨ **Result:**
+Improved test coverage, assertions, and reliability for `AdminController.cs` database failure scenarios, confirming the application correctly handles and logs these errors without breaking.

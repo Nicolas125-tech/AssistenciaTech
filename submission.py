@@ -1,21 +1,16 @@
-import sys
-import subprocess
+import json
 
-title = "🧪 Add unit tests for GerarXmlNfse in FaturamentosController"
+title = "🧪 Add missing error path tests in AdminController"
 body = """🎯 **What:**
-Addressed the testing gap in `FaturamentosController` by adding comprehensive unit tests for the previously untested `GerarXmlNfse` endpoint.
+Addressed testing gaps in `AdminController.cs` database failure paths. Specifically added verification for the `Create` (POST) error path (which writes exceptions to `ModelState`) and missing logger assertions for the `Index` (GET) `DbException` error path. The `Create` (GET) error path was investigated, but since `PopulateClientesViewBag` uses deferred execution with `SelectList`, the query is evaluated in the view, rendering synchronous catch blocks in the controller logic unreachable during typical unit tests.
 
 📊 **Coverage:**
-The following scenarios are now covered with automated tests using Moq and FluentAssertions:
-- **Happy Path (`GerarXmlNfse_ValidFaturamento_ReturnsXmlFile`)**: Verifies that a valid `Faturamento` successfully invokes the `INfseXmlGeneratorService` and returns the expected XML payload as a `FileContentResult` with the `application/xml` content type.
-- **Edge Case - Faturamento Not Found (`GerarXmlNfse_FaturamentoNotFound_ReturnsNotFound`)**: Verifies that attempting to retrieve an XML for a non-existent or invalid ID safely returns a `NotFoundObjectResult`.
-- **Edge Case - OrdemServico Null (`GerarXmlNfse_OrdemServicoNull_ReturnsNotFound`)**: Confirms EF Core's inner-join behavior correctly returns `NotFoundObjectResult` when the dependent `OrdemServico` entity is missing.
-- **Edge Case - Cliente Null (`GerarXmlNfse_ClienteNull_ReturnsNotFound`)**: Confirms EF Core's inner-join behavior correctly returns `NotFoundObjectResult` when the dependent `Cliente` entity is missing.
+- Assertions for `_mockLogger.Verify` added to the existing `DbException` test in `Index` (GET).
+- Created a new test `Create_Post_ReturnsViewResult_WithModelStateError_WhenDatabaseFails` to cover `Exception` catching in `Create` (POST).
 
 ✨ **Result:**
-Significant improvement in test coverage for critical business endpoints. The `GerarXmlNfse` logic is now fully verified against regressions.
-"""
+Improved test coverage, assertions, and reliability for `AdminController.cs` database failure scenarios, confirming the application correctly handles and logs these errors without breaking."""
 
-# write body to file
-with open("pr_body.txt", "w") as f:
-    f.write(body)
+import os
+with open("pr_data.json", "w") as f:
+    json.dump({"title": title, "body": body}, f)
