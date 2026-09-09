@@ -152,7 +152,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             string txId = "tx123456789";
             var faturamento = new Faturamento
             {
-                OrdemServicoId = 1,
+
                 ValorTotal = 100,
                 DataVencimento = DateTime.UtcNow.AddDays(1),
                 StatusPagamento = PagamentoStatus.Pendente,
@@ -190,7 +190,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             string txId1 = "tx111";
             string txId2 = "tx222";
 
-            var faturamento1 = new Faturamento { OrdemServicoId = 1, ValorTotal = 100, DataVencimento = DateTime.UtcNow, StatusPagamento = PagamentoStatus.Pendente, TxIdPix = txId1, QrCodePayload = "qr" };
+            var faturamento1 = new Faturamento {  ValorTotal = 100, DataVencimento = DateTime.UtcNow, StatusPagamento = PagamentoStatus.Pendente, TxIdPix = txId1, QrCodePayload = "qr" };
             var faturamento2 = new Faturamento { OrdemServicoId = 2, ValorTotal = 200, DataVencimento = DateTime.UtcNow, StatusPagamento = PagamentoStatus.Pendente, TxIdPix = txId2, QrCodePayload = "qr" };
 
             _context.Faturamentos.AddRange(faturamento1, faturamento2);
@@ -216,6 +216,96 @@ namespace AssistenciaTech.Application.Tests.Controllers
             var updatedFaturamento2 = await _context.Faturamentos.FindAsync(faturamento2.Id);
             updatedFaturamento2.Should().NotBeNull();
             updatedFaturamento2!.StatusPagamento.Should().Be(PagamentoStatus.Pago_Total);
+        }
+
+        [Fact]
+        public async Task GerarXmlNfse_FaturamentoNotFound_ReturnsNotFound()
+        {
+            // Arrange
+            int id = 999;
+
+            // Act
+            var result = await _controller.GerarXmlNfse(id);
+
+            // Assert
+            var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
+            notFoundResult.Value.Should().Be("Faturamento não encontrado.");
+        }
+
+        [Fact]
+        public async Task GerarXmlNfse_OrdemServicoNull_ReturnsNotFound()
+        {
+            // Arrange
+            var faturamento = new Faturamento
+            {
+                ValorTotal = 100,
+                DataVencimento = DateTime.UtcNow,
+                StatusPagamento = PagamentoStatus.Pendente
+            };
+
+            _context.Faturamentos.Add(faturamento);
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _controller.GerarXmlNfse(faturamento.Id);
+
+            // Assert
+            var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
+            notFoundResult.Value.Should().Be("Faturamento não encontrado.");
+        }
+
+        [Fact]
+        public async Task GerarXmlNfse_ClienteNull_ReturnsNotFound()
+        {
+            // Arrange
+            var os = new OrdemServico { Equipamento = "PC" };
+            var faturamento = new Faturamento
+            {
+                ValorTotal = 100,
+                DataVencimento = DateTime.UtcNow,
+                StatusPagamento = PagamentoStatus.Pendente,
+                OrdemServico = os
+            };
+
+            _context.Faturamentos.Add(faturamento);
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _controller.GerarXmlNfse(faturamento.Id);
+
+            // Assert
+            var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
+            notFoundResult.Value.Should().Be("Faturamento não encontrado.");
+        }
+
+        [Fact]
+        public async Task GerarXmlNfse_ValidFaturamento_ReturnsXmlFile()
+        {
+            // Arrange
+            var cliente = new Cliente { Nome = "João", Cpf = "123", Telefone = "123", Email = "joao@example.com" };
+            var os = new OrdemServico { Equipamento = "PC", Cliente = cliente };
+            var faturamento = new Faturamento
+            {
+                ValorTotal = 100,
+                DataVencimento = DateTime.UtcNow,
+                StatusPagamento = PagamentoStatus.Pendente,
+                OrdemServico = os
+            };
+
+            _context.Faturamentos.Add(faturamento);
+            await _context.SaveChangesAsync();
+
+            var expectedXmlBytes = Encoding.UTF8.GetBytes("<xml>test</xml>");
+            _mockXmlGenerator.Setup(x => x.GerarXml(It.IsAny<Faturamento>())).Returns(expectedXmlBytes);
+
+            // Act
+            var result = await _controller.GerarXmlNfse(faturamento.Id);
+
+            // Assert
+            var fileResult = result.Should().BeOfType<FileContentResult>().Subject;
+            fileResult.ContentType.Should().Be("application/xml");
+            fileResult.FileDownloadName.Should().Be($"Nfse_Fatura_{faturamento.Id}.xml");
+            fileResult.FileContents.Should().BeEquivalentTo(expectedXmlBytes);
         }
     }
 }
