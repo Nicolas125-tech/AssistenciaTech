@@ -72,6 +72,34 @@ namespace AssistenciaTech.Application.Tests.Controllers
             return Convert.ToHexString(computedHashBytes).ToLowerInvariant();
         }
         [Fact]
+        public async Task Index_ReturnsViewResult_WithListOfFaturamentos()
+        {
+            // Arrange
+            var cliente = new Cliente { Nome = "Cliente Teste", Cpf = "12345678901", Email = "cliente@teste.com", Telefone = "11999999999" };
+            var os = new OrdemServico { Equipamento = "Note", ProblemaRelatado = "Tela", Cliente = cliente, Status = "Recebido" };
+
+            var faturamento1 = new Faturamento { OrdemServico = os, ValorTotal = 150, DataVencimento = DateTime.UtcNow };
+            var faturamento2 = new Faturamento { OrdemServico = os, ValorTotal = 300, DataVencimento = DateTime.UtcNow };
+
+            _context.Faturamentos.AddRange(faturamento1, faturamento2);
+            await _context.SaveChangesAsync();
+            _context.ChangeTracker.Clear();
+
+            // Act
+            var result = await _controller.Index();
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            var model = viewResult.Model.Should().BeAssignableTo<IEnumerable<Faturamento>>().Subject;
+            var list = model.ToList();
+
+            list.Should().HaveCount(2);
+            list.Should().Contain(f => f.Id == faturamento1.Id);
+            list.Should().Contain(f => f.Id == faturamento2.Id);
+            list[0].OrdemServico.Should().NotBeNull();
+        }
+
+        [Fact]
         public async Task WebhookPix_MissingOrShortSecret_ReturnsStatusCode500()
         {
             // Arrange
