@@ -38,8 +38,9 @@ namespace AssistenciaTech.Controllers
         private readonly ILogger<AdminController> _logger;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly INotificationService _notificationService;
+        private readonly IClienteService _clienteService;
 
-        public AdminController(AppDbContext context, IEstoqueService estoqueService, IWebHostEnvironment env, IPdfGeneratorService pdfGeneratorService, IAdminDashboardService dashboardService, IEquipamentoBackupService equipamentoBackupService, ILogger<AdminController> logger, IServiceScopeFactory scopeFactory, INotificationService notificationService)
+        public AdminController(AppDbContext context, IEstoqueService estoqueService, IWebHostEnvironment env, IPdfGeneratorService pdfGeneratorService, IAdminDashboardService dashboardService, IEquipamentoBackupService equipamentoBackupService, ILogger<AdminController> logger, IServiceScopeFactory scopeFactory, INotificationService notificationService, IClienteService clienteService)
         {
             _context = context;
             _estoqueService = estoqueService;
@@ -50,6 +51,7 @@ namespace AssistenciaTech.Controllers
             _logger = logger;
             _scopeFactory = scopeFactory;
             _notificationService = notificationService;
+            _clienteService = clienteService;
         }
 
         // GET: Admin/Index
@@ -140,12 +142,12 @@ namespace AssistenciaTech.Controllers
         }
 
         // GET: Admin/Create
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
             try
             {
                 // Popula o dropdown de clientes
-                PopulateClientesViewBag();
+                await PopulateClientesViewBagAsync();
                 return View(new OrdemServicoCreateDto());
             }
             catch (Exception ex)
@@ -212,7 +214,7 @@ namespace AssistenciaTech.Controllers
             }
 
             // Se falhou, retorna os dados para o formulário
-            PopulateClientesViewBag(dto.ClienteId);
+            await PopulateClientesViewBagAsync(dto.ClienteId);
             return View(dto);
         }
 
@@ -577,17 +579,10 @@ namespace AssistenciaTech.Controllers
                 await Task.WhenAll(uploadTasks);
             }
         }
-        private void PopulateClientesViewBag(int? selectedId = null)
+        private async Task PopulateClientesViewBagAsync(int? selectedId = null)
         {
-            ViewBag.Clientes = new SelectList(
-                _context.Clientes.AsNoTracking().Select(c => new
-                {
-                    Id = c.Id,
-                    Descricao = $"{c.Nome} - CPF: {c.Cpf} - Tel: {c.Telefone}"
-                }),
-                "Id",
-                "Descricao",
-                selectedId);
+            var selectListItems = await _clienteService.GetClientesSelectListAsync(selectedId);
+            ViewBag.Clientes = new SelectList(selectListItems, "Value", "Text", selectedId?.ToString());
         }
     }
 }
