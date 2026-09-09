@@ -18,6 +18,12 @@ builder.Services.AddControllersWithViews(options =>
     options.Filters.Add<AssistenciaTech.Filters.DemoModeFilter>();
 });
 builder.Services.AddScoped<IEstoqueService, EstoqueService>();
+builder.Services.AddScoped<AssistenciaTech.Services.Workflow.IWorkflowRule, AssistenciaTech.Services.Workflow.ConcluidoRule>();
+builder.Services.AddScoped<AssistenciaTech.Services.Workflow.IWorkflowRule, AssistenciaTech.Services.Workflow.UndoConcluidoRule>();
+builder.Services.AddScoped<AssistenciaTech.Services.Workflow.IWorkflowRule, AssistenciaTech.Services.Workflow.EntregueRule>();
+builder.Services.AddScoped<AssistenciaTech.Services.Workflow.IWorkflowRule, AssistenciaTech.Services.Workflow.UndoEntregueRule>();
+builder.Services.AddScoped<AssistenciaTech.Services.Workflow.IWorkflowProcessor, AssistenciaTech.Services.Workflow.WorkflowProcessor>();
+
 builder.Services.AddScoped<IPdfGeneratorService, PdfGeneratorService>();
 builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
 builder.Services.AddScoped<IEquipamentoBackupService, EquipamentoBackupService>();

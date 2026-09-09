@@ -9,6 +9,7 @@ using AssistenciaTech.Data;
 using AssistenciaTech.Models;
 using AssistenciaTech.DTOs;
 using AssistenciaTech.Services;
+using AssistenciaTech.Services.Workflow;
 
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
@@ -69,8 +70,16 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 _mockLogger.Object,
                 _mockScopeFactory.Object,
                 _mockNotificationService.Object
-            );
+            , CreateMockProcessor().Object);
         }
+
+        private Mock<IWorkflowProcessor> CreateMockProcessor()
+        {
+            var mock = new Mock<IWorkflowProcessor>();
+            mock.Setup(x => x.ProcessAllAsync(It.IsAny<OrdemServico>(), It.IsAny<string>(), It.IsAny<OrdemServico>(), It.IsAny<Microsoft.AspNetCore.Mvc.ModelBinding.ModelStateDictionary>())).ReturnsAsync(true);
+            return mock;
+        }
+
 
 
 
@@ -549,7 +558,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 new Mock<IEquipamentoBackupService>().Object,
                 _mockLogger.Object,
                 _mockScopeFactory.Object,
-                new Mock<INotificationService>().Object
+                new Mock<INotificationService>().Object, CreateMockProcessor().Object
             );
 
             var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
@@ -593,7 +602,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 new Mock<IEquipamentoBackupService>().Object,
                 _mockLogger.Object,
                 _mockScopeFactory.Object,
-                new Mock<INotificationService>().Object
+                new Mock<INotificationService>().Object, CreateMockProcessor().Object
             );
 
             var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
@@ -642,7 +651,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 new Mock<IEquipamentoBackupService>().Object,
                 _mockLogger.Object,
                 _mockScopeFactory.Object,
-                new Mock<INotificationService>().Object
+                new Mock<INotificationService>().Object, CreateMockProcessor().Object
             );
 
             var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
@@ -961,7 +970,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 mockEquipamentoBackupService.Object,
                 _mockLogger.Object,
                 _mockScopeFactory.Object,
-                new Mock<INotificationService>().Object
+                new Mock<INotificationService>().Object, CreateMockProcessor().Object
             );
 
             var osAlterada = new OrdemServico { Id = 102, Equipamento = "PC Atualizado", Status = "Orçamento", ClienteId = 1 };
@@ -1281,7 +1290,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 _mockEquipamentoBackupService.Object,
                 _mockLogger.Object,
                 _mockScopeFactory.Object,
-                new Mock<INotificationService>().Object
+                new Mock<INotificationService>().Object, CreateMockProcessor().Object
             );
 
             // Act
@@ -1400,7 +1409,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 _mockLogger.Object,
                 _mockScopeFactory.Object,
                 _mockNotificationService.Object
-            );
+            , CreateMockProcessor().Object);
 
             // Set up Controller Context for TempData and Response
             var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();

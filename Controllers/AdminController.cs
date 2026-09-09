@@ -5,6 +5,7 @@ using AssistenciaTech.Data;
 using AssistenciaTech.Models;
 using AssistenciaTech.DTOs;
 using AssistenciaTech.Services;
+using AssistenciaTech.Services.Workflow;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -38,8 +39,9 @@ namespace AssistenciaTech.Controllers
         private readonly ILogger<AdminController> _logger;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly INotificationService _notificationService;
+        private readonly IWorkflowProcessor _workflowProcessor;
 
-        public AdminController(AppDbContext context, IEstoqueService estoqueService, IWebHostEnvironment env, IPdfGeneratorService pdfGeneratorService, IAdminDashboardService dashboardService, IEquipamentoBackupService equipamentoBackupService, ILogger<AdminController> logger, IServiceScopeFactory scopeFactory, INotificationService notificationService)
+        public AdminController(AppDbContext context, IEstoqueService estoqueService, IWebHostEnvironment env, IPdfGeneratorService pdfGeneratorService, IAdminDashboardService dashboardService, IEquipamentoBackupService equipamentoBackupService, ILogger<AdminController> logger, IServiceScopeFactory scopeFactory, INotificationService notificationService, IWorkflowProcessor workflowProcessor)
         {
             _context = context;
             _estoqueService = estoqueService;
@@ -50,6 +52,7 @@ namespace AssistenciaTech.Controllers
             _logger = logger;
             _scopeFactory = scopeFactory;
             _notificationService = notificationService;
+            _workflowProcessor = workflowProcessor;
         }
 
         // GET: Admin/Index
@@ -464,42 +467,7 @@ namespace AssistenciaTech.Controllers
 
         private async Task<bool> ProcessWorkflowRulesAsync(OrdemServico ordemExistente, string statusAnterior, OrdemServico ordemServico)
         {
-            if (ordemExistente.Status == WorkflowStatus.Concluido && ordemExistente.DataConclusao == null)
-            {
-                ordemExistente.DataConclusao = DateTime.UtcNow;
-                await _estoqueService.DeduzirEstoque(ordemExistente.Id);
-            }
-            else if (statusAnterior == WorkflowStatus.Concluido && ordemExistente.Status != WorkflowStatus.Concluido && ordemExistente.Status != WorkflowStatus.Entregue)
-            {
-                ordemExistente.DataConclusao = null;
-                await _estoqueService.RestaurarEstoque(ordemExistente.Id);
-            }
-
-            if (ordemExistente.Status == WorkflowStatus.Entregue && ordemExistente.DataEntregaCliente == null)
-            {
-                if (ordemExistente.EquipamentoBackupId.HasValue)
-                {
-                    var backup = await _context.EquipamentosBackup.FindAsync(ordemExistente.EquipamentoBackupId);
-                    if (backup != null && backup.Disponivel == false)
-                    {
-                        ModelState.AddModelError(string.Empty, $"O status não pode ser 'Entregue' até que o equipamento '{backup.Descricao}' seja devolvido no sistema.");
-                        return false;
-                    }
-                }
-
-                ordemExistente.DataEntregaCliente = DateTime.UtcNow;
-
-                if (ordemExistente.DataConclusao == null)
-                {
-                    ordemExistente.DataConclusao = DateTime.UtcNow;
-                    await _estoqueService.DeduzirEstoque(ordemExistente.Id);
-                }
-            }
-            else if (ordemExistente.Status != WorkflowStatus.Entregue)
-            {
-                ordemExistente.DataEntregaCliente = null;
-            }
-            return true;
+            return await _workflowProcessor.ProcessAllAsync(ordemExistente, statusAnterior, ordemServico, ModelState);
         }
 
         private async Task PopulateViewBagsForEditAsync(OrdemServico ordemServico)
