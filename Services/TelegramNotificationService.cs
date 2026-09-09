@@ -37,7 +37,7 @@ namespace AssistenciaTech.Services
                 return;
             }
 
-            var mensagem = GerarMensagem(cliente, os, statusAnterior);
+            var mensagem = NotificationMessageHelper.GerarMensagem(_configuration, cliente, os, statusAnterior);
 
             var payload = new
             {
@@ -65,23 +65,6 @@ namespace AssistenciaTech.Services
             {
                 _logger.LogError(ex, "[Telegram] Erro ao enviar notificação para {ClienteNome}.", cliente.Nome);
             }
-        }
-
-        private static string GerarMensagem(Cliente cliente, OrdemServico os, string statusAnterior)
-        {
-            var novoStatus = os.Status;
-
-            return novoStatus switch
-            {
-                WorkflowStatus.Recebido => $"Olá {cliente.Nome}, seu equipamento '{os.Equipamento}' foi recebido na assistência técnica. OS #{os.Id}.",
-                WorkflowStatus.EmAnalise => $"Olá {cliente.Nome}, seu equipamento '{os.Equipamento}' (OS #{os.Id}) está sendo analisado pelo nosso técnico.",
-                WorkflowStatus.AguardandoAprovacao => $"Olá {cliente.Nome}, o orçamento da OS #{os.Id} ({os.Equipamento}) está pronto: {os.ValorOrcamento:C}. Aguardamos sua aprovação.",
-                WorkflowStatus.AguardandoPecas => $"Olá {cliente.Nome}, estamos aguardando a chegada de peças para o reparo do seu equipamento '{os.Equipamento}' (OS #{os.Id}).",
-                WorkflowStatus.EmReparo => $"Olá {cliente.Nome}, seu equipamento '{os.Equipamento}' (OS #{os.Id}) está em reparo.",
-                WorkflowStatus.Concluido => $"Olá {cliente.Nome}, o reparo do seu equipamento '{os.Equipamento}' (OS #{os.Id}) foi concluído! Valor: {os.ValorOrcamento:C}. Já está disponível para retirada.",
-                WorkflowStatus.Entregue => $"Olá {cliente.Nome}, confirmamos a entrega do seu equipamento '{os.Equipamento}' (OS #{os.Id}). Obrigado pela preferência!",
-                _ => $"Olá {cliente.Nome}, o status da sua OS #{os.Id} ({os.Equipamento}) foi atualizado de '{statusAnterior}' para '{novoStatus}'."
-            };
         }
     }
 }
