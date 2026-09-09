@@ -1259,21 +1259,12 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 .UseInMemoryDatabase(databaseName: dbName)
                 .Options;
 
-            // Seed normal context
-            using (var seedContext = new AppDbContext(options))
-            {
-                var os = new OrdemServico { Id = 9999, Equipamento = "Teste DB Error", ProblemaRelatado = "Falha", ClienteId = 1, Status = "Recebido" };
-                seedContext.OrdensServico.Add(os);
-                await seedContext.SaveChangesAsync();
-            }
-
-            // Create context that will throw exception
-            var exceptionContext = new TestExceptionDbContext(options);
+            var mockContext = new Mock<AppDbContext>(options);
+            mockContext.Setup(c => c.OrdensServico).Throws(new TestDbException("Simulated database error"));
 
             var _mockEquipamentoBackupService = new Mock<IEquipamentoBackupService>();
-            var _mockNotificationService = new Mock<AssistenciaTech.Services.INotificationService>();
             var localController = new AdminController(
-                exceptionContext,
+                mockContext.Object,
                 _mockEstoqueService.Object,
                 _mockEnv.Object,
                 _mockPdfGeneratorService.Object,
@@ -1304,7 +1295,6 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 Times.Once);
 
             localController.Dispose();
-            exceptionContext.Dispose();
         }
 
 
