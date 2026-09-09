@@ -1,3 +1,5 @@
+🧪 Add test for unrecognized telegram commands
+
 🎯 **What:** Tested `HandleCommandAsync` in `TelegramCommandHandler.cs` to ensure that unrecognized commands (such as a random string or other non-start commands) do not trigger Telegram messages.
 📊 **Coverage:** Added coverage for early return / no-op cases in `HandleCommandAsync` when text is unrecognized.
 ✨ **Result:** Increased testing confidence on the command handler correctly ignoring arbitrary text.

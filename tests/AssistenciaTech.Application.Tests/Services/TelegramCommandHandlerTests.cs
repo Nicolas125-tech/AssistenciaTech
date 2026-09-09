@@ -191,6 +191,25 @@ namespace AssistenciaTech.Application.Tests.Services
             );
         }
 
+
+        [Fact]
+        public async Task HandleCommandAsync_WithUnrecognizedCommand_DoesNothing()
+        {
+            // Arrange
+
+            // Act
+            await _sut.HandleCommandAsync("/unrecognized", "chat-id-123");
+            await _sut.HandleCommandAsync("Hello world", "chat-id-123");
+
+            // Assert
+            _mockHttpMessageHandler.Protected().Verify(
+                "SendAsync",
+                Times.Never(),
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>()
+            );
+        }
+
         public void Dispose()
         {
             _context.Database.EnsureDeleted();
