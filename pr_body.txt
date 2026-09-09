@@ -1,10 +1,12 @@
-💡 **What:** Replaced synchronous `.Result` calls with `await` for extracting task values following a `Task.WhenAll` in `Controllers/AdminController.cs`.
+🎯 **What:**
+Addressed the testing gap in `FaturamentosController` by adding comprehensive unit tests for the previously untested `GerarXmlNfse` endpoint.
 
-🎯 **Why:** While calling `.Result` on a completed task avoids thread starvation/deadlock (because the tasks are awaited via `Task.WhenAll` prior), it wraps any exceptions in an `AggregateException`. Using `await` is cleaner as it naturally unwraps exceptions, making error handling and logging more predictable.
+📊 **Coverage:**
+The following scenarios are now covered with automated tests using Moq and FluentAssertions:
+- **Happy Path (`GerarXmlNfse_ValidFaturamento_ReturnsXmlFile`)**: Verifies that a valid `Faturamento` successfully invokes the `INfseXmlGeneratorService` and returns the expected XML payload as a `FileContentResult` with the `application/xml` content type.
+- **Edge Case - Faturamento Not Found (`GerarXmlNfse_FaturamentoNotFound_ReturnsNotFound`)**: Verifies that attempting to retrieve an XML for a non-existent or invalid ID safely returns a `NotFoundObjectResult`.
+- **Edge Case - OrdemServico Null (`GerarXmlNfse_OrdemServicoNull_ReturnsNotFound`)**: Confirms EF Core's inner-join behavior correctly returns `NotFoundObjectResult` when the dependent `OrdemServico` entity is missing.
+- **Edge Case - Cliente Null (`GerarXmlNfse_ClienteNull_ReturnsNotFound`)**: Confirms EF Core's inner-join behavior correctly returns `NotFoundObjectResult` when the dependent `Cliente` entity is missing.
 
-📊 **Measured Improvement:** We benchmarked this specific pattern (retrieving the results of three already-completed tasks) over 10,000,000 iterations.
-- **Baseline (.Result):** ~19218 ms
-- **Optimized (await):** ~20506 ms
-- **Improvement:** N/A (Performance is virtually identical, marginally slower).
-
-*Rationale for lack of performance gain:* In this extremely specific scenario (where tasks are *already completed* before extraction), a direct `.Result` property read avoids a tiny amount of state machine checking overhead that `await` adds. The ~1 nanosecond difference per operation is entirely negligible in the context of a web request. We made this change for correctness and architectural best practices (correct exception propagation) rather than raw CPU speed, ensuring a cleaner runtime environment without nested exceptions upon task failure.
+✨ **Result:**
+Significant improvement in test coverage for critical business endpoints. The `GerarXmlNfse` logic is now fully verified against regressions.
