@@ -1,4 +1,5 @@
 using System;
+using System.Data.Common;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Xunit;
@@ -96,8 +97,12 @@ namespace AssistenciaTech.Application.Tests.Controllers
         public void TestDb_Exception_ReturnsErrorMessage()
         {
             // Arrange
+            var mockConnection = new Mock<DbConnection>();
+            mockConnection.Setup(c => c.State).Returns(System.Data.ConnectionState.Closed);
+            mockConnection.Setup(c => c.Open()).Throws(new Exception("Fake DB Error"));
+
             var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseNpgsql("Host=non_existent_host;Database=test;Username=test;Password=test")
+                .UseSqlite(mockConnection.Object)
                 .Options;
 
             using (var context = new AppDbContext(options))
