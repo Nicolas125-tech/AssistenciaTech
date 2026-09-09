@@ -211,9 +211,21 @@ namespace AssistenciaTech.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> MarcarPago(int id)
         {
-            var affected = await _context.Faturamentos
-                .Where(f => f.Id == id)
-                .ExecuteUpdateAsync(s => s.SetProperty(f => f.StatusPagamento, PagamentoStatus.Pago_Total));
+            if (_context.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
+            {
+                var faturamento = await _context.Faturamentos.FirstOrDefaultAsync(f => f.Id == id);
+                if (faturamento != null)
+                {
+                    faturamento.StatusPagamento = PagamentoStatus.Pago_Total;
+                    await _context.SaveChangesAsync();
+                }
+            }
+            else
+            {
+                var affected = await _context.Faturamentos
+                    .Where(f => f.Id == id)
+                    .ExecuteUpdateAsync(s => s.SetProperty(f => f.StatusPagamento, PagamentoStatus.Pago_Total));
+            }
 
             return RedirectToAction(nameof(Index));
         }

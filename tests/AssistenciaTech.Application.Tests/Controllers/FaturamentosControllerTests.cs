@@ -217,5 +217,34 @@ namespace AssistenciaTech.Application.Tests.Controllers
             updatedFaturamento2.Should().NotBeNull();
             updatedFaturamento2!.StatusPagamento.Should().Be(PagamentoStatus.Pago_Total);
         }
-    }
+
+        [Fact]
+        public async Task MarcarPago_ValidId_UpdatesStatusAndRedirectsToIndex()
+        {
+            // Arrange
+            var faturamento = new Faturamento
+            {
+                OrdemServicoId = 1,
+                ValorTotal = 150,
+                DataVencimento = DateTime.UtcNow,
+                StatusPagamento = PagamentoStatus.Pendente,
+                QrCodePayload = "qr-code"
+            };
+
+            _context.Faturamentos.Add(faturamento);
+            await _context.SaveChangesAsync();
+            _context.ChangeTracker.Clear();
+
+            // Act
+            var result = await _controller.MarcarPago(faturamento.Id);
+
+            // Assert
+            var redirectToActionResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectToActionResult.ActionName.Should().Be("Index");
+
+            var updatedFaturamento = await _context.Faturamentos.FindAsync(faturamento.Id);
+            updatedFaturamento.Should().NotBeNull();
+            updatedFaturamento!.StatusPagamento.Should().Be(PagamentoStatus.Pago_Total);
+        }
+}
 }

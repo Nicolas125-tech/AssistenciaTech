@@ -1,0 +1,3 @@
+🎯 **What:** The testing gap addressed (Untested public method `MarcarPago`). Added fallback logic to allow testing `ExecuteUpdateAsync` with EF Core InMemory provider.
+📊 **Coverage:** Happy path for marking a faturamento as `Pago_Total` and redirecting to Index.
+✨ **Result:** Increased test coverage for `FaturamentosController`.
