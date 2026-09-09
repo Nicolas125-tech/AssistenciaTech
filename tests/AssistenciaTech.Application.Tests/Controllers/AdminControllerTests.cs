@@ -68,7 +68,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 _mockEquipamentoBackupService.Object,
                 _mockLogger.Object,
                 _mockScopeFactory.Object,
-                _mockNotificationService.Object
+                _mockNotificationService.Object, new Mock<IClienteService>().Object
             );
         }
 
@@ -448,14 +448,14 @@ namespace AssistenciaTech.Application.Tests.Controllers
 
 
         [Fact]
-        public void Create_Get_ReturnsViewResult()
+        public async Task Create_Get_ReturnsViewResult()
         {
             // Arrange
             _context.Clientes.Add(new Cliente { Id = 1, Nome = "Cliente Teste", Cpf = "12345678901", Telefone = "123456789" });
             _context.SaveChanges();
 
             // Act
-            var result = _controller.Create();
+            var result = await _controller.Create();
 
             // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Which;
@@ -549,7 +549,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 new Mock<IEquipamentoBackupService>().Object,
                 _mockLogger.Object,
                 _mockScopeFactory.Object,
-                new Mock<INotificationService>().Object
+                new Mock<INotificationService>().Object,
+                new Mock<IClienteService>().Object
             );
 
             var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
@@ -580,10 +581,13 @@ namespace AssistenciaTech.Application.Tests.Controllers
         }
 
         [Fact]
-        public void Create_Get_ReturnsRedirectToActionResult_WhenDatabaseFails()
+        public async Task Create_Get_ReturnsRedirectToActionResult_WhenDatabaseFails()
         {
             // Arrange
-            // Passing null for AppDbContext will cause a NullReferenceException when it tries to read _context.Clientes
+            var mockClienteServiceFailing = new Mock<IClienteService>();
+            mockClienteServiceFailing.Setup(s => s.GetClientesSelectListAsync(It.IsAny<int?>()))
+                .ThrowsAsync(new System.Exception("Simulated DB failure"));
+
             var localController = new AdminController(
                 null,
                 _mockEstoqueService.Object,
@@ -593,7 +597,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 new Mock<IEquipamentoBackupService>().Object,
                 _mockLogger.Object,
                 _mockScopeFactory.Object,
-                new Mock<INotificationService>().Object
+                new Mock<INotificationService>().Object,
+                mockClienteServiceFailing.Object
             );
 
             var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
@@ -601,7 +606,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             localController.TempData = tempData;
 
             // Act
-            var result = localController.Create();
+            var result = await localController.Create();
 
             // Assert
             var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Which;
@@ -642,7 +647,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 new Mock<IEquipamentoBackupService>().Object,
                 _mockLogger.Object,
                 _mockScopeFactory.Object,
-                new Mock<INotificationService>().Object
+                new Mock<INotificationService>().Object,
+                new Mock<IClienteService>().Object
             );
 
             var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
@@ -961,7 +967,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 mockEquipamentoBackupService.Object,
                 _mockLogger.Object,
                 _mockScopeFactory.Object,
-                new Mock<INotificationService>().Object
+                new Mock<INotificationService>().Object,
+                new Mock<IClienteService>().Object
             );
 
             var osAlterada = new OrdemServico { Id = 102, Equipamento = "PC Atualizado", Status = "Orçamento", ClienteId = 1 };
@@ -1281,7 +1288,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 _mockEquipamentoBackupService.Object,
                 _mockLogger.Object,
                 _mockScopeFactory.Object,
-                new Mock<INotificationService>().Object
+                new Mock<INotificationService>().Object,
+                new Mock<IClienteService>().Object
             );
 
             // Act
@@ -1399,7 +1407,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 _mockEquipamentoBackupService.Object,
                 _mockLogger.Object,
                 _mockScopeFactory.Object,
-                _mockNotificationService.Object
+                _mockNotificationService.Object,
+                new Mock<IClienteService>().Object
             );
 
             // Set up Controller Context for TempData and Response

@@ -19,6 +19,7 @@ builder.Services.AddControllersWithViews(options =>
 });
 builder.Services.AddScoped<IEstoqueService, EstoqueService>();
 builder.Services.AddScoped<IPdfGeneratorService, PdfGeneratorService>();
+builder.Services.AddScoped<IClienteService, ClienteService>();
 builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
 builder.Services.AddScoped<IEquipamentoBackupService, EquipamentoBackupService>();
 builder.Services.AddMemoryCache();
