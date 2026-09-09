@@ -381,8 +381,13 @@ namespace AssistenciaTech.Controllers
                 return BadRequest();
             }
 
-            string uploadsFolder = Path.Combine(_env.ContentRootPath, "SecureUploads", "Evidencias");
-            string filePath = Path.Combine(uploadsFolder, safeFileName);
+            string uploadsFolder = Path.GetFullPath(Path.Combine(_env.ContentRootPath, "SecureUploads", "Evidencias"));
+            string filePath = Path.GetFullPath(Path.Combine(uploadsFolder, safeFileName));
+
+            if (!filePath.StartsWith(uploadsFolder + Path.DirectorySeparatorChar))
+            {
+                return BadRequest();
+            }
 
             if (!System.IO.File.Exists(filePath))
             {
