@@ -583,9 +583,19 @@ namespace AssistenciaTech.Application.Tests.Controllers
         public void Create_Get_ReturnsRedirectToActionResult_WhenDatabaseFails()
         {
             // Arrange
-            // Passing null for AppDbContext will cause a NullReferenceException when it tries to read _context.Clientes
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            var mockContext = new Mock<AppDbContext>(options);
+            var mockDbSet = new Mock<DbSet<Cliente>>();
+
+            // To simulate an exception when AsNoTracking() or Select() is called,
+            // we can just make the property throw an exception.
+            mockContext.Setup(c => c.Clientes).Throws(new TestDbException("Simulated database error on read"));
+
             var localController = new AdminController(
-                null,
+                mockContext.Object,
                 _mockEstoqueService.Object,
                 _mockEnv.Object,
                 _mockPdfGeneratorService.Object,
