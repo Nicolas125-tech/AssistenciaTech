@@ -1,5 +1,5 @@
-🧪 Add test for unrecognized telegram commands
+🔒 [Security Fix] Remove hardcoded demo password
 
-🎯 **What:** Tested `HandleCommandAsync` in `TelegramCommandHandler.cs` to ensure that unrecognized commands (such as a random string or other non-start commands) do not trigger Telegram messages.
-📊 **Coverage:** Added coverage for early return / no-op cases in `HandleCommandAsync` when text is unrecognized.
-✨ **Result:** Increased testing confidence on the command handler correctly ignoring arbitrary text.
+🎯 **What:** Removed hardcoded demo password from Program.cs.
+⚠️ **Risk:** Hardcoding credentials exposes sensitive access to anyone with access to the source code, posing a severe security risk. Even though it's a demo account, it should follow secure configuration practices.
+🛡️ **Solution:** Updated `Program.cs` to read the demo credentials from configuration (e.g. `appsettings.json` or Environment Variables). Added a `DemoCredentials` section in `appsettings.json` and updated `README.md` to document the new secure setup.

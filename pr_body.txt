@@ -1,12 +1,9 @@
-🎯 **What:**
-Addressed the testing gap in `FaturamentosController` by adding comprehensive unit tests for the previously untested `GerarXmlNfse` endpoint.
+🎯 **What:** Removed the hardcoded default demo user password from `Program.cs`.
 
-📊 **Coverage:**
-The following scenarios are now covered with automated tests using Moq and FluentAssertions:
-- **Happy Path (`GerarXmlNfse_ValidFaturamento_ReturnsXmlFile`)**: Verifies that a valid `Faturamento` successfully invokes the `INfseXmlGeneratorService` and returns the expected XML payload as a `FileContentResult` with the `application/xml` content type.
-- **Edge Case - Faturamento Not Found (`GerarXmlNfse_FaturamentoNotFound_ReturnsNotFound`)**: Verifies that attempting to retrieve an XML for a non-existent or invalid ID safely returns a `NotFoundObjectResult`.
-- **Edge Case - OrdemServico Null (`GerarXmlNfse_OrdemServicoNull_ReturnsNotFound`)**: Confirms EF Core's inner-join behavior correctly returns `NotFoundObjectResult` when the dependent `OrdemServico` entity is missing.
-- **Edge Case - Cliente Null (`GerarXmlNfse_ClienteNull_ReturnsNotFound`)**: Confirms EF Core's inner-join behavior correctly returns `NotFoundObjectResult` when the dependent `Cliente` entity is missing.
+⚠️ **Risk:** Hardcoding credentials exposes sensitive access to anyone with access to the source code, posing a significant security risk (CWE-798: Use of Hard-coded Credentials). While this is a demo account, hardcoded passwords violate secure configuration practices and could potentially be left intact in production deployments.
 
-✨ **Result:**
-Significant improvement in test coverage for critical business endpoints. The `GerarXmlNfse` logic is now fully verified against regressions.
+🛡️ **Solution:**
+- Updated `Program.cs` to read the demo user credentials securely from configuration (`DemoCredentials:Username` and `DemoCredentials:Password`).
+- Ensured the demo account is only seeded if a password is explicitly provided via configuration.
+- Added a `DemoCredentials` block to `appsettings.json` to make the configuration discoverable.
+- Updated `README.md` to instruct users on how to properly set the `DemoCredentials__Password` environment variable to test demo mode via Docker Compose and native execution.
