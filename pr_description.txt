@@ -1,11 +1,5 @@
-🎯 **What:** The `EnviarNotificacaoStatusAsync` method in `LogNotificationService` generates different notification messages based on the `WorkflowStatus` via the `GerarMensagem` method. Several status-specific message formats were previously untested.
+🎯 **What:** Added model validation and edge case tests for the `Faturamento` model using standard DataAnnotations validation context to ensure that a fully hydrated object has no validation errors and that the constructor assigns expected defaults like `StatusPagamento` properly.
 
-📊 **Coverage:** Added a parameterized test (`EnviarNotificacaoStatusAsync_ShouldGenerateCorrectMessage_ForAllKnownStatuses`) covering all previously untested `WorkflowStatus` variants, including:
-- `EmAnalise`
-- `AguardandoAprovacao`
-- `AguardandoPecas`
-- `EmReparo`
-- `Concluido`
-- `Entregue`
+📊 **Coverage:** Covered default instantiation for checking `StatusPagamento` property default state to `Pendente`, and verified that a complete set of populated properties results in zero validation errors from `TryValidateObject`.
 
-✨ **Result:** Test coverage for `EnviarNotificacaoStatusAsync`'s message generation logic is now comprehensive, ensuring any future changes to message formats or statuses will be properly verified.
+✨ **Result:** Improved test coverage on the domain models, ensuring validation attributes and default field states are functioning and verified.
