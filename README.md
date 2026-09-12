@@ -57,7 +57,7 @@ Acesse a demonstração na nuvem:
 
 **Credenciais (Administrador):**
 - **Usuário:** `demo@assistenciatech.com`
-- **Senha:** `Demo@1234`
+- **Senha:** `(Configurada via variável de ambiente DemoCredentials__Password)`
 
 *O sistema está em Modo Demonstração. O usuário demo pode navegar e visualizar os dados, mas o filtro `DemoModeFilter` impede alterações no banco.*
 
@@ -66,6 +66,7 @@ Acesse a demonstração na nuvem:
 Você pode rodar o projeto localmente com o Docker, replicando o ambiente de produção.
 
 ### Via Docker Compose
+Para testar o Modo Demonstração, você deve configurar as variáveis de ambiente `DemoCredentials__Username` e `DemoCredentials__Password` no seu `.env` ou `docker-compose.yml`.
 1. Clone o repositório.
 2. Na raiz do projeto, execute:
    ```bash
@@ -74,6 +75,7 @@ Você pode rodar o projeto localmente com o Docker, replicando o ambiente de pro
 3. Acesse `http://localhost:8080`.
 
 ### Rodando Nativo
+Para testar o Modo Demonstração, adicione as credenciais no `appsettings.json` ou defina as variáveis de ambiente antes de executar.
 Para rodar sem Docker, você precisa do PostgreSQL instalado.
 1. Suba o banco (opcional):
    ```bash
