@@ -132,7 +132,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
         }
 
         [Fact]
-        public async Task Webhook_TokenNotConfigured_AllowsAccess()
+        public async Task Webhook_TokenNotConfigured_ReturnsUnauthorized()
         {
             // Arrange
             _mockConfiguration.Setup(c => c["Telegram:WebhookSecretToken"]).Returns((string)null);
@@ -142,7 +142,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             var result = await _controller.Webhook(json);
 
             // Assert
-            result.Should().BeOfType<OkResult>();
+            result.Should().BeOfType<UnauthorizedResult>();
         }
     }
 }

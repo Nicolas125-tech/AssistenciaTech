@@ -35,9 +35,9 @@ namespace AssistenciaTech.Controllers
             try
             {
                 var configuredToken = _configuration["Telegram:WebhookSecretToken"];
-                if (!string.IsNullOrEmpty(configuredToken) && secretToken != configuredToken)
+                if (string.IsNullOrEmpty(configuredToken) || secretToken != configuredToken)
                 {
-                    _logger.LogWarning("Unauthorized webhook request. Token mismatch.");
+                    _logger.LogWarning("Unauthorized webhook request. Token mismatch or not configured.");
                     return Unauthorized();
                 }
                 // Verifica se há uma mensagem de texto no update
