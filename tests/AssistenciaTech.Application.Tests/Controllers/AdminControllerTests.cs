@@ -879,7 +879,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 new Mock<IEquipamentoBackupService>().Object,
                 _mockLogger.Object,
                 _mockScopeFactory.Object,
-                new Mock<INotificationService>().Object
+                new Mock<INotificationService>().Object,
+                new Mock<IClienteService>().Object
             );
 
             var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
