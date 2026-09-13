@@ -195,22 +195,16 @@ namespace AssistenciaTech.Controllers
             if (visitasDto == null || !visitasDto.Any())
                 return BadRequest(new { error = "Nenhum dado para sincronizar." });
 
-            var novasVisitas = new List<VisitaCampo>();
-
-            foreach (var dto in visitasDto)
+            var novasVisitas = visitasDto.Select(dto => new VisitaCampo
             {
-                var visita = new VisitaCampo
-                {
-                    OrdemServicoId = dto.OrdemServicoId,
-                    TecnicoId = tecnicoId,
-                    CheckIn = dto.CheckIn,
-                    CheckOut = dto.CheckOut,
-                    Latitude = dto.Latitude,
-                    Longitude = dto.Longitude,
-                    AssinaturaClienteBase64 = dto.AssinaturaClienteBase64
-                };
-                novasVisitas.Add(visita);
-            }
+                OrdemServicoId = dto.OrdemServicoId,
+                TecnicoId = tecnicoId,
+                CheckIn = dto.CheckIn,
+                CheckOut = dto.CheckOut,
+                Latitude = dto.Latitude,
+                Longitude = dto.Longitude,
+                AssinaturaClienteBase64 = dto.AssinaturaClienteBase64
+            }).ToList();
 
             _context.VisitasCampo.AddRange(novasVisitas);
             await _context.SaveChangesAsync();
