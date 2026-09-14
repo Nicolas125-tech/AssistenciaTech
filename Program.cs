@@ -13,7 +13,7 @@ using System.Globalization;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews(options => 
+builder.Services.AddControllersWithViews(options =>
 {
     options.Filters.Add<AssistenciaTech.Filters.DemoModeFilter>();
 });
@@ -124,7 +124,7 @@ var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationExcep
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "AssistenciaTech";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "AssistenciaTechMobile";
 
-builder.Services.AddAuthentication(options => 
+builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
 })

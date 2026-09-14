@@ -120,7 +120,7 @@ namespace AssistenciaTech.Application.Tests
             await action.Should().ThrowAsync<DbUpdateConcurrencyException>();
         }
 
-                [Fact]
+        [Fact]
         public async Task Devolver_WhenEquipamentoExists_SetsDisponivelToTrueAndRedirectsToIndex()
         {
             // Arrange
@@ -228,7 +228,7 @@ namespace AssistenciaTech.Application.Tests
             redirectResult.ActionName.Should().Be("Index");
         }
 
-[Fact]
+        [Fact]
         public async Task Devolver_WhenEquipamentoDoesNotExist_GracefullyRedirects()
         {
             // Arrange

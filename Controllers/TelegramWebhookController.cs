@@ -57,7 +57,7 @@ namespace AssistenciaTech.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Erro ao processar Webhook do Telegram.");
-                return Ok(); 
+                return Ok();
             }
         }
     }

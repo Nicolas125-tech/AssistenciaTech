@@ -23,12 +23,12 @@ namespace AssistenciaTech.Filters
                     if (controller != null)
                     {
                         controller.TempData["Error"] = "Ação não permitida: Você está logado em uma conta de Demonstração. Nenhuma alteração foi salva no banco de dados.";
-                        
+
                         // Retorna para a mesma página (se for POST de um formulário)
                         // Para não dar erro 500 ou quebrar a experiência, faremos um redirecionamento simples
                         // Pegamos o Referer para saber de onde a pessoa veio
                         string referer = context.HttpContext.Request.Headers["Referer"].ToString();
-                        
+
                         if (!string.IsNullOrEmpty(referer))
                         {
                             context.Result = new RedirectResult(referer);
