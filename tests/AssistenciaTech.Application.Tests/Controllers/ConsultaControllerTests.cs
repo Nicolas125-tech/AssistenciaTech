@@ -9,6 +9,8 @@ using AssistenciaTech.Models;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
@@ -18,6 +20,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ConsultaController _controller;
+        private readonly Mock<ILogger<ConsultaController>> _loggerMock;
 
         public ConsultaControllerTests()
         {
@@ -26,7 +29,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 .Options;
 
             _context = new AppDbContext(options);
-            _controller = new ConsultaController(_context);
+            _loggerMock = new Mock<ILogger<ConsultaController>>();
+            _controller = new ConsultaController(_context, _loggerMock.Object);
         }
 
         [Fact]

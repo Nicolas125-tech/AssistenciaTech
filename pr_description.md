@@ -1,10 +1,7 @@
-🎯 **What:**
-Added unit tests to cover the `AuditoriaOS` model instantiation, edge cases, and property assignments.
+🎯 **What**: Injected `ILogger<ConsultaController>` into `ConsultaController` and added `_logger.LogError(ex, "Ocorreu um erro inesperado ao consultar o status da OS.");` to the previously empty exception catch block in the `Status` method. Also updated `ConsultaControllerTests` to inject a `Mock<ILogger<ConsultaController>>` during instantiation to ensure compilation passes.
 
-📊 **Coverage:**
-- `AuditoriaOS_Initialization_SetsDefaultValues`: Verifies that default values are set correctly.
-- `AuditoriaOS_Properties_CanBeSetAndRetrieved`: Verifies standard assignment of all properties.
-- `AuditoriaOS_NullableProperties_CanBeNullOrWhitespace`: Verifies the handling of nullable properties with empty, null, or whitespace values.
+💡 **Why**: Swallowing exceptions without logging them makes it difficult to diagnose and troubleshoot unexpected issues when they occur in production, reducing the maintainability and observability of the codebase. By logging the exception, we get visibility into any underlying issues processing the status requests.
 
-✨ **Result:**
-Increased testing coverage for the data models by covering instantiation and validation edge cases for `AuditoriaOS`, ensuring reliability and safety against future regressions.
+✅ **Verification**: Verified using `dotnet test` with the specific test classes for `ConsultaControllerTests`, all of which passed successfully. Ensured dependency injection in the tests matches the modified controller constructor. Ran `run_checks.sh` to ensure overall project health.
+
+✨ **Result**: The code now properly logs swallowed exceptions, improving diagnostic capabilities and aligning with code health best practices.
