@@ -1,7 +1,11 @@
-🎯 **What**: Injected `ILogger<ConsultaController>` into `ConsultaController` and added `_logger.LogError(ex, "Ocorreu um erro inesperado ao consultar o status da OS.");` to the previously empty exception catch block in the `Status` method. Also updated `ConsultaControllerTests` to inject a `Mock<ILogger<ConsultaController>>` during instantiation to ensure compilation passes.
+🎯 **What:**
+Removed the dead code comment `// Gravar os impostos desmembrados` in `Controllers/FaturamentosController.cs` and other formatting issues caught by `dotnet format`. The manual tax calculation logic was already replaced by the domain service (`_tributacaoService.CalcularTributos(os)`).
 
-💡 **Why**: Swallowing exceptions without logging them makes it difficult to diagnose and troubleshoot unexpected issues when they occur in production, reducing the maintainability and observability of the codebase. By logging the exception, we get visibility into any underlying issues processing the status requests.
+💡 **Why:**
+This improves readability and maintainability by removing comments that are no longer relevant to the current logic, avoiding confusion for future maintainers.
 
-✅ **Verification**: Verified using `dotnet test` with the specific test classes for `ConsultaControllerTests`, all of which passed successfully. Ensured dependency injection in the tests matches the modified controller constructor. Ran `run_checks.sh` to ensure overall project health.
+✅ **Verification:**
+Confirmed via `git diff` that the correct line was removed. Ran the full test suite (`dotnet test`) and verified that no functionality was broken (only pre-existing failing tests remained).
 
-✨ **Result**: The code now properly logs swallowed exceptions, improving diagnostic capabilities and aligning with code health best practices.
+✨ **Result:**
+The codebase is cleaner and no longer contains dead comments related to tax calculation.

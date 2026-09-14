@@ -23,7 +23,7 @@ namespace AssistenciaTech.Controllers
         private readonly AssistenciaTech.Services.IPdfGeneratorService _pdfGenerator;
 
         public FaturamentosController(
-            AppDbContext context, 
+            AppDbContext context,
             IConfiguration configuration,
             AssistenciaTech.Services.ITributacaoService tributacaoService,
             AssistenciaTech.Services.INfseXmlGeneratorService xmlGenerator,
@@ -67,12 +67,11 @@ namespace AssistenciaTech.Controllers
                 StatusPagamento = PagamentoStatus.Pendente,
                 TxIdPix = txId,
                 QrCodePayload = qrcodeBase,
-                
-                // Gravar os impostos desmembrados
+
                 BaseCalculoISS = tributos.BaseCalculoISS,
                 AliquotaISS = tributos.AliquotaISS,
                 ValorISS = tributos.ValorISS,
-                
+
                 BaseCalculoICMS = tributos.BaseCalculoICMS,
                 AliquotaICMS = tributos.AliquotaICMS,
                 ValorICMS = tributos.ValorICMS

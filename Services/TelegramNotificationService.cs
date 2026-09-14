@@ -30,7 +30,7 @@ namespace AssistenciaTech.Services
             }
 
             var token = _configuration["TelegramBotToken"];
-            
+
             if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(cliente.TelegramChatId))
             {
                 _logger.LogWarning("[Telegram] Token do bot não configurado ou cliente {ClienteNome} (ID: {ClienteId}) não possui TelegramChatId.", cliente.Nome, cliente.Id);
@@ -50,7 +50,7 @@ namespace AssistenciaTech.Services
             try
             {
                 var response = await _httpClient.PostAsync($"https://api.telegram.org/bot{token}/sendMessage", content);
-                
+
                 if (response.IsSuccessStatusCode)
                 {
                     _logger.LogInformation("[Telegram] Notificação enviada para {ClienteNome} (ChatId: {ChatId}): {Mensagem}", cliente.Nome, cliente.TelegramChatId, mensagem);

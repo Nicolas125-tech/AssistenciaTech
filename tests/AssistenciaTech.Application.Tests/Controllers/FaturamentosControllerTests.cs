@@ -218,7 +218,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             string txId1 = "tx111";
             string txId2 = "tx222";
 
-            var faturamento1 = new Faturamento {  ValorTotal = 100, DataVencimento = DateTime.UtcNow, StatusPagamento = PagamentoStatus.Pendente, TxIdPix = txId1, QrCodePayload = "qr" };
+            var faturamento1 = new Faturamento { ValorTotal = 100, DataVencimento = DateTime.UtcNow, StatusPagamento = PagamentoStatus.Pendente, TxIdPix = txId1, QrCodePayload = "qr" };
             var faturamento2 = new Faturamento { OrdemServicoId = 2, ValorTotal = 200, DataVencimento = DateTime.UtcNow, StatusPagamento = PagamentoStatus.Pendente, TxIdPix = txId2, QrCodePayload = "qr" };
 
             _context.Faturamentos.AddRange(faturamento1, faturamento2);

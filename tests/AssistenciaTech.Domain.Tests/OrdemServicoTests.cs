@@ -98,7 +98,7 @@ public class OrdemServicoTests
         string? numeroOS, string? clientCpf, string? equipamentoModelo, string? numeroSerie, string? defeitoRelatado)
     {
         // Act
-        #pragma warning disable CS8604 // Possible null reference argument.
+#pragma warning disable CS8604 // Possible null reference argument.
         var os = new OrdemServico(numeroOS, clientCpf, equipamentoModelo, numeroSerie, defeitoRelatado);
 #pragma warning restore CS8604 // Possible null reference argument.
 
