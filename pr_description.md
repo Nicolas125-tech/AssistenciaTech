@@ -1,11 +1,7 @@
-🎯 **What:**
-Removed the dead code comment `// Gravar os impostos desmembrados` in `Controllers/FaturamentosController.cs` and other formatting issues caught by `dotnet format`. The manual tax calculation logic was already replaced by the domain service (`_tributacaoService.CalcularTributos(os)`).
-
-💡 **Why:**
-This improves readability and maintainability by removing comments that are no longer relevant to the current logic, avoiding confusion for future maintainers.
-
-✅ **Verification:**
-Confirmed via `git diff` that the correct line was removed. Ran the full test suite (`dotnet test`) and verified that no functionality was broken (only pre-existing failing tests remained).
-
-✨ **Result:**
-The codebase is cleaner and no longer contains dead comments related to tax calculation.
+🎯 **What:** Added missing tests for `ClienteService`. Specifically, the logic for generating SelectListItems for Clientes was uncovered by tests.
+📊 **Coverage:** Added coverage for `GetClientesSelectListAsync` focusing on:
+  - Empty database scenarios.
+  - Correct formatting of the `SelectListItem.Text` field (combining Name, CPF, and Phone).
+  - Null `selectedId` behavior (none selected).
+  - Matching `selectedId` behavior (correct item marked as selected).
+✨ **Result:** Enhanced the test coverage for application services, guaranteeing that future changes to `ClienteService` won't break the UI components depending on these dropdown lists.
