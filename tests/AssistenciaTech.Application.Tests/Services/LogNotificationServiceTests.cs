@@ -243,5 +243,5 @@ namespace AssistenciaTech.Application.Tests.Services
                     It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
                 Times.Once);
         }
-}
+    }
 }

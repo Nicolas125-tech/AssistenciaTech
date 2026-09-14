@@ -126,7 +126,7 @@ namespace AssistenciaTech.Data
             foreach (var prop in entry.Properties.Where(p => p.IsModified))
             {
                 var nomeCampo = prop.Metadata.Name;
-                
+
                 // Ignorar campos de controle interno se houver (ex: DataEntrada se não for intencional, etc.)
                 if (nomeCampo == "DataAtualizacao") continue;
 
@@ -137,9 +137,9 @@ namespace AssistenciaTech.Data
                 if (oldValue == newValue) continue;
 
                 alteracoes.Add(nomeCampo, new AuditChange
-                { 
-                    De = oldValue ?? "N/A", 
-                    Para = newValue ?? "N/A" 
+                {
+                    De = oldValue ?? "N/A",
+                    Para = newValue ?? "N/A"
                 });
             }
 
@@ -157,16 +157,17 @@ namespace AssistenciaTech.Data
                     ValorNovo = null,
                     DetalhesAlteracao = jsonDiff
                 };
-                
+
                 context.Add(auditoria);
             }
         }
 
         private void AuditAddedEntry(EntityEntry<OrdemServico> entry, string usuario)
         {
-            var jsonDiff = System.Text.Json.JsonSerializer.Serialize(new AuditCreate {
+            var jsonDiff = System.Text.Json.JsonSerializer.Serialize(new AuditCreate
+            {
                 Acao = "Criação de Ordem de Serviço",
-                StatusInicial = entry.Entity.Status 
+                StatusInicial = entry.Entity.Status
             }, AuditoriaJsonContext.Default.AuditCreate);
 
             var auditoria = new AuditoriaOS

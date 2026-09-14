@@ -1,10 +1,11 @@
 🎯 **What:**
-Added unit tests to cover the `AuditoriaOS` model instantiation, edge cases, and property assignments.
+Removed the dead code comment `// Gravar os impostos desmembrados` in `Controllers/FaturamentosController.cs` and other formatting issues caught by `dotnet format`. The manual tax calculation logic was already replaced by the domain service (`_tributacaoService.CalcularTributos(os)`).
 
-📊 **Coverage:**
-- `AuditoriaOS_Initialization_SetsDefaultValues`: Verifies that default values are set correctly.
-- `AuditoriaOS_Properties_CanBeSetAndRetrieved`: Verifies standard assignment of all properties.
-- `AuditoriaOS_NullableProperties_CanBeNullOrWhitespace`: Verifies the handling of nullable properties with empty, null, or whitespace values.
+💡 **Why:**
+This improves readability and maintainability by removing comments that are no longer relevant to the current logic, avoiding confusion for future maintainers.
+
+✅ **Verification:**
+Confirmed via `git diff` that the correct line was removed. Ran the full test suite (`dotnet test`) and verified that no functionality was broken (only pre-existing failing tests remained).
 
 ✨ **Result:**
-Increased testing coverage for the data models by covering instantiation and validation edge cases for `AuditoriaOS`, ensuring reliability and safety against future regressions.
+The codebase is cleaner and no longer contains dead comments related to tax calculation.

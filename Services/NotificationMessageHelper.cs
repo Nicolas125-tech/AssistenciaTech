@@ -19,8 +19,8 @@ namespace AssistenciaTech.Services
 
                 if (string.IsNullOrEmpty(template))
                 {
-                     // Fallback hardcoded de última linha de segurança
-                     return $"Olá {cliente.Nome}, o status da sua OS #{os.Id} ({os.Equipamento}) foi atualizado de '{statusAnterior}' para '{novoStatus}'.";
+                    // Fallback hardcoded de última linha de segurança
+                    return $"Olá {cliente.Nome}, o status da sua OS #{os.Id} ({os.Equipamento}) foi atualizado de '{statusAnterior}' para '{novoStatus}'.";
                 }
             }
 

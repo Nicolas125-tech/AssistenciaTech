@@ -43,7 +43,7 @@ namespace AssistenciaTech.Services
                 BaseCalculoISS = baseIss,
                 AliquotaISS = ALIQUOTA_ISS,
                 ValorISS = Math.Round(valorIss, 2),
-                
+
                 BaseCalculoICMS = baseIcms,
                 AliquotaICMS = ALIQUOTA_ICMS,
                 ValorICMS = Math.Round(valorIcms, 2)
