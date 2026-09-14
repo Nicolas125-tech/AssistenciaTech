@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using AssistenciaTech.Data;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using System;
 using Microsoft.AspNetCore.Authorization;
@@ -16,11 +17,13 @@ namespace AssistenciaTech.Controllers
     public class ConsultaController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly ILogger<ConsultaController> _logger;
 
         // Injeção de Dependência do contexto do banco de dados
-        public ConsultaController(AppDbContext context)
+        public ConsultaController(AppDbContext context, ILogger<ConsultaController> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         // GET: /Consulta/
@@ -83,7 +86,7 @@ namespace AssistenciaTech.Controllers
             }
             catch (Exception ex)
             {
-                // Log the exception here if a logger is available
+                _logger.LogError(ex, "Ocorreu um erro inesperado ao consultar o status da OS.");
                 ViewBag.Erro = "Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente mais tarde.";
                 return View("Index");
             }
