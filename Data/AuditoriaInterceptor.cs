@@ -93,11 +93,17 @@ namespace AssistenciaTech.Data
         {
             if (context == null) return;
 
-            var entries = context.ChangeTracker.Entries<OrdemServico>()
-                .Where(e => e.State == EntityState.Modified || e.State == EntityState.Added)
-                .ToList();
+            List<EntityEntry<OrdemServico>>? entries = null;
+            foreach (var e in context.ChangeTracker.Entries<OrdemServico>())
+            {
+                if (e.State == EntityState.Modified || e.State == EntityState.Added)
+                {
+                    entries ??= new List<EntityEntry<OrdemServico>>();
+                    entries.Add(e);
+                }
+            }
 
-            if (!entries.Any()) return;
+            if (entries == null) return;
 
             // Pega o usuário logado (Admin, Tecnico)
             string usuario = "Sistema/Desconhecido";
@@ -123,8 +129,10 @@ namespace AssistenciaTech.Data
         {
             var alteracoes = new Dictionary<string, AuditChange>();
 
-            foreach (var prop in entry.Properties.Where(p => p.IsModified))
+            foreach (var prop in entry.Properties)
             {
+                if (!prop.IsModified) continue;
+
                 var nomeCampo = prop.Metadata.Name;
 
                 // Ignorar campos de controle interno se houver (ex: DataEntrada se não for intencional, etc.)
