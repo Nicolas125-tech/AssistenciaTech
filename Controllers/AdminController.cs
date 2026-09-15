@@ -30,28 +30,14 @@ namespace AssistenciaTech.Controllers
     {
         private static readonly string[] _allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".pdf" };
         private readonly AppDbContext _context;
-        private readonly IEstoqueService _estoqueService;
-        private readonly IWebHostEnvironment _env;
-        private readonly IPdfGeneratorService _pdfGeneratorService;
-        private readonly IAdminDashboardService _dashboardService;
-        private readonly IEquipamentoBackupService _equipamentoBackupService;
         private readonly ILogger<AdminController> _logger;
-        private readonly IServiceScopeFactory _scopeFactory;
-        private readonly INotificationService _notificationService;
-        private readonly IClienteService _clienteService;
+        private readonly IAdminFacade _facade;
 
-        public AdminController(AppDbContext context, IEstoqueService estoqueService, IWebHostEnvironment env, IPdfGeneratorService pdfGeneratorService, IAdminDashboardService dashboardService, IEquipamentoBackupService equipamentoBackupService, ILogger<AdminController> logger, IServiceScopeFactory scopeFactory, INotificationService notificationService, IClienteService clienteService)
+        public AdminController(AppDbContext context, ILogger<AdminController> logger, IAdminFacade facade)
         {
             _context = context;
-            _estoqueService = estoqueService;
-            _env = env;
-            _pdfGeneratorService = pdfGeneratorService;
-            _dashboardService = dashboardService;
-            _equipamentoBackupService = equipamentoBackupService;
             _logger = logger;
-            _scopeFactory = scopeFactory;
-            _notificationService = notificationService;
-            _clienteService = clienteService;
+            _facade = facade;
         }
 
         // GET: Admin/Index
@@ -117,7 +103,7 @@ namespace AssistenciaTech.Controllers
             }
             try
             {
-                var dashboardData = await _dashboardService.GetDashboardDataAsync(searchString, statusFilter, page);
+                var dashboardData = await _facade.Dashboard.GetDashboardDataAsync(searchString, statusFilter, page);
 
                 ViewBag.SearchString = searchString;
                 ViewBag.StatusFilter = statusFilter;
@@ -280,7 +266,7 @@ namespace AssistenciaTech.Controllers
 
                 string statusAnterior = ordemExistente.Status;
 
-                await _equipamentoBackupService.ProcessarTrocaEquipamentoAsync(ordemExistente.EquipamentoBackupId, ordemServico.EquipamentoBackupId);
+                await _facade.EquipamentoBackup.ProcessarTrocaEquipamentoAsync(ordemExistente.EquipamentoBackupId, ordemServico.EquipamentoBackupId);
 
                 UpdateOrdemServicoProperties(ordemExistente, ordemServico);
 
@@ -301,7 +287,7 @@ namespace AssistenciaTech.Controllers
                 {
                     try
                     {
-                        await _notificationService.EnviarNotificacaoStatusAsync(ordemExistente.Cliente, ordemExistente, statusAnterior);
+                        await _facade.Notification.EnviarNotificacaoStatusAsync(ordemExistente.Cliente, ordemExistente, statusAnterior);
                     }
                     catch (Exception notifEx)
                     {
@@ -370,7 +356,7 @@ namespace AssistenciaTech.Controllers
 
             if (os == null) return NotFound();
 
-            var pdfBytes = _pdfGeneratorService.GenerateOsPdf(os);
+            var pdfBytes = _facade.PdfGenerator.GenerateOsPdf(os);
 
             return File(pdfBytes, "application/pdf", $"OS_{os.Id}_{os.Cliente?.Nome}.pdf");
         }
@@ -394,7 +380,7 @@ namespace AssistenciaTech.Controllers
                 return BadRequest();
             }
 
-            string uploadsFolder = Path.GetFullPath(Path.Combine(_env.ContentRootPath, "SecureUploads", "Evidencias"));
+            string uploadsFolder = Path.GetFullPath(Path.Combine(_facade.Env.ContentRootPath, "SecureUploads", "Evidencias"));
             string filePath = Path.GetFullPath(Path.Combine(uploadsFolder, safeFileName));
 
             if (!filePath.StartsWith(uploadsFolder + Path.DirectorySeparatorChar))
@@ -480,12 +466,12 @@ namespace AssistenciaTech.Controllers
             if (ordemExistente.Status == WorkflowStatus.Concluido && ordemExistente.DataConclusao == null)
             {
                 ordemExistente.DataConclusao = DateTime.UtcNow;
-                await _estoqueService.DeduzirEstoque(ordemExistente.Id);
+                await _facade.Estoque.DeduzirEstoque(ordemExistente.Id);
             }
             else if (statusAnterior == WorkflowStatus.Concluido && ordemExistente.Status != WorkflowStatus.Concluido && ordemExistente.Status != WorkflowStatus.Entregue)
             {
                 ordemExistente.DataConclusao = null;
-                await _estoqueService.RestaurarEstoque(ordemExistente.Id);
+                await _facade.Estoque.RestaurarEstoque(ordemExistente.Id);
             }
 
             if (ordemExistente.Status == WorkflowStatus.Entregue && ordemExistente.DataEntregaCliente == null)
@@ -505,7 +491,7 @@ namespace AssistenciaTech.Controllers
                 if (ordemExistente.DataConclusao == null)
                 {
                     ordemExistente.DataConclusao = DateTime.UtcNow;
-                    await _estoqueService.DeduzirEstoque(ordemExistente.Id);
+                    await _facade.Estoque.DeduzirEstoque(ordemExistente.Id);
                 }
             }
             else if (ordemExistente.Status != WorkflowStatus.Entregue)
@@ -517,13 +503,13 @@ namespace AssistenciaTech.Controllers
 
         private async Task PopulateViewBagsForEditAsync(OrdemServico ordemServico)
         {
-            using var scopeTecnicos = _scopeFactory.CreateScope();
+            using var scopeTecnicos = _facade.ScopeFactory.CreateScope();
             var ctxTecnicos = scopeTecnicos.ServiceProvider.GetRequiredService<AppDbContext>();
 
-            using var scopeEquipamentos = _scopeFactory.CreateScope();
+            using var scopeEquipamentos = _facade.ScopeFactory.CreateScope();
             var ctxEquipamentos = scopeEquipamentos.ServiceProvider.GetRequiredService<AppDbContext>();
 
-            using var scopeContratos = _scopeFactory.CreateScope();
+            using var scopeContratos = _facade.ScopeFactory.CreateScope();
             var ctxContratos = scopeContratos.ServiceProvider.GetRequiredService<AppDbContext>();
 
             var tecnicosTask = ctxTecnicos.Tecnicos.AsNoTracking().Where(t => t.Ativo).ToListAsync();
@@ -546,7 +532,7 @@ namespace AssistenciaTech.Controllers
         {
             if (fotos != null && fotos.Count > 0)
             {
-                string uploadsFolder = Path.Combine(_env.ContentRootPath, "SecureUploads", "Evidencias");
+                string uploadsFolder = Path.Combine(_facade.Env.ContentRootPath, "SecureUploads", "Evidencias");
                 Directory.CreateDirectory(uploadsFolder);
 
                 var uploadTasks = new List<Task>();
@@ -592,7 +578,7 @@ namespace AssistenciaTech.Controllers
         }
         private async Task PopulateClientesViewBagAsync(int? selectedId = null)
         {
-            var selectListItems = await _clienteService.GetClientesSelectListAsync(selectedId);
+            var selectListItems = await _facade.Cliente.GetClientesSelectListAsync(selectedId);
             ViewBag.Clientes = new SelectList(selectListItems, "Value", "Text", selectedId?.ToString());
         }
     }
