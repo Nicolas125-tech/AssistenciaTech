@@ -58,7 +58,7 @@ namespace AssistenciaTech.Services
 
             bool hasFilters = !string.IsNullOrEmpty(searchString) || !string.IsNullOrEmpty(statusFilter);
 
-            var (statusGroupDb, totalOrdens) = await GetStatusGroupDataAsync(query, hasFilters);
+            var (statusGroupDb, totalOrdens) = await GetStatusGroupDataAsync(query, searchString, statusFilter);
 
             int totalPages = (int)Math.Ceiling(totalOrdens / (double)pageSize);
 
@@ -100,19 +100,21 @@ namespace AssistenciaTech.Services
             return query;
         }
 
-        private async Task<(List<StatusGroupDto>? StatusGroupDb, int TotalOrdens)> GetStatusGroupDataAsync(IQueryable<OrdemServico> query, bool hasFilters)
+        private async Task<(List<StatusGroupDto>? StatusGroupDb, int TotalOrdens)> GetStatusGroupDataAsync(IQueryable<OrdemServico> query, string searchString, string statusFilter)
         {
             List<StatusGroupDto>? statusGroupDb = null;
             int totalOrdens;
 
-            if (!hasFilters && _cache.IsAvailable)
+            if (_cache.IsAvailable)
             {
-                statusGroupDb = await _cache.GetAsync<List<StatusGroupDto>>(CacheKeyStatusGroup);
+                string statusGroupKey = $"{CacheKeyStatusGroup}_{searchString ?? ""}_{statusFilter ?? ""}";
+                string totalOrdensKey = $"{CacheKeyTotalOrdens}_{searchString ?? ""}_{statusFilter ?? ""}";
+
+                statusGroupDb = await _cache.GetAsync<List<StatusGroupDto>>(statusGroupKey);
 
                 if (statusGroupDb == null)
                 {
-                    statusGroupDb = await _context.OrdensServico
-                        .AsNoTracking()
+                    statusGroupDb = await query
                         .GroupBy(o => o.Status)
                         .Select(g => new StatusGroupDto
                         {
@@ -122,14 +124,14 @@ namespace AssistenciaTech.Services
                         })
                         .ToListAsync();
 
-                    await _cache.SetAsync(CacheKeyStatusGroup, statusGroupDb, CacheDuration);
+                    await _cache.SetAsync(statusGroupKey, statusGroupDb, CacheDuration);
                 }
 
-                var cachedTotalOrdens = await _cache.GetAsync<int?>(CacheKeyTotalOrdens);
+                var cachedTotalOrdens = await _cache.GetAsync<int?>(totalOrdensKey);
                 if (cachedTotalOrdens == null)
                 {
-                    totalOrdens = await _context.OrdensServico.CountAsync();
-                    await _cache.SetAsync(CacheKeyTotalOrdens, (int?)totalOrdens, CacheDuration);
+                    totalOrdens = await query.CountAsync();
+                    await _cache.SetAsync(totalOrdensKey, (int?)totalOrdens, CacheDuration);
                 }
                 else
                 {
