@@ -503,29 +503,18 @@ namespace AssistenciaTech.Controllers
 
         private async Task PopulateViewBagsForEditAsync(OrdemServico ordemServico)
         {
-            using var scopeTecnicos = _facade.ScopeFactory.CreateScope();
-            var ctxTecnicos = scopeTecnicos.ServiceProvider.GetRequiredService<AppDbContext>();
+            var tecnicos = await _context.Tecnicos.AsNoTracking().Where(t => t.Ativo).ToListAsync();
 
-            using var scopeEquipamentos = _facade.ScopeFactory.CreateScope();
-            var ctxEquipamentos = scopeEquipamentos.ServiceProvider.GetRequiredService<AppDbContext>();
+            var equipamentos = await _context.EquipamentosBackup.AsNoTracking().Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).ToListAsync();
 
-            using var scopeContratos = _facade.ScopeFactory.CreateScope();
-            var ctxContratos = scopeContratos.ServiceProvider.GetRequiredService<AppDbContext>();
-
-            var tecnicosTask = ctxTecnicos.Tecnicos.AsNoTracking().Where(t => t.Ativo).ToListAsync();
-
-            var equipamentosTask = ctxEquipamentos.EquipamentosBackup.AsNoTracking().Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).ToListAsync();
-
-            var contratosTask = ctxContratos.Contratos.Include(c => c.Cliente).AsNoTracking()
+            var contratos = await _context.Contratos.Include(c => c.Cliente).AsNoTracking()
                 .Where(c => c.ClienteId == ordemServico.ClienteId)
                 .Select(c => new { c.Id, NomeDesc = "Contrato: SLA " + c.HorasSLA + "h - R$ " + c.ValorMensal })
                 .ToListAsync();
 
-            await Task.WhenAll(tecnicosTask, equipamentosTask, contratosTask);
-
-            ViewBag.Tecnicos = new SelectList(await tecnicosTask, "Id", "Nome", ordemServico.TecnicoId);
-            ViewBag.EquipamentosBackup = new SelectList(await equipamentosTask, "Id", "Descricao", ordemServico.EquipamentoBackupId);
-            ViewBag.Contratos = new SelectList(await contratosTask, "Id", "NomeDesc", ordemServico.ContratoId);
+            ViewBag.Tecnicos = new SelectList(tecnicos, "Id", "Nome", ordemServico.TecnicoId);
+            ViewBag.EquipamentosBackup = new SelectList(equipamentos, "Id", "Descricao", ordemServico.EquipamentoBackupId);
+            ViewBag.Contratos = new SelectList(contratos, "Id", "NomeDesc", ordemServico.ContratoId);
         }
 
         private async Task ProcessEvidenciaUploadsAsync(OrdemServico ordemExistente, IFormFileCollection fotos)
