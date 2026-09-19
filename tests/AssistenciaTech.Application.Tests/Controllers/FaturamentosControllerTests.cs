@@ -170,6 +170,28 @@ namespace AssistenciaTech.Application.Tests.Controllers
             badRequestResult.Value.Should().Be("Invalid JSON payload.");
         }
 
+
+        [Fact]
+        public async Task WebhookPix_MalformedJson_ThrowsJsonException_ReturnsBadRequest()
+        {
+            // Arrange
+            var validSecret = new string('a', 32);
+            _mockConfig.Setup(c => c["WebhookSecret"]).Returns(validSecret);
+
+            var payload = "{invalid: true"; // Malformed JSON that will throw JsonException when parsed
+            var signature = GenerateSignature(validSecret, payload);
+
+            _controller.Request.Headers["X-Webhook-Signature"] = signature;
+            _controller.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(payload));
+
+            // Act
+            var result = await _controller.WebhookPix();
+
+            // Assert
+            var badRequestResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
+            badRequestResult.Value.Should().Be("Invalid JSON payload.");
+        }
+
         [Fact]
         public async Task WebhookPix_ValidSignatureAndPayload_ProcessesPaymentAndReturnsOk()
         {
