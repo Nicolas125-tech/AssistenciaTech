@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Security.Cryptography;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -35,7 +36,10 @@ namespace AssistenciaTech.Controllers
             try
             {
                 var configuredToken = _configuration["Telegram:WebhookSecretToken"];
-                if (string.IsNullOrEmpty(configuredToken) || secretToken != configuredToken)
+                if (string.IsNullOrEmpty(configuredToken) || string.IsNullOrEmpty(secretToken) ||
+                    !CryptographicOperations.FixedTimeEquals(
+                        Encoding.UTF8.GetBytes(secretToken),
+                        Encoding.UTF8.GetBytes(configuredToken)))
                 {
                     _logger.LogWarning("Unauthorized webhook request. Token mismatch or not configured.");
                     return Unauthorized();
