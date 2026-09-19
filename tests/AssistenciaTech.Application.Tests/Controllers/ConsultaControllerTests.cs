@@ -301,6 +301,42 @@ namespace AssistenciaTech.Application.Tests.Controllers
             var ordemRetornada = viewResult.Model.Should().BeAssignableTo<OrdemServico>().Subject;
             ordemRetornada.Id.Should().Be(os.Id);
         }
+
+        [Fact]
+        public async Task Status_QuandoExcecaoLancada_DeveRetornarViewIndexComErro()
+        {
+            // Arrange
+            int numeroOS = 1;
+            string cpf = "12345678901";
+
+            var mockConnection = new Mock<System.Data.Common.DbConnection>();
+            mockConnection.Setup(m => m.OpenAsync(It.IsAny<System.Threading.CancellationToken>()))
+                          .ThrowsAsync(new TestDbException("Simulated exception"));
+            mockConnection.Setup(m => m.Open())
+                          .Throws(new TestDbException("Simulated exception"));
+
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseSqlite(mockConnection.Object)
+                .Options;
+
+            using var errorContext = new AppDbContext(options);
+            using var errorController = new ConsultaController(errorContext, _loggerMock.Object);
+
+            // Act
+            var result = await errorController.Status(numeroOS, cpf);
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            viewResult.ViewName.Should().Be("Index");
+            string erro = errorController.ViewBag.Erro;
+            erro.Should().Be("Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente mais tarde.");
+        }
+
+        private class TestDbException : System.Data.Common.DbException
+        {
+            public TestDbException(string message) : base(message) { }
+        }
+
         public void Dispose()
         {
             _context.Database.EnsureDeleted();
