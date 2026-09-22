@@ -40,8 +40,13 @@ namespace AssistenciaTech.Services
         private readonly AppDbContext _context;
         private readonly IResilientCacheService _cache;
         private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
-        private const string CacheKeyStatusGroup = "AdminDashboard_StatusGroup";
-        private const string CacheKeyTotalOrdens = "AdminDashboard_TotalOrdens";
+        private const string CacheKeyDashboardMetrics = "AdminDashboard_Metrics";
+
+        private class DashboardCachedData
+        {
+            public List<StatusGroupDto>? StatusGroups { get; set; }
+            public int TotalOrdens { get; set; }
+        }
 
         private readonly IEstoqueService _estoqueService;
 
@@ -107,9 +112,9 @@ namespace AssistenciaTech.Services
 
             if (!hasFilters && _cache.IsAvailable)
             {
-                statusGroupDb = await _cache.GetAsync<List<StatusGroupDto>>(CacheKeyStatusGroup);
+                var cachedData = await _cache.GetAsync<DashboardCachedData>(CacheKeyDashboardMetrics);
 
-                if (statusGroupDb == null)
+                if (cachedData == null)
                 {
                     statusGroupDb = await _context.OrdensServico
                         .AsNoTracking()
@@ -122,18 +127,19 @@ namespace AssistenciaTech.Services
                         })
                         .ToListAsync();
 
-                    await _cache.SetAsync(CacheKeyStatusGroup, statusGroupDb, CacheDuration);
-                }
-
-                var cachedTotalOrdens = await _cache.GetAsync<int?>(CacheKeyTotalOrdens);
-                if (cachedTotalOrdens == null)
-                {
                     totalOrdens = await _context.OrdensServico.CountAsync();
-                    await _cache.SetAsync(CacheKeyTotalOrdens, (int?)totalOrdens, CacheDuration);
+
+                    cachedData = new DashboardCachedData
+                    {
+                        StatusGroups = statusGroupDb,
+                        TotalOrdens = totalOrdens
+                    };
+                    await _cache.SetAsync(CacheKeyDashboardMetrics, cachedData, CacheDuration);
                 }
                 else
                 {
-                    totalOrdens = cachedTotalOrdens.Value;
+                    statusGroupDb = cachedData.StatusGroups;
+                    totalOrdens = cachedData.TotalOrdens;
                 }
             }
             else
