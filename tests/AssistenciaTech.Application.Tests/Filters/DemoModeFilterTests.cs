@@ -129,6 +129,40 @@ public class DemoModeFilterTests
         jsonResult.StatusCode.Should().Be(403);
     }
 
+
+    [Fact]
+    public void OnActionExecuted_DoesNothing()
+    {
+        // Arrange
+        var context = CreateActionExecutedContext();
+
+        // Act
+        _filter.OnActionExecuted(context);
+
+        // Assert
+        // Since the method is empty and does nothing, we just verify it doesn't throw any exceptions
+        // and doesn't modify the context in any way.
+        context.Result.Should().BeNull();
+        context.Exception.Should().BeNull();
+    }
+
+    private ActionExecutedContext CreateActionExecutedContext()
+    {
+        var httpContext = new DefaultHttpContext();
+        var actionContext = new ActionContext(
+            httpContext,
+            new RouteData(),
+            new ActionDescriptor(),
+            new Microsoft.AspNetCore.Mvc.ModelBinding.ModelStateDictionary()
+        );
+
+        return new ActionExecutedContext(
+            actionContext,
+            new List<IFilterMetadata>(),
+            new Mock<Controller>().Object
+        );
+    }
+
     private ActionExecutingContext CreateActionExecutingContext(
         bool isAuthenticated,
         string? userName,
