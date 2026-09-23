@@ -11,6 +11,10 @@ namespace AssistenciaTech.Models
         [Required]
         public int OrdemServicoId { get; set; }
 
+        [System.Text.Json.Serialization.JsonIgnore]
+        [System.ComponentModel.DataAnnotations.Schema.ForeignKey("OrdemServicoId")]
+        public OrdemServico? OrdemServico { get; set; }
+
         [Required]
         public string Usuario { get; set; } = string.Empty; // Nome ou Id de quem alterou
 

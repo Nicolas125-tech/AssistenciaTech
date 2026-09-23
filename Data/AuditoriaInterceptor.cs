@@ -15,7 +15,6 @@ namespace AssistenciaTech.Data
     public class AuditoriaInterceptor : SaveChangesInterceptor
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly List<(AuditoriaOS Audit, OrdemServico OS)> _pendingAudits = new();
 
         public AuditoriaInterceptor(IHttpContextAccessor httpContextAccessor)
         {
@@ -32,61 +31,6 @@ namespace AssistenciaTech.Data
         {
             Audit(eventData.Context);
             return base.SavingChangesAsync(eventData, result, cancellationToken);
-        }
-
-
-        public override int SavedChanges(SaveChangesCompletedEventData eventData, int result)
-        {
-            var baseResult = base.SavedChanges(eventData, result);
-            ProcessPendingAudits(eventData.Context);
-            return baseResult;
-        }
-
-        public override async ValueTask<int> SavedChangesAsync(SaveChangesCompletedEventData eventData, int result, CancellationToken cancellationToken = default)
-        {
-            var baseResult = await base.SavedChangesAsync(eventData, result, cancellationToken);
-            await ProcessPendingAuditsAsync(eventData.Context, cancellationToken);
-            return baseResult;
-        }
-
-        public override void SaveChangesFailed(DbContextErrorEventData eventData)
-        {
-            _pendingAudits.Clear();
-            base.SaveChangesFailed(eventData);
-        }
-
-        public override Task SaveChangesFailedAsync(DbContextErrorEventData eventData, CancellationToken cancellationToken = default)
-        {
-            _pendingAudits.Clear();
-            return base.SaveChangesFailedAsync(eventData, cancellationToken);
-        }
-
-        private List<AuditoriaOS>? PreparePendingAudits(DbContext? context)
-        {
-            if (context == null || !_pendingAudits.Any()) return null;
-
-            var audits = new List<AuditoriaOS>(_pendingAudits.Count);
-            foreach (var pending in _pendingAudits)
-            {
-                pending.Audit.OrdemServicoId = pending.OS.Id;
-                audits.Add(pending.Audit);
-            }
-            context.AddRange(audits);
-
-            _pendingAudits.Clear();
-            return audits;
-        }
-
-        private void ProcessPendingAudits(DbContext? context)
-        {
-            if (context == null || PreparePendingAudits(context) == null) return;
-            context.SaveChanges();
-        }
-
-        private async Task ProcessPendingAuditsAsync(DbContext? context, CancellationToken cancellationToken)
-        {
-            if (context == null || PreparePendingAudits(context) == null) return;
-            await context.SaveChangesAsync(cancellationToken);
         }
 
         private void Audit(DbContext? context)
@@ -120,7 +64,7 @@ namespace AssistenciaTech.Data
                 }
                 else if (entry.State == EntityState.Added)
                 {
-                    AuditAddedEntry(entry, usuario);
+                    AuditAddedEntry(context, entry, usuario);
                 }
             }
         }
@@ -157,7 +101,6 @@ namespace AssistenciaTech.Data
 
                 var auditoria = new AuditoriaOS
                 {
-                    OrdemServicoId = entry.Entity.Id,
                     Usuario = usuario,
                     DataAlteracao = DateTime.UtcNow,
                     CampoAlterado = "MÚLTIPLOS", // Mantido para compatibilidade, ou poderia ser nulo
@@ -165,12 +108,12 @@ namespace AssistenciaTech.Data
                     ValorNovo = null,
                     DetalhesAlteracao = jsonDiff
                 };
-
+                auditoria.OrdemServico = entry.Entity;
                 context.Add(auditoria);
             }
         }
 
-        private void AuditAddedEntry(EntityEntry<OrdemServico> entry, string usuario)
+        private void AuditAddedEntry(DbContext context, EntityEntry<OrdemServico> entry, string usuario)
         {
             var jsonDiff = System.Text.Json.JsonSerializer.Serialize(new AuditCreate
             {
@@ -187,7 +130,8 @@ namespace AssistenciaTech.Data
                 ValorNovo = "OS Criada",
                 DetalhesAlteracao = jsonDiff
             };
-            _pendingAudits.Add((auditoria, entry.Entity));
+            auditoria.OrdemServico = entry.Entity;
+            context.Add(auditoria);
         }
     }
 
