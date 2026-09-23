@@ -56,22 +56,11 @@ namespace AssistenciaTech.Controllers
                 await using var streamWriter = new StreamWriter(Response.Body, new System.Text.UTF8Encoding(false));
                 await streamWriter.WriteLineAsync("Id,Cliente,Equipamento,Data Entrada,Status,Valor Orçamento");
 
-                var sb = new System.Text.StringBuilder();
+                var sb = new System.Text.StringBuilder(128 * 100);
                 int batchCount = 0;
                 await foreach (var os in todasOS)
                 {
-                    sb.Append(os.Id);
-                    sb.Append(",\"");
-                    sb.Append(os.Cliente?.Nome);
-                    sb.Append("\",\"");
-                    sb.Append(os.Equipamento);
-                    sb.Append("\",");
-                    sb.Append(os.DataEntrada.ToString("dd/MM/yyyy"));
-                    sb.Append(',');
-                    sb.Append(os.Status);
-                    sb.Append(',');
-                    sb.Append(os.ValorOrcamento);
-                    sb.AppendLine();
+                    sb.AppendLine($"{os.Id},\"{os.Cliente?.Nome}\",\"{os.Equipamento}\",{os.DataEntrada:dd/MM/yyyy},{os.Status},{os.ValorOrcamento}");
 
                     batchCount++;
                     if (batchCount >= 100)
