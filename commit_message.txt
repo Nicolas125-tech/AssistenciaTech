@@ -1,5 +1,0 @@
-⚡ Optimize AuditoriaInterceptor by eliminating N+1 SaveChanges
-
-💡 **What**: Refactored `AuditoriaInterceptor` to add `AuditoriaOS` entities directly to the `DbContext` within the initial `SavingChanges` pipeline, leveraging an added `OrdemServico` navigation property for EF Core foreign key resolution.
-🎯 **Why**: The previous implementation suffered from an N+1 performance issue by maintaining a side-list of pending audits and triggering a complete second `SaveChanges()` roundtrip to the database during the `SavedChanges` event.
-📊 **Measured Improvement**: Benchmarking an insert of 1000 orders with audits against the in-memory provider showed a 51% reduction in elapsed time (from ~14.1s down to ~6.8s) for additions. More importantly, this fundamentally halves the number of network roundtrips required for every modifying database transaction in production.
