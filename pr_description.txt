@@ -1,5 +1,10 @@
-🎯 **What:** Added model validation and edge case tests for the `Faturamento` model using standard DataAnnotations validation context to ensure that a fully hydrated object has no validation errors and that the constructor assigns expected defaults like `StatusPagamento` properly.
+🔒 [Security Fix] Add CSRF Protection to MobileApiController
 
-📊 **Coverage:** Covered default instantiation for checking `StatusPagamento` property default state to `Pendente`, and verified that a complete set of populated properties results in zero validation errors from `TryValidateObject`.
+🎯 **What:**
+Added the `[ValidateAntiForgeryToken]` attribute to the `FinalizarVisita` endpoint in `Controllers/MobileApiController.cs`.
 
-✨ **Result:** Improved test coverage on the domain models, ensuring validation attributes and default field states are functioning and verified.
+⚠️ **Risk:**
+The `FinalizarVisita` endpoint changes the state of the application (finalizing a service order, updating status, and adding a signature). Without CSRF protection, an attacker could potentially trick an authenticated technician into unknowingly submitting a malicious request to finalize a visit, bypassing intended workflows.
+
+🛡️ **Solution:**
+By adding the `[ValidateAntiForgeryToken]` attribute, we enforce that any POST request to this endpoint must include a valid anti-forgery token, verifying that the request originated from our own application and not a malicious third-party site. I verified that this attribute does not break the existing test suite, as MVC filters are bypassed during direct unit test invocations.

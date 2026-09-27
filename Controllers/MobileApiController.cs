@@ -134,6 +134,7 @@ namespace AssistenciaTech.Controllers
         }
 
         [HttpPost("os/{id}/finalizar")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> FinalizarVisita(int id, [FromBody] FinalizarRequest request)
         {
             var tecnicoIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
