@@ -37,6 +37,7 @@ namespace AssistenciaTech.Controllers
 
         [AllowAnonymous]
         [HttpPost("login")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login([FromBody] MobileLoginRequest request)
         {
             var user = await _context.Usuarios.FirstOrDefaultAsync(u => u.Username == request.Username);
