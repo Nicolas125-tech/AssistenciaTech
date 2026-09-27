@@ -528,8 +528,10 @@ namespace AssistenciaTech.Controllers
 
                 var validationResults = await Task.WhenAll(validationTasks);
 
-                foreach (var result in validationResults.Where(r => r.isValid))
+                foreach (var result in validationResults)
                 {
+                    if (!result.isValid) continue;
+
                     string uniqueFileName = $"{Guid.NewGuid()}{result.extension}";
                     string filePath = Path.Combine(uploadsFolder, uniqueFileName);
 
