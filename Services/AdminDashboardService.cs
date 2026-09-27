@@ -177,14 +177,22 @@ namespace AssistenciaTech.Services
             {
                 foreach (var g in statusGroupDb)
                 {
-                    if (g.Status != WorkflowStatus.Concluido && g.Status != WorkflowStatus.Entregue)
-                        totalAbertas += g.Count;
-
-                    if (g.Status == WorkflowStatus.Concluido)
-                        equipamentosProntos += g.Count;
-
-                    if (g.Status != WorkflowStatus.Entregue && g.Status != "Cancelado")
-                        faturamentoPrevisto += g.TotalValor;
+                    switch (g.Status)
+                    {
+                        case WorkflowStatus.Concluido:
+                            equipamentosProntos += g.Count;
+                            faturamentoPrevisto += g.TotalValor;
+                            break;
+                        case WorkflowStatus.Entregue:
+                            break;
+                        case "Cancelado":
+                            totalAbertas += g.Count;
+                            break;
+                        default:
+                            totalAbertas += g.Count;
+                            faturamentoPrevisto += g.TotalValor;
+                            break;
+                    }
 
                     chartLabels.Add(g.Status!);
                     chartData.Add(g.Count);
