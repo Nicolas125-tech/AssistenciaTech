@@ -51,7 +51,7 @@ namespace AssistenciaTech.Data
 
             // Pega o usuário logado (Admin, Tecnico)
             string usuario = "Sistema/Desconhecido";
-            if (_httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated == true)
+            if (_httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false)
             {
                 usuario = _httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name)?.Value ?? "Admin";
             }
