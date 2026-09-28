@@ -1,8 +1,5 @@
-⚡ Optimize status comparisons in AdminDashboardService
+🧪 [Test DbUpdateConcurrencyException on Cliente update]
 
-💡 **What:** Replaced sequential string comparisons in `CalculateMetrics` with a `switch` statement on `g.Status`.
-🎯 **Why:** To improve performance by allowing the compiler to optimize the string comparisons (via a jump table/hash table) instead of executing multiple sequential string equality checks. This is part of the `CalculateMetrics` hot loop.
-📊 **Measured Improvement:**
-- **Baseline Time:** 12181 ms (for 10,000 iterations over 80,000 status items)
-- **Optimized Time:** 10259 ms
-- **Improvement:** Reduced execution time by ~15.7% (approximately 1.9 seconds faster over the test workload) while maintaining identical result output.
+🎯 **What:** Mock DbContext to throw DbUpdateConcurrencyException during SaveChangesAsync and assert it returns NotFound if the Cliente does not exist.
+📊 **Coverage:** Ensured that the tests `Edit_Post_ConcurrencyException_ClienteDeleted_ShouldReturnNotFound` and `Edit_Post_ConcurrencyException_ClienteExists_ShouldThrow` accurately simulate the conditions and verify the exception handling code.
+✨ **Result:** Improved robustness of existing tests and fully verified exception handling paths.
