@@ -582,6 +582,15 @@ namespace AssistenciaTech.Application.Tests.Controllers
             localController.TempData["ErroBanco"].Should().NotBeNull();
             localController.TempData["ErroBanco"].ToString().Should().Be("Não foi possível carregar a tela de criação. O banco de dados está inacessível.");
 
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("DB_CONNECTION_ERROR_CREATE")),
+                    It.IsAny<Exception>(),
+                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
+                Times.Once);
+
             localController.Dispose();
         }
 
