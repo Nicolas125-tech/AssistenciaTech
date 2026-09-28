@@ -246,6 +246,61 @@ namespace AssistenciaTech.Infrastructure.Tests.Extensions
             _cacheMock.Verify(c => c.RemoveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         }
 
+
+        [Fact]
+        public async Task GetAsync_WhenDeserializationFails_ShouldOpenCircuitAndReturnDefault()
+        {
+            // Arrange
+            var key = "test-key-invalid-json";
+            var invalidJson = "{ invalid json }";
+
+            _cacheMock.Setup(c => c.GetAsync(key, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(System.Text.Encoding.UTF8.GetBytes(invalidJson));
+
+            // Act
+            var result = await _service.GetAsync<TestModel>(key);
+
+            // Assert
+            result.Should().BeNull();
+            _service.IsAvailable.Should().BeFalse();
+
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Warning,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Circuit breaker ativado")),
+                    It.IsAny<JsonException>(),
+                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task GetAsync_WhenTimeoutOccurs_ShouldOpenCircuitAndReturnDefault()
+        {
+            // Arrange
+            var key = "test-key-timeout";
+            var exception = new OperationCanceledException("The operation timed out");
+
+            _cacheMock.Setup(c => c.GetAsync(key, It.IsAny<CancellationToken>()))
+                .ThrowsAsync(exception);
+
+            // Act
+            var result = await _service.GetAsync<TestModel>(key);
+
+            // Assert
+            result.Should().BeNull();
+            _service.IsAvailable.Should().BeFalse();
+
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Warning,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Circuit breaker ativado")),
+                    exception,
+                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
+                Times.Once);
+        }
+
         private class TestModel
         {
             public int Id { get; set; }
