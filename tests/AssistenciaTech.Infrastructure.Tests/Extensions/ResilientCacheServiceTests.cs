@@ -157,15 +157,25 @@ namespace AssistenciaTech.Infrastructure.Tests.Extensions
             // Arrange
             var key = "test-key";
             var data = new TestModel { Id = 1, Name = "Test" };
+            var exception = new Exception("Redis connection failed");
 
             _cacheMock.Setup(c => c.SetAsync(key, It.IsAny<byte[]>(), It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new Exception("Redis connection failed"));
+                .ThrowsAsync(exception);
 
             // Act
             await _service.SetAsync(key, data);
 
             // Assert
             _service.IsAvailable.Should().BeFalse();
+
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Warning,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Circuit breaker ativado")),
+                    exception,
+                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
+                Times.Once);
         }
 
         [Fact]
