@@ -372,7 +372,7 @@ namespace AssistenciaTech.Controllers
             string uploadsFolder = Path.GetFullPath(Path.Combine(_facade.Env.ContentRootPath, "SecureUploads", "Evidencias"));
             string filePath = Path.GetFullPath(Path.Combine(uploadsFolder, safeFileName));
 
-            if (!filePath.StartsWith(uploadsFolder + Path.DirectorySeparatorChar))
+            if (!filePath.StartsWith(uploadsFolder + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
             {
                 return BadRequest();
             }
