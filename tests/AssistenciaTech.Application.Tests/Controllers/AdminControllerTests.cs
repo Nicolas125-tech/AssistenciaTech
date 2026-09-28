@@ -631,6 +631,16 @@ namespace AssistenciaTech.Application.Tests.Controllers
             viewResult.ViewData.ModelState.ErrorCount.Should().BeGreaterThan(0);
             localController.ModelState.Values.SelectMany(v => v.Errors).Any(e => e.ErrorMessage.Contains("Outer exception message | Inner: Inner exception message")).Should().BeTrue();
 
+
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Erro ao salvar a Ordem de Serviço")),
+                    It.IsAny<Exception>(),
+                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
+                Times.Once);
+
             localController.Dispose();
             exceptionContext.Dispose();
         }

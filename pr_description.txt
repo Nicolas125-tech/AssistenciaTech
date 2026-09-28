@@ -1,6 +1,0 @@
-💡 **What:** Replaced sequential string comparisons in `CalculateMetrics` with a `switch` statement on `g.Status`.
-🎯 **Why:** To improve performance by allowing the compiler to optimize the string comparisons (via a jump table/hash table) instead of executing multiple sequential string equality checks. This is part of the `CalculateMetrics` hot loop.
-📊 **Measured Improvement:**
-- **Baseline Time:** 12181 ms (for 10,000 iterations over 80,000 status items)
-- **Optimized Time:** 10259 ms
-- **Improvement:** Reduced execution time by ~15.7% (approximately 1.9 seconds faster over the test workload) while maintaining identical result output.
