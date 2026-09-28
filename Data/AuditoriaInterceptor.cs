@@ -56,8 +56,9 @@ namespace AssistenciaTech.Data
                 usuario = _httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name)?.Value ?? "Admin";
             }
 
-            foreach (var entry in entries)
+            for (int i = 0; i < entries.Count; i++)
             {
+                var entry = entries[i];
                 if (entry.State == EntityState.Modified)
                 {
                     AuditModifiedEntry(context, entry, usuario);
