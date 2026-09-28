@@ -332,6 +332,46 @@ namespace AssistenciaTech.Application.Tests.Controllers
             erro.Should().Be("Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente mais tarde.");
         }
 
+
+        [Fact]
+        public async Task VisualizarOS_QuandoExcecaoLancada_DeveRetornarViewIndexComErro()
+        {
+            // Arrange
+            var userEmail = "cliente@teste.com";
+
+            var mockConnection = new Mock<System.Data.Common.DbConnection>();
+            mockConnection.Setup(m => m.OpenAsync(It.IsAny<System.Threading.CancellationToken>()))
+                          .ThrowsAsync(new TestDbException("Simulated exception"));
+            mockConnection.Setup(m => m.Open())
+                          .Throws(new TestDbException("Simulated exception"));
+
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseSqlite(mockConnection.Object)
+                .Options;
+
+            using var errorContext = new AppDbContext(options);
+            using var errorController = new ConsultaController(errorContext, _loggerMock.Object);
+            errorController.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(new ClaimsIdentity(new[]
+                    {
+                        new Claim(ClaimTypes.Email, userEmail)
+                    }))
+                }
+            };
+
+            // Act
+            var result = await errorController.VisualizarOS(1);
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            viewResult.ViewName.Should().Be("Index");
+            string erro = errorController.ViewBag.Erro;
+            erro.Should().Be("Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente mais tarde.");
+        }
+
         private class TestDbException : System.Data.Common.DbException
         {
             public TestDbException(string message) : base(message) { }

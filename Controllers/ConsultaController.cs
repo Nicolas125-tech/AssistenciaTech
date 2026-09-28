@@ -154,26 +154,35 @@ namespace AssistenciaTech.Controllers
         [Authorize(Roles = "Cliente")]
         public async Task<IActionResult> VisualizarOS(int id)
         {
-            var email = User.FindFirstValue(ClaimTypes.Email);
-            if (string.IsNullOrEmpty(email))
+            try
             {
-                return RedirectToAction("Index");
+                var email = User.FindFirstValue(ClaimTypes.Email);
+                if (string.IsNullOrEmpty(email))
+                {
+                    return RedirectToAction("Index");
+                }
+
+                var ordem = await _context.OrdensServico
+                                    .AsNoTracking()
+                                    .Include(o => o.Cliente)
+                                    .Include(o => o.PecasUtilizadas)
+                                        .ThenInclude(p => p.Peca)
+                                    .Include(o => o.Evidencias)
+                                    .FirstOrDefaultAsync(o => o.Id == id);
+
+                if (ordem == null || ordem.Cliente == null || ordem.Cliente.Email != email)
+                {
+                    return NotFound("Ordem de Serviço não encontrada ou acesso não autorizado.");
+                }
+
+                return View("Detalhes", ordem);
             }
-
-            var ordem = await _context.OrdensServico
-                                .AsNoTracking()
-                                .Include(o => o.Cliente)
-                                .Include(o => o.PecasUtilizadas)
-                                    .ThenInclude(p => p.Peca)
-                                .Include(o => o.Evidencias)
-                                .FirstOrDefaultAsync(o => o.Id == id);
-
-            if (ordem == null || ordem.Cliente == null || ordem.Cliente.Email != email)
+            catch (Exception ex)
             {
-                return NotFound("Ordem de Serviço não encontrada ou acesso não autorizado.");
+                _logger.LogError(ex, "Ocorreu um erro inesperado ao visualizar a OS.");
+                ViewBag.Erro = "Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente mais tarde.";
+                return View("Index");
             }
-
-            return View("Detalhes", ordem);
         }
     }
 }
