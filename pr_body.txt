@@ -1,5 +1,0 @@
-🧪 [Test DbUpdateConcurrencyException on Cliente update]
-
-🎯 **What:** Mock DbContext to throw DbUpdateConcurrencyException during SaveChangesAsync and assert it returns NotFound if the Cliente does not exist.
-📊 **Coverage:** Ensured that the tests `Edit_Post_ConcurrencyException_ClienteDeleted_ShouldReturnNotFound` and `Edit_Post_ConcurrencyException_ClienteExists_ShouldThrow` accurately simulate the conditions and verify the exception handling code.
-✨ **Result:** Improved robustness of existing tests and fully verified exception handling paths.
