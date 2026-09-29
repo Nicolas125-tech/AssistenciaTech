@@ -1,5 +1,12 @@
-🧪 [Test DbUpdateConcurrencyException on Cliente update]
+🎯 **What:**
+Changed `IsValidFileSignatureAsync` in `AdminController.cs` from static to instance method to leverage `ILogger` and added specific `LogWarning` calls for each early return/failure case (e.g., null file, unsupported extension, too small file, and invalid signature).
 
-🎯 **What:** Mock DbContext to throw DbUpdateConcurrencyException during SaveChangesAsync and assert it returns NotFound if the Cliente does not exist.
-📊 **Coverage:** Ensured that the tests `Edit_Post_ConcurrencyException_ClienteDeleted_ShouldReturnNotFound` and `Edit_Post_ConcurrencyException_ClienteExists_ShouldThrow` accurately simulate the conditions and verify the exception handling code.
-✨ **Result:** Improved robustness of existing tests and fully verified exception handling paths.
+💡 **Why:**
+The method previously suppressed validation failure reasons by returning `false` silently. Logging these events provides context to developers and support teams, making it easier to diagnose why an upload was rejected, thus improving overall code health and maintainability.
+
+✅ **Verification:**
+- Ran the full test suite (`dotnet test`), verifying all tests pass, including the ones depending on this file upload behavior.
+- Carefully checked that the actual behavior of file signature validation remains intact.
+
+✨ **Result:**
+Proper error logging and context for file validation failures are now implemented without altering business logic behavior.

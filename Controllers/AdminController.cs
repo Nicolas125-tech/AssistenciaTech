@@ -404,14 +404,21 @@ namespace AssistenciaTech.Controllers
             { ".pdf", new List<byte[]> { new byte[] { 0x25, 0x50, 0x44, 0x46, 0x2D } } }
         };
 
-        private static async Task<bool> IsValidFileSignatureAsync(IFormFile file, string extension)
+        private async Task<bool> IsValidFileSignatureAsync(IFormFile file, string extension)
         {
-            if (file == null || file.Length == 0) return false;
+            if (file == null || file.Length == 0)
+            {
+                _logger.LogWarning("File upload failed: File is null or empty.");
+                return false;
+            }
 
             await using var stream = file.OpenReadStream();
 
             if (!_fileSignatures.TryGetValue(extension, out var expectedSignatures))
+            {
+                _logger.LogWarning("File upload failed: Extension {Extension} is not supported or missing signature definitions.", extension);
                 return false;
+            }
 
             var maxSignatureLength = expectedSignatures.Max(s => s.Length);
             var headerBytes = new byte[maxSignatureLength];
@@ -419,11 +426,19 @@ namespace AssistenciaTech.Controllers
             int bytesRead = await stream.ReadAsync(headerBytes, 0, maxSignatureLength);
             if (bytesRead < maxSignatureLength && bytesRead < expectedSignatures.Min(s => s.Length))
             {
+                _logger.LogWarning("File upload failed: File size is smaller than the minimum expected signature length for extension {Extension}.", extension);
                 return false;
             }
 
-            return expectedSignatures.Any(signature =>
+            var isValid = expectedSignatures.Any(signature =>
                 headerBytes.Take(signature.Length).SequenceEqual(signature));
+
+            if (!isValid)
+            {
+                _logger.LogWarning("File upload failed: File signature does not match the expected signature for extension {Extension}.", extension);
+            }
+
+            return isValid;
         }
 
 
