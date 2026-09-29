@@ -1,5 +1,12 @@
-🧪 [Test DbUpdateConcurrencyException on Cliente update]
+🎯 **What**
+Extracted the XML element creation logic for `<Servico>`, `<Prestador>`, and `<Tomador>` inside `GerarXml` of `NfseXmlGeneratorService` into separate private helper methods (`GerarServico`, `GerarPrestador`, `GerarTomador`). Also moved the `XNamespace ns` variable to a static readonly class field `_ns`.
 
-🎯 **What:** Mock DbContext to throw DbUpdateConcurrencyException during SaveChangesAsync and assert it returns NotFound if the Cliente does not exist.
-📊 **Coverage:** Ensured that the tests `Edit_Post_ConcurrencyException_ClienteDeleted_ShouldReturnNotFound` and `Edit_Post_ConcurrencyException_ClienteExists_ShouldThrow` accurately simulate the conditions and verify the exception handling code.
-✨ **Result:** Improved robustness of existing tests and fully verified exception handling paths.
+💡 **Why**
+This improves the readability, maintainability, and testability of the `NfseXmlGeneratorService.cs` class. The main `GerarXml` method was previously very long and monolithic. Breaking it down into smaller, focused helper methods reduces cognitive load and makes the XML structure easier to reason about and modify in the future. Moving the namespace to a class field reduces repetition.
+
+✅ **Verification**
+- Checked `git diff` to ensure the exact logic of the XML nodes was preserved untouched during the extraction.
+- Ran the full test suite (`dotnet test`), verifying that all 292 existing tests pass, particularly the ones in `NfseXmlGeneratorServiceTests`.
+
+✨ **Result**
+The `GerarXml` method is now significantly shorter and focuses on the higher-level structure of the NFS-e document, delegating the detailed element construction to well-named helper methods. No external behaviors or output formatting were changed.

@@ -12,6 +12,8 @@ namespace AssistenciaTech.Services
 
     public class NfseXmlGeneratorService : INfseXmlGeneratorService
     {
+        private static readonly XNamespace _ns = "http://www.abrasf.org.br/nfse.xsd";
+
         public byte[] GerarXml(Faturamento faturamento)
         {
             if (faturamento?.OrdemServico?.Cliente == null)
@@ -22,47 +24,15 @@ namespace AssistenciaTech.Services
             var os = faturamento.OrdemServico;
             var cliente = os.Cliente;
 
-            // Estrutura simplificada no padrão ABRASF
-            XNamespace ns = "http://www.abrasf.org.br/nfse.xsd";
-
             var xml = new XDocument(
                 new XDeclaration("1.0", "utf-8", null),
-                new XElement(ns + "GerarNfseEnvio",
-                    new XElement(ns + "Rps",
-                        new XElement(ns + "InfDeclaracaoPrestacaoServico",
-                            new XElement(ns + "Competencia", System.DateTime.UtcNow.ToString("yyyy-MM-dd")),
-                            new XElement(ns + "Servico",
-                                new XElement(ns + "Valores",
-                                    new XElement(ns + "ValorServicos", os.CustoMaoDeObra.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)),
-                                    new XElement(ns + "ValorDeducoes", "0.00"),
-                                    new XElement(ns + "ValorPis", "0.00"),
-                                    new XElement(ns + "ValorCofins", "0.00"),
-                                    new XElement(ns + "ValorInss", "0.00"),
-                                    new XElement(ns + "ValorIr", "0.00"),
-                                    new XElement(ns + "ValorCsll", "0.00"),
-                                    new XElement(ns + "IssRetido", "2"), // 2 = Não
-                                    new XElement(ns + "ValorIss", faturamento.ValorISS.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)),
-                                    new XElement(ns + "BaseCalculo", faturamento.BaseCalculoISS.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)),
-                                    new XElement(ns + "Aliquota", (faturamento.AliquotaISS * 100).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture))
-                                ),
-                                new XElement(ns + "Discriminacao", $"Serviço referente à OS #{os.Id} - Equipamento: {os.Equipamento}")
-                            ),
-                            new XElement(ns + "Prestador",
-                                new XElement(ns + "Cnpj", "12345678000199"), // Exemplo Fictício da Assistência
-                                new XElement(ns + "InscricaoMunicipal", "123456")
-                            ),
-                            new XElement(ns + "Tomador",
-                                new XElement(ns + "IdentificacaoTomador",
-                                    new XElement(ns + "CpfCnpj",
-                                        new XElement(ns + "Cpf", cliente.Cpf?.Replace(".", "").Replace("-", "") ?? "00000000000")
-                                    )
-                                ),
-                                new XElement(ns + "RazaoSocial", cliente.Nome),
-                                new XElement(ns + "Contato",
-                                    new XElement(ns + "Telefone", cliente.Telefone),
-                                    new XElement(ns + "Email", cliente.Email)
-                                )
-                            )
+                new XElement(_ns + "GerarNfseEnvio",
+                    new XElement(_ns + "Rps",
+                        new XElement(_ns + "InfDeclaracaoPrestacaoServico",
+                            new XElement(_ns + "Competencia", System.DateTime.UtcNow.ToString("yyyy-MM-dd")),
+                            GerarServico(faturamento, os),
+                            GerarPrestador(),
+                            GerarTomador(cliente)
                         )
                     )
                 )
@@ -81,6 +51,50 @@ namespace AssistenciaTech.Services
             xml.Save(xmlWriter);
             xmlWriter.Flush();
             return memoryStream.ToArray();
+        }
+
+        private XElement GerarServico(Faturamento faturamento, OrdemServico os)
+        {
+            return new XElement(_ns + "Servico",
+                new XElement(_ns + "Valores",
+                    new XElement(_ns + "ValorServicos", os.CustoMaoDeObra.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)),
+                    new XElement(_ns + "ValorDeducoes", "0.00"),
+                    new XElement(_ns + "ValorPis", "0.00"),
+                    new XElement(_ns + "ValorCofins", "0.00"),
+                    new XElement(_ns + "ValorInss", "0.00"),
+                    new XElement(_ns + "ValorIr", "0.00"),
+                    new XElement(_ns + "ValorCsll", "0.00"),
+                    new XElement(_ns + "IssRetido", "2"), // 2 = Não
+                    new XElement(_ns + "ValorIss", faturamento.ValorISS.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)),
+                    new XElement(_ns + "BaseCalculo", faturamento.BaseCalculoISS.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)),
+                    new XElement(_ns + "Aliquota", (faturamento.AliquotaISS * 100).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture))
+                ),
+                new XElement(_ns + "Discriminacao", $"Serviço referente à OS #{os.Id} - Equipamento: {os.Equipamento}")
+            );
+        }
+
+        private XElement GerarPrestador()
+        {
+            return new XElement(_ns + "Prestador",
+                new XElement(_ns + "Cnpj", "12345678000199"), // Exemplo Fictício da Assistência
+                new XElement(_ns + "InscricaoMunicipal", "123456")
+            );
+        }
+
+        private XElement GerarTomador(Cliente cliente)
+        {
+            return new XElement(_ns + "Tomador",
+                new XElement(_ns + "IdentificacaoTomador",
+                    new XElement(_ns + "CpfCnpj",
+                        new XElement(_ns + "Cpf", cliente.Cpf?.Replace(".", "").Replace("-", "") ?? "00000000000")
+                    )
+                ),
+                new XElement(_ns + "RazaoSocial", cliente.Nome),
+                new XElement(_ns + "Contato",
+                    new XElement(_ns + "Telefone", cliente.Telefone),
+                    new XElement(_ns + "Email", cliente.Email)
+                )
+            );
         }
     }
 }
