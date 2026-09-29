@@ -1,49 +1,15 @@
 using System.ComponentModel.DataAnnotations;
+using AssistenciaTech.Models;
 
 namespace AssistenciaTech.DTOs
 {
-    public class ClienteCreateDto
+    public class ClienteCreateDto : ClienteBase
     {
-        [Required(ErrorMessage = "O nome é obrigatório.")]
-        [StringLength(100)]
-        public string Nome { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "O CPF é obrigatório para consulta.")]
-        [StringLength(14, MinimumLength = 11, ErrorMessage = "CPF inválido.")]
-        public string Cpf { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "O telefone é obrigatório.")]
-        [Phone]
-        public string Telefone { get; set; } = string.Empty;
-
-        [EmailAddress(ErrorMessage = "E-mail inválido.")]
-        public string? Email { get; set; }
-
-        [Display(Name = "Telegram Chat ID")]
-        public string? TelegramChatId { get; set; }
     }
 
-    public class ClienteUpdateDto
+    public class ClienteUpdateDto : ClienteBase
     {
         [Required]
         public int Id { get; set; }
-
-        [Required(ErrorMessage = "O nome é obrigatório.")]
-        [StringLength(100)]
-        public string Nome { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "O CPF é obrigatório para consulta.")]
-        [StringLength(14, MinimumLength = 11, ErrorMessage = "CPF inválido.")]
-        public string Cpf { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "O telefone é obrigatório.")]
-        [Phone]
-        public string Telefone { get; set; } = string.Empty;
-
-        [EmailAddress(ErrorMessage = "E-mail inválido.")]
-        public string? Email { get; set; }
-
-        [Display(Name = "Telegram Chat ID")]
-        public string? TelegramChatId { get; set; }
     }
 }
