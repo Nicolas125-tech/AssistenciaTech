@@ -38,7 +38,7 @@ namespace AssistenciaTech.Extensions
 
             try
             {
-                var jsonData = await _cache.GetStringAsync(key);
+                var jsonData = await _cache.GetAsync(key);
                 if (jsonData is null) return default;
                 return JsonSerializer.Deserialize<T>(jsonData);
             }
@@ -59,8 +59,8 @@ namespace AssistenciaTech.Extensions
                 {
                     AbsoluteExpirationRelativeToNow = absoluteExpireTime ?? TimeSpan.FromMinutes(60)
                 };
-                var jsonData = JsonSerializer.Serialize(data);
-                await _cache.SetStringAsync(key, jsonData, options);
+                var jsonData = JsonSerializer.SerializeToUtf8Bytes(data);
+                await _cache.SetAsync(key, jsonData, options);
             }
             catch (Exception ex)
             {
