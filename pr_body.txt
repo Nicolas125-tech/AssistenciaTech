@@ -1,0 +1,8 @@
+🎯 **What:**
+Fixed a vulnerability in `TelegramWebhookController.cs` where `CryptographicOperations.FixedTimeEquals` was being called with byte arrays of potentially different lengths.
+
+⚠️ **Risk:**
+`CryptographicOperations.FixedTimeEquals` requires both inputs to be of the exact same length. If lengths differ, it either returns early (leaking length information) or throws an exception (potentially causing a Denial of Service). This could allow an attacker to guess the webhook secret token length via timing attacks, or cause the application to crash on invalid input.
+
+🛡️ **Solution:**
+Added an explicit length comparison (`secretBytes.Length != configuredBytes.Length`) before passing the arrays to `CryptographicOperations.FixedTimeEquals`. If the lengths don't match, the request is immediately rejected with an `Unauthorized` response without calling the cryptographic function, preventing both timing side-channels and exceptions.
