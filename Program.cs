@@ -340,9 +340,9 @@ using (var scope = app.Services.CreateScope())
 
         // --- Seed do Usuário Demo ---
         var demoUsername = config["DemoCredentials:Username"] ?? "demo@assistenciatech.com";
-        var demoPassword = config["DemoCredentials:Password"];
+        var demoPasswordHash = config["DemoCredentials:PasswordHash"];
 
-        if (!string.IsNullOrEmpty(demoPassword))
+        if (!string.IsNullOrEmpty(demoPasswordHash))
         {
             var demoUser = context.Usuarios.FirstOrDefault(u => u.Username == demoUsername);
             if (demoUser == null)
@@ -353,8 +353,7 @@ using (var scope = app.Services.CreateScope())
                     Role = "Administrador"
                 };
 
-                var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<AssistenciaTech.Models.Usuario>();
-                newUser.PasswordHash = hasher.HashPassword(newUser, demoPassword);
+                newUser.PasswordHash = demoPasswordHash;
 
                 context.Usuarios.Add(newUser);
                 context.SaveChanges();
