@@ -57,7 +57,7 @@ Acesse a demonstração na nuvem:
 
 **Credenciais (Administrador):**
 - **Usuário:** `demo@assistenciatech.com`
-- **Senha:** `(Configurada via variável de ambiente DemoCredentials__Password)`
+- **Senha:** `(Configurada via variável de ambiente DemoCredentials__PasswordHash)`
 
 *O sistema está em Modo Demonstração. O usuário demo pode navegar e visualizar os dados, mas o filtro `DemoModeFilter` impede alterações no banco.*
 
@@ -66,7 +66,7 @@ Acesse a demonstração na nuvem:
 Você pode rodar o projeto localmente com o Docker, replicando o ambiente de produção.
 
 ### Via Docker Compose
-Para testar o Modo Demonstração, você deve configurar as variáveis de ambiente `DemoCredentials__Username` e `DemoCredentials__Password` no seu `.env` ou `docker-compose.yml`.
+Para testar o Modo Demonstração, você deve configurar as variáveis de ambiente `DemoCredentials__Username` e `DemoCredentials__PasswordHash` no seu `.env` ou `docker-compose.yml`.
 1. Clone o repositório.
 2. Na raiz do projeto, execute:
    ```bash

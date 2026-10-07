@@ -92,6 +92,55 @@ namespace AssistenciaTech.Application.Tests.Controllers
         }
 
         [Fact]
+        public void Login_ReturnsRedirectToActionResult_WhenUserIsAlreadyAuthenticated()
+        {
+            // Arrange
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, "testuser"),
+                new Claim(ClaimTypes.Role, "Administrador")
+            };
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var principal = new ClaimsPrincipal(identity);
+
+            var mockHttpContext = new Mock<HttpContext>();
+            mockHttpContext.Setup(c => c.User).Returns(principal);
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = mockHttpContext.Object
+            };
+
+            // Act
+            var result = _controller.Login();
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectResult.ActionName.Should().Be("Index");
+            redirectResult.ControllerName.Should().Be("Admin");
+        }
+
+        [Fact]
+        public void Login_ReturnsViewResult_WhenUserIsNotAuthenticated()
+        {
+            // Arrange
+            var mockHttpContext = new Mock<HttpContext>();
+            mockHttpContext.Setup(c => c.User).Returns(new ClaimsPrincipal(new ClaimsIdentity()));
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = mockHttpContext.Object
+            };
+
+            var returnUrl = "/some/path";
+
+            // Act
+            var result = _controller.Login(returnUrl);
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            _controller.ViewData["ReturnUrl"].Should().Be(returnUrl);
+        }
+
+        [Fact]
         public async Task Login_ReturnsViewResultWithError_WhenCredentialsAreInvalid()
         {
             // Arrange
@@ -121,7 +170,9 @@ namespace AssistenciaTech.Application.Tests.Controllers
             var result = _controller.NeonCallback();
 
             // Assert
-            result.Should().BeOfType<ViewResult>();
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            viewResult.ViewName.Should().BeNull(); // Uses default view
+            viewResult.ViewData.Should().NotBeNull();
         }
 
 
