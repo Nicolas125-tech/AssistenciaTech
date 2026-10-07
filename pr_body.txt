@@ -1,0 +1,10 @@
+🎯 **What:**
+Added unit tests for the `MarcarPago` endpoint in the `FaturamentosController`.
+The `AppDbContext` test setup was modified to use an in-memory SQLite provider rather than the InMemory provider because the InMemory provider does not translate or support `ExecuteUpdateAsync`.
+
+📊 **Coverage:**
+- A successful payment update when given an existing faturamento ID (verifying state change to `Pago_Total` and redirection).
+- The graceful handling (redirection without errors) when a non-existent ID is passed.
+
+✨ **Result:**
+The `MarcarPago` action is now fully tested, adding a safety net when managing billing cycles and processing status updates.

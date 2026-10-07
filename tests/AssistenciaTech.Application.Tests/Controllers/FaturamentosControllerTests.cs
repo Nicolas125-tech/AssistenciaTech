@@ -32,10 +32,12 @@ namespace AssistenciaTech.Application.Tests.Controllers
         public FaturamentosControllerTests()
         {
             var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .UseSqlite("DataSource=:memory:;Foreign Keys=False")
                 .Options;
 
             _context = new AppDbContext(options);
+            _context.Database.OpenConnection();
+            _context.Database.EnsureCreated();
 
             _mockConfig = new Mock<IConfiguration>();
             _mockTributacaoService = new Mock<ITributacaoService>();
@@ -225,6 +227,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             // Assert
             result.Should().BeOfType<OkResult>();
 
+            _context.ChangeTracker.Clear();
             var updatedFaturamento = await _context.Faturamentos.FindAsync(faturamento.Id);
             updatedFaturamento.Should().NotBeNull();
             updatedFaturamento!.StatusPagamento.Should().Be(PagamentoStatus.Pago_Total);
@@ -356,6 +359,47 @@ namespace AssistenciaTech.Application.Tests.Controllers
             fileResult.ContentType.Should().Be("application/xml");
             fileResult.FileDownloadName.Should().Be($"Nfse_Fatura_{faturamento.Id}.xml");
             fileResult.FileContents.Should().BeEquivalentTo(expectedXmlBytes);
+        }
+
+        [Fact]
+        public async Task MarcarPago_ExistingFaturamento_UpdatesStatusAndRedirects()
+        {
+            // Arrange
+            var faturamento = new Faturamento
+            {
+                ValorTotal = 150,
+                DataVencimento = DateTime.UtcNow.AddDays(1),
+                StatusPagamento = PagamentoStatus.Pendente
+            };
+
+            _context.Faturamentos.Add(faturamento);
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _controller.MarcarPago(faturamento.Id);
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectResult.ActionName.Should().Be(nameof(_controller.Index));
+
+            _context.ChangeTracker.Clear();
+            var updatedFaturamento = await _context.Faturamentos.FindAsync(faturamento.Id);
+            updatedFaturamento.Should().NotBeNull();
+            updatedFaturamento!.StatusPagamento.Should().Be(PagamentoStatus.Pago_Total);
+        }
+
+        [Fact]
+        public async Task MarcarPago_NonExistingFaturamento_Redirects()
+        {
+            // Arrange
+            int nonExistentId = 999;
+
+            // Act
+            var result = await _controller.MarcarPago(nonExistentId);
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectResult.ActionName.Should().Be(nameof(_controller.Index));
         }
     }
 }
