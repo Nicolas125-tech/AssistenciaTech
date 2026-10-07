@@ -1,8 +1,10 @@
 🎯 **What:**
-Fixed a vulnerability in `TelegramWebhookController.cs` where `CryptographicOperations.FixedTimeEquals` was being called with byte arrays of potentially different lengths.
+Added unit tests for the `MarcarPago` endpoint in the `FaturamentosController`.
+The `AppDbContext` test setup was modified to use an in-memory SQLite provider rather than the InMemory provider because the InMemory provider does not translate or support `ExecuteUpdateAsync`.
 
-⚠️ **Risk:**
-`CryptographicOperations.FixedTimeEquals` requires both inputs to be of the exact same length. If lengths differ, it either returns early (leaking length information) or throws an exception (potentially causing a Denial of Service). This could allow an attacker to guess the webhook secret token length via timing attacks, or cause the application to crash on invalid input.
+📊 **Coverage:**
+- A successful payment update when given an existing faturamento ID (verifying state change to `Pago_Total` and redirection).
+- The graceful handling (redirection without errors) when a non-existent ID is passed.
 
-🛡️ **Solution:**
-Added an explicit length comparison (`secretBytes.Length != configuredBytes.Length`) before passing the arrays to `CryptographicOperations.FixedTimeEquals`. If the lengths don't match, the request is immediately rejected with an `Unauthorized` response without calling the cryptographic function, preventing both timing side-channels and exceptions.
+✨ **Result:**
+The `MarcarPago` action is now fully tested, adding a safety net when managing billing cycles and processing status updates.
