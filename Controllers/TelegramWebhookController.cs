@@ -36,10 +36,17 @@ namespace AssistenciaTech.Controllers
             try
             {
                 var configuredToken = _configuration["Telegram:WebhookSecretToken"];
-                if (string.IsNullOrEmpty(configuredToken) || string.IsNullOrEmpty(secretToken) ||
-                    !CryptographicOperations.FixedTimeEquals(
-                        Encoding.UTF8.GetBytes(secretToken),
-                        Encoding.UTF8.GetBytes(configuredToken)))
+                if (string.IsNullOrEmpty(configuredToken) || string.IsNullOrEmpty(secretToken))
+                {
+                    _logger.LogWarning("Unauthorized webhook request. Token mismatch or not configured.");
+                    return Unauthorized();
+                }
+
+                var secretBytes = Encoding.UTF8.GetBytes(secretToken);
+                var configuredBytes = Encoding.UTF8.GetBytes(configuredToken);
+
+                if (secretBytes.Length != configuredBytes.Length ||
+                    !CryptographicOperations.FixedTimeEquals(secretBytes, configuredBytes))
                 {
                     _logger.LogWarning("Unauthorized webhook request. Token mismatch or not configured.");
                     return Unauthorized();
