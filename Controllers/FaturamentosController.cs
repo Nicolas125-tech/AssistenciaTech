@@ -135,15 +135,22 @@ namespace AssistenciaTech.Controllers
             byte[] payloadBytes = System.Text.Encoding.UTF8.GetBytes(payload);
             using var hmac = new HMACSHA256(secretBytes);
             byte[] computedHashBytes = hmac.ComputeHash(payloadBytes);
-            string computedSignature = Convert.ToHexString(computedHashBytes).ToLowerInvariant();
+            byte[] providedSignatureBytes;
+            try
+            {
+                providedSignatureBytes = Convert.FromHexString(providedSignature);
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
 
-            byte[] providedSignatureBytes = System.Text.Encoding.UTF8.GetBytes(providedSignature.ToString());
-            byte[] computedSignatureBytes = System.Text.Encoding.UTF8.GetBytes(computedSignature);
+            if (providedSignatureBytes.Length != computedHashBytes.Length)
+            {
+                return false;
+            }
 
-            byte[] providedHash = SHA256.HashData(providedSignatureBytes);
-            byte[] secretHash = SHA256.HashData(computedSignatureBytes);
-
-            return CryptographicOperations.FixedTimeEquals(providedHash, secretHash);
+            return CryptographicOperations.FixedTimeEquals(providedSignatureBytes, computedHashBytes);
         }
 
         private System.Collections.Generic.List<string> ExtractTxIdsFromJson(string payload)
