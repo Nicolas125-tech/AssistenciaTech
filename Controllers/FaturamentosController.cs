@@ -228,6 +228,7 @@ namespace AssistenciaTech.Controllers
         public async Task<IActionResult> GerarXmlNfse(int id)
         {
             var faturamento = await _context.Faturamentos
+                .AsNoTracking()
                 .Include(f => f.OrdemServico)
                     .ThenInclude(os => os.Cliente)
                 .FirstOrDefaultAsync(f => f.Id == id);
@@ -245,6 +246,7 @@ namespace AssistenciaTech.Controllers
         public async Task<IActionResult> GerarReciboPagamento(int id)
         {
             var faturamento = await _context.Faturamentos
+                .AsNoTracking()
                 .Include(f => f.OrdemServico)
                     .ThenInclude(os => os.Cliente)
                 .FirstOrDefaultAsync(f => f.Id == id);
