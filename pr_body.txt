@@ -1,10 +1,8 @@
 🎯 **What:**
-Added unit tests for the `MarcarPago` endpoint in the `FaturamentosController`.
-The `AppDbContext` test setup was modified to use an in-memory SQLite provider rather than the InMemory provider because the InMemory provider does not translate or support `ExecuteUpdateAsync`.
+Added `.AsNoTracking()` to the database query in `FaturamentosController.GerarReciboPagamento`.
 
-📊 **Coverage:**
-- A successful payment update when given an existing faturamento ID (verifying state change to `Pago_Total` and redirection).
-- The graceful handling (redirection without errors) when a non-existent ID is passed.
+💡 **Why:**
+The `GerarReciboPagamento` endpoint retrieves a `Faturamento` entity with related `OrdemServico` and `Cliente` data simply to generate a PDF receipt. These entities are not modified, so EF Core's change tracker does not need to snapshot or track them.
 
-✨ **Result:**
-The `MarcarPago` action is now fully tested, adding a safety net when managing billing cycles and processing status updates.
+📊 **Measured Improvement:**
+Since this change avoids object tracker allocation inside the framework, traditional macro-level latency metrics in a black-box test might not show a substantial difference for a single query. However, adding `.AsNoTracking()` is a proven EF Core best practice for read-only queries. It eliminates the memory and CPU overhead of setting up tracking snapshots for the graph (`Faturamento` -> `OrdemServico` -> `Cliente`), reducing GC pressure and increasing throughput under load.
