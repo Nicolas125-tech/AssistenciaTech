@@ -196,6 +196,18 @@ namespace AssistenciaTech.Controllers
             if (visitasDto == null || !visitasDto.Any())
                 return BadRequest(new { error = "Nenhum dado para sincronizar." });
 
+            var osIds = visitasDto.Select(v => v.OrdemServicoId).Distinct().ToList();
+            var ordensPermitidas = await _context.OrdensServico
+                .Where(os => osIds.Contains(os.Id) && os.TecnicoId == tecnicoId)
+                .Select(os => os.Id)
+                .ToListAsync();
+
+            var ordensInvalidas = osIds.Except(ordensPermitidas).ToList();
+            if (ordensInvalidas.Any())
+            {
+                return Forbid();
+            }
+
             var novasVisitas = visitasDto.Select(dto => new VisitaCampo
             {
                 OrdemServicoId = dto.OrdemServicoId,
