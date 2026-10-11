@@ -45,42 +45,11 @@ namespace AssistenciaTech.Controllers
         {
             ViewData["ReturnUrl"] = returnUrl;
 
-            // Validação através do banco de dados (Seguro)
-            bool isAuthenticated = false;
-
-            var user = await _context.Usuarios.FirstOrDefaultAsync(u => u.Username == username);
-
-            if (user != null && !string.IsNullOrEmpty(user.PasswordHash))
-            {
-                var hasher = new PasswordHasher<Usuario>();
-                var result = hasher.VerifyHashedPassword(user, user.PasswordHash, password);
-
-                if (result == PasswordVerificationResult.Success || result == PasswordVerificationResult.SuccessRehashNeeded)
-                {
-                    isAuthenticated = true;
-                }
-            }
+            bool isAuthenticated = await AuthenticateUserAsync(username, password);
 
             if (isAuthenticated)
             {
-                var claims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.Name, username),
-                    new Claim(ClaimTypes.Role, "Administrador")
-                };
-
-                var claimsIdentity = new ClaimsIdentity(
-                    claims, CookieAuthenticationDefaults.AuthenticationScheme);
-
-                var authProperties = new AuthenticationProperties
-                {
-                    IsPersistent = true // Opcional: mantém o usuário logado mesmo após fechar o navegador
-                };
-
-                await HttpContext.SignInAsync(
-                    CookieAuthenticationDefaults.AuthenticationScheme,
-                    new ClaimsPrincipal(claimsIdentity),
-                    authProperties);
+                await SignInUserAsync(username);
 
                 // Redireciona de volta para a URL que ele tentou acessar antes do login (ex: /Admin/Create)
                 if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
@@ -95,6 +64,43 @@ namespace AssistenciaTech.Controllers
             // Se a validação falhar
             ViewBag.Error = "Usuário ou senha incorretos. Acesso negado.";
             return View();
+        }
+
+        private async Task<bool> AuthenticateUserAsync(string username, string password)
+        {
+            var user = await _context.Usuarios.FirstOrDefaultAsync(u => u.Username == username);
+
+            if (user != null && !string.IsNullOrEmpty(user.PasswordHash))
+            {
+                var hasher = new PasswordHasher<Usuario>();
+                var result = hasher.VerifyHashedPassword(user, user.PasswordHash, password);
+
+                return result == PasswordVerificationResult.Success || result == PasswordVerificationResult.SuccessRehashNeeded;
+            }
+
+            return false;
+        }
+
+        private async Task SignInUserAsync(string username)
+        {
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, username),
+                new Claim(ClaimTypes.Role, "Administrador")
+            };
+
+            var claimsIdentity = new ClaimsIdentity(
+                claims, CookieAuthenticationDefaults.AuthenticationScheme);
+
+            var authProperties = new AuthenticationProperties
+            {
+                IsPersistent = true // Opcional: mantém o usuário logado mesmo após fechar o navegador
+            };
+
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(claimsIdentity),
+                authProperties);
         }
         // GET: /Account/NeonCallback
         [HttpGet]
