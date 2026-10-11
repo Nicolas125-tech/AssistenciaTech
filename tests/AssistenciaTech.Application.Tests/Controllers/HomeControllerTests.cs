@@ -119,7 +119,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
         }
 
         [Fact]
-        public void Servicos_ReturnsViewResult()
+        public void Servicos_ReturnsViewResult_WithoutModel()
         {
             // Arrange
             var options = new DbContextOptionsBuilder<AppDbContext>()
@@ -134,7 +134,9 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 var result = controller.Servicos();
 
                 // Assert
-                result.Should().BeOfType<ViewResult>();
+                var viewResult = result.Should().BeOfType<ViewResult>().Which;
+                viewResult.Model.Should().BeNull();
+                viewResult.ViewData.Should().BeEmpty();
             }
         }
 
