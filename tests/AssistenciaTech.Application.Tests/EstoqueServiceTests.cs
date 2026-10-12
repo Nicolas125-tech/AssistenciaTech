@@ -138,5 +138,31 @@ namespace AssistenciaTech.Application.Tests
             // Assert
             result.Should().BeTrue();
         }
+
+        [Fact]
+        public async Task DeduzirEstoque_ComQuantidadeSolicitadaMaiorQueEstoque_DeveLancarInvalidOperationException()
+        {
+            // Arrange
+            var dbName = Guid.NewGuid().ToString();
+            using var context = GetDbContext(dbName);
+
+            var peca = new Peca { Id = 1, Nome = "Peca 1", QuantidadeEstoque = 5, ValorUnitario = 100 };
+            var ordemServico = new OrdemServico { Id = 1, ClienteId = 1, DataEntrada = DateTime.UtcNow };
+            var ordemServicoPeca = new OrdemServicoPeca { Id = 1, OrdemServicoId = 1, PecaId = 1, Peca = peca, Quantidade = 10, ValorVenda = 100 };
+
+            context.Pecas.Add(peca);
+            context.OrdensServico.Add(ordemServico);
+            context.OrdemServicoPecas.Add(ordemServicoPeca);
+            await context.SaveChangesAsync();
+
+            var service = new EstoqueService(context, Moq.Mock.Of<AssistenciaTech.Extensions.IResilientCacheService>());
+
+            // Act
+            Func<Task> action = async () => await service.DeduzirEstoque(1);
+
+            // Assert
+            await action.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("Estoque insuficiente para a peça: Peca 1. Disponível: 5, Solicitado: 10");
+        }
     }
 }
