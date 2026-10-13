@@ -12,6 +12,12 @@ using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Create a logger for startup configuration
+using var loggerFactory = LoggerFactory.Create(loggingBuilder => loggingBuilder
+    .SetMinimumLevel(LogLevel.Information)
+    .AddConsole());
+var startupLogger = loggerFactory.CreateLogger("Startup");
+
 // Add services to the container.
 builder.Services.AddControllersWithViews(options =>
 {
@@ -53,13 +59,13 @@ if (!string.IsNullOrEmpty(redisConnectionString))
         options.Configuration = redisConnectionString;
         options.InstanceName = "AssistenciaTech_";
     });
-    Console.WriteLine("[Cache] Redis configurado com sucesso.");
+    startupLogger.LogInformation("[Cache] Redis configurado com sucesso.");
 }
 else
 {
     // Fallback para memória se o Redis não estiver configurado
     builder.Services.AddDistributedMemoryCache();
-    Console.WriteLine("[Cache] Redis não configurado. Usando cache em memória (fallback).");
+    startupLogger.LogInformation("[Cache] Redis não configurado. Usando cache em memória (fallback).");
 }
 
 // Registra o serviço de cache resiliente com circuit breaker
@@ -98,11 +104,11 @@ if (!string.IsNullOrEmpty(connectionString) && (connectionString.StartsWith("pos
         }
 
         connectionString = connBuilder.ConnectionString;
-        Console.WriteLine($"[Neon/Postgres] Converted URI to connection string for Host: {connBuilder.Host}");
+        startupLogger.LogInformation("[Neon/Postgres] Converted URI to connection string for Host: {Host}", connBuilder.Host);
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"[Neon/Postgres] Error parsing URI connection string: {ex.Message}");
+        startupLogger.LogError(ex, "[Neon/Postgres] Error parsing URI connection string: {Message}", ex.Message);
     }
 }
 
