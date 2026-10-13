@@ -48,7 +48,7 @@ namespace AssistenciaTech.Controllers
                 // Validação básica de campos
                 if (numeroOS <= 0 || string.IsNullOrWhiteSpace(cpf) || cpf.Length > 20)
                 {
-                    ViewBag.Erro = "Por favor, preencha o número da OS e o CPF.";
+                    ModelState.AddModelError(string.Empty, "Por favor, preencha o número da OS e o CPF.");
                     return View("Index");
                 }
 
@@ -77,7 +77,7 @@ namespace AssistenciaTech.Controllers
 
                 if (ordem == null)
                 {
-                    ViewBag.Erro = "Ordem de Serviço não encontrada ou CPF inválido.";
+                    ModelState.AddModelError(string.Empty, "Ordem de Serviço não encontrada ou CPF inválido.");
                     return View("Index");
                 }
 
@@ -87,7 +87,7 @@ namespace AssistenciaTech.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Ocorreu um erro inesperado ao consultar o status da OS.");
-                ViewBag.Erro = "Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente mais tarde.";
+                ModelState.AddModelError(string.Empty, "Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente mais tarde.");
                 return View("Index");
             }
         }
@@ -180,7 +180,7 @@ namespace AssistenciaTech.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Ocorreu um erro inesperado ao visualizar a OS.");
-                ViewBag.Erro = "Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente mais tarde.";
+                ModelState.AddModelError(string.Empty, "Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente mais tarde.");
                 return View("Index");
             }
         }
