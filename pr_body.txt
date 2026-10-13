@@ -1,16 +1,7 @@
-💡 **What:**
-Added `.AsNoTracking()` to the `GerarXmlNfse` and `GerarReciboPagamento` endpoints in `Controllers/FaturamentosController.cs` before `.Include()`.
+🎯 **What:** Replaced the use of `Console.WriteLine` for error logging in the Postgres connection string parsing try-catch block in `Program.cs` with an `ILogger` implementation (`logger.LogError`).
 
-🎯 **Why:**
-These endpoints load the full `Faturamento` entity graph (including `OrdemServico` and `Cliente`) strictly to generate XML or PDF files and immediately return them as HTTP responses. Because the entities are not modified or saved back to the database, tracking them in EF Core memory creates unnecessary overhead. Adding `.AsNoTracking()` informs EF Core to bypass the change tracker entirely, which reduces memory allocations and slightly improves execution speed for these read-only operations.
+💡 **Why:** `Console.WriteLine` writes directly to the standard output and bypasses the application's configured logging pipeline (e.g., log levels, structured logging, sinks). Using `ILogger` ensures that critical errors are captured correctly, formatted consistently, and routed to the proper logging destinations, improving the maintainability and observability of the codebase.
 
-📊 **Measured Improvement:**
-A focused benchmark was created to measure the overhead of change tracking for a large dataset (simulating concurrent loads).
+✅ **Verification:** Verified the change by inspecting the git diff, ensuring the code successfully builds without errors (`dotnet build`), and confirming that all 286 existing unit tests pass without issues (`dotnet test`).
 
-```
-// Benchmark results for 1000 iterations:
-Tracking: 1698 ms
-NoTracking: 1210 ms
-```
-
-The benchmark demonstrated a roughly ~28% performance improvement in query execution time and reduced memory usage due to bypassed EF Core change tracking.
+✨ **Result:** Improved code health and adherence to ASP.NET Core logging standards, making early-startup errors easier to track and debug in production environments without changing the underlying business logic.

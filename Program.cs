@@ -102,7 +102,9 @@ if (!string.IsNullOrEmpty(connectionString) && (connectionString.StartsWith("pos
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"[Neon/Postgres] Error parsing URI connection string: {ex.Message}");
+        using var loggerFactory = LoggerFactory.Create(logging => logging.AddConsole());
+        var logger = loggerFactory.CreateLogger<Program>();
+        logger.LogError(ex, "[Neon/Postgres] Error parsing URI connection string");
     }
 }
 
