@@ -1,7 +1,0 @@
-🎯 **What:** Replaced the use of `Console.WriteLine` for error logging in the Postgres connection string parsing try-catch block in `Program.cs` with an `ILogger` implementation (`logger.LogError`).
-
-💡 **Why:** `Console.WriteLine` writes directly to the standard output and bypasses the application's configured logging pipeline (e.g., log levels, structured logging, sinks). Using `ILogger` ensures that critical errors are captured correctly, formatted consistently, and routed to the proper logging destinations, improving the maintainability and observability of the codebase.
-
-✅ **Verification:** Verified the change by inspecting the git diff, ensuring the code successfully builds without errors (`dotnet build`), and confirming that all 286 existing unit tests pass without issues (`dotnet test`).
-
-✨ **Result:** Improved code health and adherence to ASP.NET Core logging standards, making early-startup errors easier to track and debug in production environments without changing the underlying business logic.
