@@ -13,10 +13,10 @@
                 <div class="card-body">
                     
                     @* Exibe mensagem de erro caso a OS não seja encontrada *@
-                    @if (ViewBag.Erro != null)
+                    @if (!ViewData.ModelState.IsValid)
                     {
                         <div class="alert alert-danger text-center" role="alert">
-                            @ViewBag.Erro
+                            <div asp-validation-summary="All" class="text-danger mb-0"></div>
                         </div>
                     }
 

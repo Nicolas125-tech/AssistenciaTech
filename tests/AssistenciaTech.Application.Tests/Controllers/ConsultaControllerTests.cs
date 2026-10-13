@@ -60,7 +60,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
             // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
             viewResult.ViewName.Should().Be("Index");
-            string erro = _controller.ViewBag.Erro;
+            _controller.ModelState.IsValid.Should().BeFalse();
+            var erro = _controller.ModelState[string.Empty]?.Errors.FirstOrDefault()?.ErrorMessage;
             erro.Should().Be("Por favor, preencha o número da OS e o CPF.");
         }
 
@@ -77,7 +78,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
             // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
             viewResult.ViewName.Should().Be("Index");
-            string erro = _controller.ViewBag.Erro;
+            _controller.ModelState.IsValid.Should().BeFalse();
+            var erro = _controller.ModelState[string.Empty]?.Errors.FirstOrDefault()?.ErrorMessage;
             erro.Should().Be("Ordem de Serviço não encontrada ou CPF inválido.");
         }
 
@@ -95,7 +97,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
             // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
             viewResult.ViewName.Should().Be("Index");
-            string erro = _controller.ViewBag.Erro;
+            _controller.ModelState.IsValid.Should().BeFalse();
+            var erro = _controller.ModelState[string.Empty]?.Errors.FirstOrDefault()?.ErrorMessage;
             erro.Should().Be("Por favor, preencha o número da OS e o CPF.");
         }
 
@@ -328,7 +331,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
             // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
             viewResult.ViewName.Should().Be("Index");
-            string erro = errorController.ViewBag.Erro;
+            errorController.ModelState.IsValid.Should().BeFalse();
+            var erro = errorController.ModelState[string.Empty]?.Errors.FirstOrDefault()?.ErrorMessage;
             erro.Should().Be("Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente mais tarde.");
         }
 
@@ -368,7 +372,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
             // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
             viewResult.ViewName.Should().Be("Index");
-            string erro = errorController.ViewBag.Erro;
+            errorController.ModelState.IsValid.Should().BeFalse();
+            var erro = errorController.ModelState[string.Empty]?.Errors.FirstOrDefault()?.ErrorMessage;
             erro.Should().Be("Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente mais tarde.");
         }
 
