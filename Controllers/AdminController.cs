@@ -498,7 +498,7 @@ namespace AssistenciaTech.Controllers
 
             var contratos = await _context.Contratos.Include(c => c.Cliente).AsNoTracking()
                 .Where(c => c.ClienteId == ordemServico.ClienteId)
-                .Select(c => new { c.Id, NomeDesc = "Contrato: SLA " + c.HorasSLA + "h - R$ " + c.ValorMensal })
+                .Select(c => new { c.Id, NomeDesc = $"Contrato: SLA {c.HorasSLA}h - R$ {c.ValorMensal}" })
                 .ToListAsync();
 
             ViewBag.Tecnicos = new SelectList(tecnicos, "Id", "Nome", ordemServico.TecnicoId);
