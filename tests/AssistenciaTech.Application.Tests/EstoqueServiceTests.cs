@@ -84,10 +84,14 @@ namespace AssistenciaTech.Application.Tests
             var dbName = Guid.NewGuid().ToString();
             using var context = GetDbContext(dbName);
 
+            var ordemServico = new OrdemServico { Id = 1, ClienteId = 1, DataEntrada = DateTime.UtcNow };
+            context.OrdensServico.Add(ordemServico);
+            await context.SaveChangesAsync();
+
             var service = new EstoqueService(context, Moq.Mock.Of<AssistenciaTech.Extensions.IResilientCacheService>());
 
             // Act
-            var result = await service.DeduzirEstoque(999);
+            var result = await service.DeduzirEstoque(1);
 
             // Assert
             result.Should().BeTrue();
@@ -130,10 +134,14 @@ namespace AssistenciaTech.Application.Tests
             var dbName = Guid.NewGuid().ToString();
             using var context = GetDbContext(dbName);
 
+            var ordemServico = new OrdemServico { Id = 1, ClienteId = 1, DataEntrada = DateTime.UtcNow };
+            context.OrdensServico.Add(ordemServico);
+            await context.SaveChangesAsync();
+
             var service = new EstoqueService(context, Moq.Mock.Of<AssistenciaTech.Extensions.IResilientCacheService>());
 
             // Act
-            var result = await service.RestaurarEstoque(999);
+            var result = await service.RestaurarEstoque(1);
 
             // Assert
             result.Should().BeTrue();
