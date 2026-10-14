@@ -49,7 +49,7 @@ namespace AssistenciaTech.Services
 
             try
             {
-                var response = await _httpClient.PostAsync($"https://api.telegram.org/bot{token}/sendMessage", content);
+                var response = await _httpClient.PostAsync($"https://api.telegram.org/bot{token}/sendMessage", content).ConfigureAwait(false);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -57,7 +57,7 @@ namespace AssistenciaTech.Services
                 }
                 else
                 {
-                    var responseBody = await response.Content.ReadAsStringAsync();
+                    var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     _logger.LogError("[Telegram] Falha ao enviar notificação para {ClienteNome}. Status: {StatusCode}, Resposta: {Response}", cliente.Nome, response.StatusCode, responseBody);
                 }
             }
