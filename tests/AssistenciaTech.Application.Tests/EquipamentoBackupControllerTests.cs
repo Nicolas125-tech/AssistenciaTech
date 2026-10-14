@@ -418,6 +418,70 @@ namespace AssistenciaTech.Application.Tests
             equipamentoInDb.Should().BeNull();
         }
 
+
+        [Fact]
+        public async Task Edit_Post_WhenDbUpdateConcurrencyExceptionAndEquipamentoExists_ThrowsException()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var context = new ConcurrencyThrowingDbContext(options);
+
+            context.EquipamentosBackup.Add(new EquipamentoBackup { Id = 1, Descricao = "Old", NumeroSerie = "123", Disponivel = true });
+            context.SaveChanges();
+            context.ChangeTracker.Clear();
+
+            var controller = new EquipamentoBackupController(context);
+            var updatedEquipamento = new EquipamentoBackup { Id = 1, Descricao = "New", NumeroSerie = "456", Disponivel = true };
+
+            // Act & Assert
+            await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => controller.Edit(1, updatedEquipamento));
+        }
+
+        private class NotFoundConcurrencyDbContext : AppDbContext
+        {
+            public NotFoundConcurrencyDbContext(DbContextOptions<AppDbContext> options) : base(options)
+            {
+            }
+
+            public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+            {
+                var item = EquipamentosBackup.FirstOrDefault();
+                if (item != null)
+                {
+                    EquipamentosBackup.Remove(item);
+                    SaveChanges();
+                }
+                throw new DbUpdateConcurrencyException();
+            }
+        }
+
+        [Fact]
+        public async Task Edit_Post_WhenDbUpdateConcurrencyExceptionAndEquipamentoDoesNotExist_ReturnsNotFound()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var context = new NotFoundConcurrencyDbContext(options);
+
+            context.EquipamentosBackup.Add(new EquipamentoBackup { Id = 1, Descricao = "Old", NumeroSerie = "123", Disponivel = true });
+            context.SaveChanges();
+            context.ChangeTracker.Clear();
+
+            var controller = new EquipamentoBackupController(context);
+            var updatedEquipamento = new EquipamentoBackup { Id = 1, Descricao = "New", NumeroSerie = "456", Disponivel = true };
+
+            // Act
+            var result = await controller.Edit(1, updatedEquipamento);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
         [Fact]
         public async Task DeleteConfirmed_WhenEquipamentoDoesNotExist_DoesNothingAndRedirects()
         {
