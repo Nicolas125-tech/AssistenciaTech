@@ -87,6 +87,23 @@ namespace AssistenciaTech.Application.Tests.Services
 
             _context.ChangeTracker.Clear();
 
+            string actualContent = null;
+            _mockHttpMessageHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .Callback<HttpRequestMessage, CancellationToken>((req, ct) => {
+                    if (req.Content != null)
+                        actualContent = req.Content.ReadAsStringAsync().Result;
+                })
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("{}")
+                });
+
             // Act
             await _sut.HandleCommandAsync("/start 15", "chat-id-123");
 
@@ -94,6 +111,9 @@ namespace AssistenciaTech.Application.Tests.Services
             var updatedCliente = await _context.Clientes.FindAsync(15);
             updatedCliente.Should().NotBeNull();
             updatedCliente!.TelegramChatId.Should().Be("chat-id-123");
+
+            actualContent.Should().NotBeNull();
+            actualContent.Should().Contain("vinculado com sucesso");
 
             _mockHttpMessageHandler.Protected().Verify(
                 "SendAsync",
@@ -109,11 +129,30 @@ namespace AssistenciaTech.Application.Tests.Services
         public async Task HandleCommandAsync_WithStartAndInvalidClienteId_SendsNotFoundMessage()
         {
             // Arrange - empty db
+            string actualContent = null;
+            _mockHttpMessageHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .Callback<HttpRequestMessage, CancellationToken>((req, ct) => {
+                    if (req.Content != null)
+                        actualContent = req.Content.ReadAsStringAsync().Result;
+                })
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("{}")
+                });
 
             // Act
             await _sut.HandleCommandAsync("/start 999", "chat-id-123");
 
             // Assert
+            actualContent.Should().NotBeNull();
+            actualContent.Should().Contain("n\\u00E3o encontrado");
+
             _mockHttpMessageHandler.Protected().Verify(
                 "SendAsync",
                 Times.Once(),
@@ -148,11 +187,30 @@ namespace AssistenciaTech.Application.Tests.Services
         public async Task HandleCommandAsync_WithStartNoId_SendsHelpMessage()
         {
             // Arrange
+            string actualContent = null;
+            _mockHttpMessageHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .Callback<HttpRequestMessage, CancellationToken>((req, ct) => {
+                    if (req.Content != null)
+                        actualContent = req.Content.ReadAsStringAsync().Result;
+                })
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("{}")
+                });
 
             // Act
             await _sut.HandleCommandAsync("/start", "chat-id-123");
 
             // Assert
+            actualContent.Should().NotBeNull();
+            actualContent.Should().Contain("link de ativa");
+
             _mockHttpMessageHandler.Protected().Verify(
                 "SendAsync",
                 Times.Once(),
