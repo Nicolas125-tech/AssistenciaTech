@@ -44,6 +44,7 @@ namespace AssistenciaTech.Extensions
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "[Cache] Erro ao ler do cache. Chave: {Key}", key);
                 OpenCircuit(ex);
                 return default;
             }
@@ -64,6 +65,7 @@ namespace AssistenciaTech.Extensions
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "[Cache] Erro ao escrever no cache. Chave: {Key}", key);
                 OpenCircuit(ex);
             }
         }
@@ -78,6 +80,7 @@ namespace AssistenciaTech.Extensions
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "[Cache] Erro ao remover do cache. Chave: {Key}", key);
                 OpenCircuit(ex);
             }
         }
