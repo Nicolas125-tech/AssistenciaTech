@@ -1,13 +1,13 @@
 🎯 **What:**
-Replaced `DateTime.Now` with `DateTime.UtcNow` in `Controllers/MobileApiController.cs` when setting the JWT token expiration.
+Refactored the `Index` method in `Controllers/AdminController.cs` by extracting the code that populates the `ViewBag` into two new helper methods: `PopulateDashboardViewBag` and `PopulateErrorViewBag`.
 
 💡 **Why:**
-Using `DateTime.UtcNow` instead of `DateTime.Now` improves the maintainability and reliability of the codebase. It ensures consistency across different server timezones and prevents potential issues related to Daylight Saving Time transitions, which is especially important for time-sensitive operations like JWT expiration.
+The `Index` method was becoming too large and doing multiple things. Extracting the ViewBag population logic into helper methods improves readability, makes the main controller action more concise, and adheres to the Single Responsibility Principle. This makes the codebase easier to maintain.
 
 ✅ **Verification:**
-* Verified the specific line modification in `Controllers/MobileApiController.cs`.
-* Ran the full .NET test suite, including specific `MobileApiController` tests, ensuring all tests passed without regressions.
-* Checked for other instances of `DateTime.Now` (noted a few in `PdfGeneratorService` which are for display purposes and less critical, but focused this PR on the requested issue).
+* Verified the modifications using `git diff`.
+* Successfully compiled the project using `dotnet build`.
+* Ran the full test suite using `dotnet test` and specifically `AdminControllerTests`, confirming all tests passed without regressions.
 
 ✨ **Result:**
-The JWT token generation in `MobileApiController` now safely uses UTC time for its expiration claim, avoiding timezone-related bugs and adhering to standard code health conventions.
+The `Index` method in `AdminController.cs` is now much smaller and easier to read. The logic for populating dashboard data and error messages is neatly encapsulated in dedicated helper methods, improving overall code health without changing the existing functionality.

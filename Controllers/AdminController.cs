@@ -93,38 +93,38 @@ namespace AssistenciaTech.Controllers
             try
             {
                 var dashboardData = await _facade.Dashboard.GetDashboardDataAsync(searchString, statusFilter, page);
-
-                ViewBag.SearchString = searchString;
-                ViewBag.StatusFilter = statusFilter;
-
-                ViewBag.ChartLabels = dashboardData.ChartLabels;
-                ViewBag.ChartData = dashboardData.ChartData;
-
-                // Dashboard Data
-                ViewBag.TotalAbertas = dashboardData.TotalAbertas;
-                ViewBag.EquipamentosProntos = dashboardData.EquipamentosProntos;
-                ViewBag.FaturamentoPrevisto = dashboardData.FaturamentoPrevisto;
-
-                ViewBag.CurrentPage = dashboardData.CurrentPage;
-                ViewBag.TotalPages = dashboardData.TotalPages;
-                ViewBag.TotalOrdens = dashboardData.TotalOrdens;
-                ViewBag.AlertasEstoque = dashboardData.AlertasEstoque;
-
+                PopulateDashboardViewBag(dashboardData, searchString, statusFilter);
                 return View(dashboardData.Ordens);
             }
             catch (DbException ex)
             {
                 _logger.LogError(ex, "DB_CONNECTION_ERROR (Admin/Index)");
-                ViewBag.ErroBanco = "Erro ao conectar ao banco de dados. Por favor, tente novamente mais tarde.";
-
-                // Zera os valores do Dashboard
-                ViewBag.TotalAbertas = 0;
-                ViewBag.EquipamentosProntos = 0;
-                ViewBag.FaturamentoPrevisto = 0m;
-
-                // Retorna uma lista vazia para a View não quebrar
+                PopulateErrorViewBag();
                 return View(new List<OrdemServico>());
             }
+        }
+
+        private void PopulateDashboardViewBag(DashboardDto dashboardData, string searchString, string statusFilter)
+        {
+            ViewBag.SearchString = searchString;
+            ViewBag.StatusFilter = statusFilter;
+            ViewBag.ChartLabels = dashboardData.ChartLabels;
+            ViewBag.ChartData = dashboardData.ChartData;
+            ViewBag.TotalAbertas = dashboardData.TotalAbertas;
+            ViewBag.EquipamentosProntos = dashboardData.EquipamentosProntos;
+            ViewBag.FaturamentoPrevisto = dashboardData.FaturamentoPrevisto;
+            ViewBag.CurrentPage = dashboardData.CurrentPage;
+            ViewBag.TotalPages = dashboardData.TotalPages;
+            ViewBag.TotalOrdens = dashboardData.TotalOrdens;
+            ViewBag.AlertasEstoque = dashboardData.AlertasEstoque;
+        }
+
+        private void PopulateErrorViewBag()
+        {
+            ViewBag.ErroBanco = "Erro ao conectar ao banco de dados. Por favor, tente novamente mais tarde.";
+            ViewBag.TotalAbertas = 0;
+            ViewBag.EquipamentosProntos = 0;
+            ViewBag.FaturamentoPrevisto = 0m;
         }
 
         // GET: Admin/Create
