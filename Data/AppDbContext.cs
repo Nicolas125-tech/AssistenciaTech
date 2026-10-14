@@ -8,11 +8,8 @@ namespace AssistenciaTech.Data
     /// Contexto do banco de dados do Entity Framework Core.
     /// Gerencia a conexão com o banco e o mapeamento das entidades.
     /// </summary>
-    public class AppDbContext : DbContext, IDataProtectionKeyContext
+    public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options), IDataProtectionKeyContext
     {
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
-        {
-        }
 
         // Representação das tabelas no banco de dados
         public DbSet<Cliente> Clientes { get; set; }
