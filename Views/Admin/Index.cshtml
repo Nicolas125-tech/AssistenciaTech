@@ -1,4 +1,4 @@
-@model IEnumerable<AssistenciaTech.Models.OrdemServico>
+@model AssistenciaTech.ViewModels.AdminDashboardViewModel
 
 @{
     ViewData["Title"] = "Painel Administrativo - Ordens de Serviço";
@@ -14,10 +14,10 @@
         </div>
     </div>
 
-    @if (ViewBag.ErroBanco != null)
+    @if (Model.ErroBanco != null)
     {
         <div class="alert alert-danger shadow-sm border-0 rounded-4" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i> @ViewBag.ErroBanco
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @Model.ErroBanco
         </div>
     }
 
@@ -25,19 +25,19 @@
         <div class="card-body">
             <form asp-action="Index" method="get" class="row g-3 align-items-center">
                 <div class="col-auto">
-                    <input type="text" name="searchString" class="form-control" placeholder="Buscar por Cliente, Equipamento ou Nº OS" value="@ViewBag.SearchString" />
+                    <input type="text" name="searchString" class="form-control" placeholder="Buscar por Cliente, Equipamento ou Nº OS" value="@Model.SearchString" />
                 </div>
                 <div class="col-auto">
                     <select name="statusFilter" class="form-select">
                         <option value="">Todos os Status</option>
-                        <option value="Recebido" selected="@(ViewBag.StatusFilter == "Recebido")">Recebido</option>
-                        <option value="Em Análise" selected="@(ViewBag.StatusFilter == "Em Análise")">Em Análise</option>
-                        <option value="Aguardando Aprovação" selected="@(ViewBag.StatusFilter == "Aguardando Aprovação")">Aguardando Aprovação</option>
-                        <option value="Aguardando Peças" selected="@(ViewBag.StatusFilter == "Aguardando Peças")">Aguardando Peças</option>
-                        <option value="Em Reparo" selected="@(ViewBag.StatusFilter == "Em Reparo")">Em Reparo</option>
-                        <option value="Concluído" selected="@(ViewBag.StatusFilter == "Concluído")">Concluído</option>
-                        <option value="Entregue" selected="@(ViewBag.StatusFilter == "Entregue")">Entregue</option>
-                        <option value="Cancelado" selected="@(ViewBag.StatusFilter == "Cancelado")">Cancelado</option>
+                        <option value="Recebido" selected="@(Model.StatusFilter == "Recebido")">Recebido</option>
+                        <option value="Em Análise" selected="@(Model.StatusFilter == "Em Análise")">Em Análise</option>
+                        <option value="Aguardando Aprovação" selected="@(Model.StatusFilter == "Aguardando Aprovação")">Aguardando Aprovação</option>
+                        <option value="Aguardando Peças" selected="@(Model.StatusFilter == "Aguardando Peças")">Aguardando Peças</option>
+                        <option value="Em Reparo" selected="@(Model.StatusFilter == "Em Reparo")">Em Reparo</option>
+                        <option value="Concluído" selected="@(Model.StatusFilter == "Concluído")">Concluído</option>
+                        <option value="Entregue" selected="@(Model.StatusFilter == "Entregue")">Entregue</option>
+                        <option value="Cancelado" selected="@(Model.StatusFilter == "Cancelado")">Cancelado</option>
                     </select>
                 </div>
                 <div class="col-auto">
@@ -67,7 +67,7 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div class="me-3">
                             <div class="text-white-50 small">Total de OS Abertas</div>
-                            <div class="fs-4 fw-bold">@ViewBag.TotalAbertas</div>
+                            <div class="fs-4 fw-bold">@Model.DashboardData.TotalAbertas</div>
                         </div>
                         <i class="bi bi-tools fs-1 text-white-50"></i>
                     </div>
@@ -80,7 +80,7 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div class="me-3">
                             <div class="text-white-50 small">Equipamentos Prontos</div>
-                            <div class="fs-4 fw-bold">@ViewBag.EquipamentosProntos</div>
+                            <div class="fs-4 fw-bold">@Model.DashboardData.EquipamentosProntos</div>
                         </div>
                         <i class="bi bi-check-circle fs-1 text-white-50"></i>
                     </div>
@@ -93,7 +93,7 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div class="me-3">
                             <div class="text-white-50 small">Faturamento Previsto</div>
-                            <div class="fs-4 fw-bold">@(((decimal)ViewBag.FaturamentoPrevisto).ToString("C"))</div>
+                            <div class="fs-4 fw-bold">@(((decimal)Model.DashboardData.FaturamentoPrevisto).ToString("C"))</div>
                         </div>
                         <i class="bi bi-cash-stack fs-1 text-white-50"></i>
                     </div>
@@ -103,7 +103,7 @@
     </div>
 
     <!-- Alertas de Estoque Mínimo -->
-    @if (ViewBag.AlertasEstoque != null && ((IEnumerable<AssistenciaTech.Models.Peca>)ViewBag.AlertasEstoque).Any())
+    @if (Model.DashboardData.AlertasEstoque != null && ((IEnumerable<AssistenciaTech.Models.Peca>)Model.DashboardData.AlertasEstoque).Any())
     {
         <div class="row mb-4">
             <div class="col-md-12">
@@ -124,7 +124,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var peca in (IEnumerable<AssistenciaTech.Models.Peca>)ViewBag.AlertasEstoque)
+                                    @foreach (var peca in (IEnumerable<AssistenciaTech.Models.Peca>)Model.DashboardData.AlertasEstoque)
                                     {
                                         <tr>
                                             <td class="fw-bold">@peca.Nome</td>
@@ -178,7 +178,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @if (!Model.Any())
+                        @if (!Model.DashboardData.Ordens.Any())
                         {
                             <tr>
                                 <td colspan="7" class="text-center py-5 text-muted">
@@ -190,7 +190,7 @@
                         }
                         else
                         {
-                        @foreach (var item in Model)
+                        @foreach (var item in Model.DashboardData.Ordens)
                         {
                             string badgeClass = item.Status switch
                             {
@@ -277,8 +277,8 @@
         document.addEventListener("DOMContentLoaded", function () {
             var ctx = document.getElementById('statusChart').getContext('2d');
 
-            var chartLabels = @Json.Serialize(ViewBag.ChartLabels);
-            var chartData = @Json.Serialize(ViewBag.ChartData);
+            var chartLabels = @Json.Serialize(Model.DashboardData.ChartLabels);
+            var chartData = @Json.Serialize(Model.DashboardData.ChartData);
 
             var myChart = new Chart(ctx, {
                 type: 'bar',
