@@ -74,7 +74,7 @@ namespace AssistenciaTech.Controllers
                     issuer: _configuration["Jwt:Issuer"] ?? "AssistenciaTech",
                     audience: _configuration["Jwt:Audience"] ?? "AssistenciaTechMobile",
                     claims: claims,
-                    expires: DateTime.Now.AddDays(7),
+                    expires: DateTime.UtcNow.AddDays(7),
                     signingCredentials: creds
                 );
 
