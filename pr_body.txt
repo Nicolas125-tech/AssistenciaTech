@@ -1,0 +1,13 @@
+🎯 **What:**
+Replaced `DateTime.Now` with `DateTime.UtcNow` in `Controllers/MobileApiController.cs` when setting the JWT token expiration.
+
+💡 **Why:**
+Using `DateTime.UtcNow` instead of `DateTime.Now` improves the maintainability and reliability of the codebase. It ensures consistency across different server timezones and prevents potential issues related to Daylight Saving Time transitions, which is especially important for time-sensitive operations like JWT expiration.
+
+✅ **Verification:**
+* Verified the specific line modification in `Controllers/MobileApiController.cs`.
+* Ran the full .NET test suite, including specific `MobileApiController` tests, ensuring all tests passed without regressions.
+* Checked for other instances of `DateTime.Now` (noted a few in `PdfGeneratorService` which are for display purposes and less critical, but focused this PR on the requested issue).
+
+✨ **Result:**
+The JWT token generation in `MobileApiController` now safely uses UTC time for its expiration claim, avoiding timezone-related bugs and adhering to standard code health conventions.
