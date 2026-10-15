@@ -37,8 +37,8 @@ namespace AssistenciaTech.Services
 
             if (!agrupado.Any()) return true; // Nada a deduzir
 
-            var pecaIds = agrupado.Select(a => a.PecaId).ToList();
-            var pecas = await _context.Pecas.Where(p => pecaIds.Contains(p.Id)).ToListAsync();
+            // Get distinct parts directly via join to avoid large IN clauses
+            var pecas = await _context.OrdemServicoPecas.Where(op => op.OrdemServicoId == ordemServicoId).Select(op => op.Peca!).Distinct().ToListAsync();
             var quantidadesDict = agrupado.ToDictionary(a => a.PecaId, a => a.QuantidadeTotal);
 
             foreach (var peca in pecas)
@@ -70,8 +70,8 @@ namespace AssistenciaTech.Services
 
             if (!agrupado.Any()) return true;
 
-            var pecaIds = agrupado.Select(a => a.PecaId).ToList();
-            var pecas = await _context.Pecas.Where(p => pecaIds.Contains(p.Id)).ToListAsync();
+            // Get distinct parts directly via join to avoid large IN clauses
+            var pecas = await _context.OrdemServicoPecas.Where(op => op.OrdemServicoId == ordemServicoId).Select(op => op.Peca!).Distinct().ToListAsync();
             var quantidadesDict = agrupado.ToDictionary(a => a.PecaId, a => a.QuantidadeTotal);
 
             foreach (var peca in pecas)
