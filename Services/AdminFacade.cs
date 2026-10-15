@@ -13,6 +13,7 @@ namespace AssistenciaTech.Services
         public IServiceScopeFactory ScopeFactory { get; }
         public INotificationService Notification { get; }
         public IClienteService Cliente { get; }
+        public AssistenciaTech.Extensions.IResilientCacheService Cache { get; }
 
         public AdminFacade(
             IEstoqueService estoqueService,
@@ -22,7 +23,8 @@ namespace AssistenciaTech.Services
             IEquipamentoBackupService equipamentoBackupService,
             IServiceScopeFactory scopeFactory,
             INotificationService notificationService,
-            IClienteService clienteService)
+            IClienteService clienteService,
+            AssistenciaTech.Extensions.IResilientCacheService cache)
         {
             Estoque = estoqueService;
             Env = env;
@@ -32,6 +34,7 @@ namespace AssistenciaTech.Services
             ScopeFactory = scopeFactory;
             Notification = notificationService;
             Cliente = clienteService;
+            Cache = cache;
         }
     }
 }

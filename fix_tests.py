@@ -1,77 +1,49 @@
-with open('tests/AssistenciaTech.Application.Tests/Controllers/AdminControllerTests.cs', 'r') as f:
-    lines = f.readlines()
+import re
 
-content = "".join(lines)
+def fix():
+    path = "tests/AssistenciaTech.Application.Tests/Controllers/AdminControllerBenchmarkTests.cs"
+    with open(path, "r") as f:
+        content = f.read()
 
-# Fix Index_Get_ReturnsViewWithDashboardData_WhenSuccessful
-content = content.replace(
-"""            var result = await _controller.Index(searchString, statusFilter, page) as ViewResult;
+    # The mock cache in benchmark is not returning data, so it queries DB every time and overwrites.
+    # We should set it up to return some data to actually measure cache hit performance.
 
-            // Assert
-            result.Should().NotBeNull();
-            var model = result.Model.Should().BeAssignableTo<IEnumerable<OrdemServico>>().Subject;
-            model.Should().BeEquivalentTo(ordens);
+    # Let's mock a working cache service
+    replacement = """
+            var cacheMock = new Mock<AssistenciaTech.Extensions.IResilientCacheService>();
+            var cachedData = context.EquipamentosBackup.ToList();
+            cacheMock.Setup(c => c.GetAsync<System.Collections.Generic.List<EquipamentoBackup>>(It.IsAny<string>()))
+                .ReturnsAsync(cachedData);
 
-            var viewData = result.ViewData;
-            viewData["ErroBanco"].Should().Be("Test error message");
-            viewData["SearchString"].Should().Be(searchString);
-            viewData["StatusFilter"].Should().Be(statusFilter);
-            viewData["ChartLabels"].Should().BeEquivalentTo(dashboardData.ChartLabels);
-            viewData["ChartData"].Should().BeEquivalentTo(dashboardData.ChartData);
+            var mockFacade = new AdminFacade(
+                mockEstoqueService.Object,
+                mockEnv.Object,
+                mockPdfGeneratorService.Object,
+                mockDashboardService.Object,
+                mockEquipamentoBackupService.Object,
+                mockScopeFactory.Object,
+                mockNotificationService.Object,
+                mockClienteService.Object,
+                cacheMock.Object
+            );
+"""
 
-            viewData["TotalAbertas"].Should().Be(5);
-            viewData["EquipamentosProntos"].Should().Be(3);
-            viewData["FaturamentoPrevisto"].Should().Be(1500.50m);
-            viewData["CurrentPage"].Should().Be(2);
-            viewData["TotalPages"].Should().Be(3);
-            viewData["TotalOrdens"].Should().Be(25);""",
-"""            var result = await _controller.Index(searchString, statusFilter, page) as ViewResult;
+    # We will just replace the facade creation part
+    old_facade_creation = """            var mockFacade = new AdminFacade(
+                mockEstoqueService.Object,
+                mockEnv.Object,
+                mockPdfGeneratorService.Object,
+                mockDashboardService.Object,
+                mockEquipamentoBackupService.Object,
+                mockScopeFactory.Object,
+                mockNotificationService.Object,
+                mockClienteService.Object,
+                new Mock<AssistenciaTech.Extensions.IResilientCacheService>().Object
+            );"""
 
-            // Assert
-            result.Should().NotBeNull();
-            var model = result.Model.Should().BeAssignableTo<AdminDashboardViewModel>().Subject;
-            model.DashboardData.Ordens.Should().BeEquivalentTo(ordens);
+    if old_facade_creation in content:
+        content = content.replace(old_facade_creation, replacement)
+        with open(path, "w") as f:
+            f.write(content)
 
-            model.ErroBanco.Should().Be("Test error message");
-            model.SearchString.Should().Be(searchString);
-            model.StatusFilter.Should().Be(statusFilter);
-            model.DashboardData.ChartLabels.Should().BeEquivalentTo(dashboardData.ChartLabels);
-            model.DashboardData.ChartData.Should().BeEquivalentTo(dashboardData.ChartData);
-
-            model.DashboardData.TotalAbertas.Should().Be(5);
-            model.DashboardData.EquipamentosProntos.Should().Be(3);
-            model.DashboardData.FaturamentoPrevisto.Should().Be(1500.50m);
-            model.DashboardData.CurrentPage.Should().Be(2);
-            model.DashboardData.TotalPages.Should().Be(3);
-            model.DashboardData.TotalOrdens.Should().Be(25);"""
-)
-
-# Fix Index_Get_ReturnsEmptyList_WhenDatabaseFails
-content = content.replace(
-"""            var result = await _controller.Index(null, null, 1) as ViewResult;
-
-            // Assert
-            result.Should().NotBeNull();
-            result.Model.Should().BeEquivalentTo(new List<OrdemServico>());""",
-"""            var result = await _controller.Index(null, null, 1) as ViewResult;
-
-            // Assert
-            result.Should().NotBeNull();
-            var model = result.Model.Should().BeAssignableTo<AdminDashboardViewModel>().Subject;
-            model.DashboardData.Ordens.Should().BeEquivalentTo(new List<OrdemServico>());"""
-)
-
-content = content.replace(
-"""            var viewData = result.ViewData;
-            viewData["ErroBanco"].Should().Be("Erro ao conectar ao banco de dados. Por favor, tente novamente mais tarde.");
-            viewData["TotalAbertas"].Should().Be(0);
-            viewData["EquipamentosProntos"].Should().Be(0);
-            viewData["FaturamentoPrevisto"].Should().Be(0m);""",
-"""            model.ErroBanco.Should().Be("Erro ao conectar ao banco de dados. Por favor, tente novamente mais tarde.");
-            model.DashboardData.TotalAbertas.Should().Be(0);
-            model.DashboardData.EquipamentosProntos.Should().Be(0);
-            model.DashboardData.FaturamentoPrevisto.Should().Be(0m);"""
-)
-
-with open('tests/AssistenciaTech.Application.Tests/Controllers/AdminControllerTests.cs', 'w') as f:
-    f.write(content)
+fix()

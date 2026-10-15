@@ -208,7 +208,15 @@ namespace AssistenciaTech.Controllers
                 if (ordemServico == null) return NotFound();
 
                 ViewBag.Tecnicos = new SelectList(await _context.Tecnicos.AsNoTracking().Where(t => t.Ativo).Select(t => new { t.Id, t.Nome }).ToListAsync(), "Id", "Nome");
-                ViewBag.EquipamentosBackup = new SelectList(await _context.EquipamentosBackup.AsNoTracking().Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).Select(e => new { e.Id, e.Descricao }).ToListAsync(), "Id", "Descricao");
+
+                var cacheKeyEq = "EquipamentosBackup_All";
+                var allEquipamentos = await _facade.Cache.GetAsync<System.Collections.Generic.List<EquipamentoBackup>>(cacheKeyEq);
+                if (allEquipamentos == null)
+                {
+                    allEquipamentos = await _context.EquipamentosBackup.AsNoTracking().ToListAsync();
+                    await _facade.Cache.SetAsync(cacheKeyEq, allEquipamentos, TimeSpan.FromMinutes(60));
+                }
+                ViewBag.EquipamentosBackup = new SelectList(allEquipamentos.Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).Select(e => new { e.Id, e.Descricao }).ToList(), "Id", "Descricao");
                 var contratosData = await _context.Contratos.AsNoTracking().Where(c => c.ClienteId == ordemServico.ClienteId).Select(c => new { c.Id, c.HorasSLA, c.ValorMensal }).ToListAsync();
                 ViewBag.Contratos = new SelectList(contratosData.Select(c => new { c.Id, NomeDesc = $"Contrato: SLA {c.HorasSLA}h - R$ {c.ValorMensal}" }), "Id", "NomeDesc");
 
@@ -479,7 +487,14 @@ namespace AssistenciaTech.Controllers
         {
             var tecnicos = await _context.Tecnicos.AsNoTracking().Where(t => t.Ativo).ToListAsync();
 
-            var equipamentos = await _context.EquipamentosBackup.AsNoTracking().Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).ToListAsync();
+            var cacheKeyEq = "EquipamentosBackup_All";
+            var allEquipamentos = await _facade.Cache.GetAsync<System.Collections.Generic.List<EquipamentoBackup>>(cacheKeyEq);
+            if (allEquipamentos == null)
+            {
+                allEquipamentos = await _context.EquipamentosBackup.AsNoTracking().ToListAsync();
+                await _facade.Cache.SetAsync(cacheKeyEq, allEquipamentos, TimeSpan.FromMinutes(60));
+            }
+            var equipamentos = allEquipamentos.Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).ToList();
 
             var contratos = await _context.Contratos.Include(c => c.Cliente).AsNoTracking()
                 .Where(c => c.ClienteId == ordemServico.ClienteId)

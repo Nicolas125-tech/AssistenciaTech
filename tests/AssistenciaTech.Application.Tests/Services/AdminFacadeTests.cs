@@ -22,6 +22,7 @@ namespace AssistenciaTech.Application.Tests.Services
             var scopeFactoryMock = new Mock<IServiceScopeFactory>();
             var notificationMock = new Mock<INotificationService>();
             var clienteMock = new Mock<IClienteService>();
+            var cacheMock = new Mock<AssistenciaTech.Extensions.IResilientCacheService>();
 
             // Act
             var adminFacade = new AdminFacade(
@@ -32,7 +33,8 @@ namespace AssistenciaTech.Application.Tests.Services
                 equipamentoBackupMock.Object,
                 scopeFactoryMock.Object,
                 notificationMock.Object,
-                clienteMock.Object);
+                clienteMock.Object,
+                cacheMock.Object);
 
             // Assert
             adminFacade.Estoque.Should().BeSameAs(estoqueMock.Object);
@@ -43,6 +45,7 @@ namespace AssistenciaTech.Application.Tests.Services
             adminFacade.ScopeFactory.Should().BeSameAs(scopeFactoryMock.Object);
             adminFacade.Notification.Should().BeSameAs(notificationMock.Object);
             adminFacade.Cliente.Should().BeSameAs(clienteMock.Object);
+            adminFacade.Cache.Should().BeSameAs(cacheMock.Object);
         }
     }
 }
