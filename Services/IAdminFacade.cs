@@ -13,5 +13,6 @@ namespace AssistenciaTech.Services
         IServiceScopeFactory ScopeFactory { get; }
         INotificationService Notification { get; }
         IClienteService Cliente { get; }
+        AssistenciaTech.Extensions.IResilientCacheService Cache { get; }
     }
 }
