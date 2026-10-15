@@ -1,4 +1,0 @@
-🎯 **What:** Replaced the usage of `ViewBag` with a strongly typed `AdminDashboardViewModel` in the Admin Dashboard (`AdminController.Index` and `Views/Admin/Index.cshtml`).
-💡 **Why:** Using a strongly typed ViewModel improves code maintainability, readability, and type safety in the View. It removes reliance on magic strings and dynamic properties, making refactoring easier and reducing the chance of runtime errors.
-✅ **Verification:** Ran `dotnet build` and `dotnet test` to ensure the project compiles and all unit tests pass. Fixed a few controller tests that were expecting a different model type in the View result.
-✨ **Result:** The Admin Dashboard now uses a clean `AdminDashboardViewModel`, providing better IDE support, type checking, and overall code health.

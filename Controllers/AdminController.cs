@@ -6,6 +6,7 @@ using AssistenciaTech.Models;
 using AssistenciaTech.DTOs;
 using AssistenciaTech.Services;
 using AssistenciaTech.ViewModels;
+using AssistenciaTech.Extensions;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -33,12 +34,14 @@ namespace AssistenciaTech.Controllers
         private readonly AppDbContext _context;
         private readonly ILogger<AdminController> _logger;
         private readonly IAdminFacade _facade;
+        private readonly IResilientCacheService _cache;
 
-        public AdminController(AppDbContext context, ILogger<AdminController> logger, IAdminFacade facade)
+        public AdminController(AppDbContext context, ILogger<AdminController> logger, IAdminFacade facade, IResilientCacheService cache)
         {
             _context = context;
             _logger = logger;
             _facade = facade;
+            _cache = cache;
         }
 
         // GET: Admin/Index
@@ -477,9 +480,28 @@ namespace AssistenciaTech.Controllers
 
         private async Task PopulateViewBagsForEditAsync(OrdemServico ordemServico)
         {
-            var tecnicos = await _context.Tecnicos.AsNoTracking().Where(t => t.Ativo).ToListAsync();
+            var tecnicos = await _cache.GetAsync<System.Collections.Generic.List<Tecnico>>("tecnicos_ativos");
+            if (tecnicos == null)
+            {
+                tecnicos = await _context.Tecnicos.AsNoTracking().Where(t => t.Ativo).ToListAsync();
+                await _cache.SetAsync("tecnicos_ativos", tecnicos, TimeSpan.FromMinutes(10));
+            }
 
-            var equipamentos = await _context.EquipamentosBackup.AsNoTracking().Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).ToListAsync();
+            var equipamentos = await _cache.GetAsync<System.Collections.Generic.List<EquipamentoBackup>>("equipamentos_disponiveis");
+            if (equipamentos == null)
+            {
+                equipamentos = await _context.EquipamentosBackup.AsNoTracking().Where(e => e.Disponivel).ToListAsync();
+                await _cache.SetAsync("equipamentos_disponiveis", equipamentos, TimeSpan.FromMinutes(10));
+            }
+
+            if (ordemServico.EquipamentoBackupId.HasValue && !equipamentos.Any(e => e.Id == ordemServico.EquipamentoBackupId))
+            {
+                var currentEquip = await _context.EquipamentosBackup.AsNoTracking().FirstOrDefaultAsync(e => e.Id == ordemServico.EquipamentoBackupId);
+                if (currentEquip != null)
+                {
+                    equipamentos.Add(currentEquip);
+                }
+            }
 
             var contratos = await _context.Contratos.Include(c => c.Cliente).AsNoTracking()
                 .Where(c => c.ClienteId == ordemServico.ClienteId)
