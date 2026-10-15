@@ -155,11 +155,11 @@ namespace AssistenciaTech.Controllers
 
         private System.Collections.Generic.List<string> ExtractTxIdsFromJson(string payload)
         {
-            var txIds = new System.Collections.Generic.List<string>();
             using var jsonDoc = JsonDocument.Parse(payload);
 
             if (jsonDoc.RootElement.TryGetProperty("pix", out var pixElement) && pixElement.ValueKind == JsonValueKind.Array)
             {
+                var txIds = new System.Collections.Generic.List<string>(pixElement.GetArrayLength());
                 foreach (var pix in pixElement.EnumerateArray())
                 {
                     if (pix.TryGetProperty("txid", out var txidElement))
@@ -171,17 +171,19 @@ namespace AssistenciaTech.Controllers
                         }
                     }
                 }
+                return txIds;
             }
             else if (jsonDoc.RootElement.TryGetProperty("txid", out var txidElement))
             {
+                var txIds = new System.Collections.Generic.List<string>(1);
                 string txId = txidElement.GetString();
                 if (!string.IsNullOrEmpty(txId))
                 {
                     txIds.Add(txId);
                 }
+                return txIds;
             }
-
-            return txIds;
+            return new System.Collections.Generic.List<string>(0);
         }
 
         private async Task ProcessPaymentsAsync(System.Collections.Generic.List<string> txIds)
