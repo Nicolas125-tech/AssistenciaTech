@@ -1,6 +1,7 @@
 # Build and Output folders
 bin/
 obj/
+TestResults/
 
 # Logs
 *.log
@@ -9,14 +10,34 @@ obj/
 .env
 .vs/
 .vscode/
+.idea/
+*.user
+*.suo
 
 # Render Attachments
 /tmp/file_attachments/
 
-agy.exe
-appsettings.Development.json
-perf_test/
+# Temporary and patch files
+*.patch
+*.rej
+*.bak
+*.tmp
+*.swp
+.DS_Store
+Thumbs.db
 
+# Test and agent scratch files
+commit_message.txt
+pr_*.txt
+pr_*.json
+test_results.txt
+plan.md
+.Jules/
+perf_test/
+gitguard-report-*
+
+# Binaries and local settings
+agy.exe
 agy.exe.*
 *.zip
-gitguard-report-*
+appsettings.Development.json
