@@ -10,34 +10,14 @@ TestResults/
 .env
 .vs/
 .vscode/
-.idea/
-*.user
-*.suo
 
 # Render Attachments
 /tmp/file_attachments/
 
-# Temporary and patch files
-*.patch
-*.rej
-*.bak
-*.tmp
-*.swp
-.DS_Store
-Thumbs.db
-
-# Test and agent scratch files
-commit_message.txt
-pr_*.txt
-pr_*.json
-test_results.txt
-plan.md
-.Jules/
-perf_test/
-gitguard-report-*
-
-# Binaries and local settings
 agy.exe
+appsettings.Development.json
+perf_test/
+
 agy.exe.*
 *.zip
-appsettings.Development.json
+gitguard-report-*

@@ -1,9 +1,2 @@
 # Auto detect text files and perform LF normalization
 * text=auto
-
-# Linguist overrides
-*.cshtml linguist-language=C#
-Dockerfile linguist-detectable=false
-wwwroot/** linguist-vendored
-docs/** linguist-documentation
-scripts/** linguist-vendored
