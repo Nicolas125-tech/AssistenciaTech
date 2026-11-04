@@ -1,0 +1,3 @@
+🎯 **What:** Modified `Avancar_DeveLancarExcecao` in `CanceladoStateTests.cs` to test the state class `Avancar` directly instead of indirectly via `os.AvancarStatus()`.
+📊 **Coverage:** The `Avancar` method of `CanceladoState` is now tested directly for throwing `InvalidOperationException`.
+✨ **Result:** Better isolation of domain state logic tests in alignment with testing practices for state pattern implementations.
