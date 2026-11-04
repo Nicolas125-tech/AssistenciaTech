@@ -27,14 +27,27 @@ public class ProntoStateTests
     public void Cancelar_DeveLancarExcecao()
     {
         // Arrange
+        var state = new ProntoState();
         var os = new OrdemServico("OS-001", "123.456.789-00", "Modelo", "NS123", "Defeito");
-        os.DefinirEstado(new ProntoState());
 
         // Act
-        Action act = () => os.CancelarOS("Motivo");
+        Action act = () => state.Cancelar(os, "Motivo");
 
         // Assert
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("Equipamentos prontos não podem ser cancelados. Mova para Entregue.");
+    }
+
+    [Fact]
+    public void ObterStatusNome_DeveRetornarProntoParaRetirada()
+    {
+        // Arrange
+        var state = new ProntoState();
+
+        // Act
+        var result = state.ObterStatusNome();
+
+        // Assert
+        result.Should().Be("Pronto para Retirada");
     }
 }
