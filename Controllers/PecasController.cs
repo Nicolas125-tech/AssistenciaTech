@@ -108,12 +108,7 @@ namespace AssistenciaTech.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var peca = await _context.Pecas.FindAsync(id);
-            if (peca != null)
-            {
-                _context.Pecas.Remove(peca);
-                await _context.SaveChangesAsync();
-            }
+            await _context.Pecas.Where(p => p.Id == id).ExecuteDeleteAsync();
             return RedirectToAction(nameof(Index));
         }
 
