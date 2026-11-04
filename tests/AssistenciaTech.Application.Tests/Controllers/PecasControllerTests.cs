@@ -17,13 +17,15 @@ namespace AssistenciaTech.Application.Tests.Controllers
         private readonly AppDbContext _context;
         private readonly PecasController _controller;
 
-        public PecasControllerTests()
+                public PecasControllerTests()
         {
             var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .UseSqlite("DataSource=:memory:;Foreign Keys=False")
                 .Options;
 
             _context = new AppDbContext(options);
+            _context.Database.OpenConnection();
+            _context.Database.EnsureCreated();
             _controller = new PecasController(_context);
         }
 
@@ -244,10 +246,12 @@ namespace AssistenciaTech.Application.Tests.Controllers
         {
             // Arrange
             var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .UseSqlite("DataSource=:memory:;Foreign Keys=False")
                 .Options;
 
             using var concurrencyContext = new ConcurrencyAppDbContext(options);
+            concurrencyContext.Database.OpenConnection();
+            concurrencyContext.Database.EnsureCreated();
             using var controller = new PecasController(concurrencyContext);
 
             var peca = new Peca { Nome = "Placa de Rede", QuantidadeEstoque = 5, ValorUnitario = 50.00m };
@@ -271,10 +275,12 @@ namespace AssistenciaTech.Application.Tests.Controllers
         {
             // Arrange
             var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .UseSqlite("DataSource=:memory:;Foreign Keys=False")
                 .Options;
 
             using var concurrencyContext = new ConcurrencyAppDbContext(options);
+            concurrencyContext.Database.OpenConnection();
+            concurrencyContext.Database.EnsureCreated();
             using var controller = new PecasController(concurrencyContext);
 
             var peca = new Peca { Nome = "Fonte 500W", QuantidadeEstoque = 2, ValorUnitario = 200.00m };
