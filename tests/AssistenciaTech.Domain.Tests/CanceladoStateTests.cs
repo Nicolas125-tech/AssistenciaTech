@@ -12,11 +12,11 @@ public class CanceladoStateTests
     public void Avancar_DeveLancarExcecao()
     {
         // Arrange
+        var state = new CanceladoState();
         var os = new OrdemServico("OS-001", "123.456.789-00", "Modelo", "NS123", "Defeito");
-        os.DefinirEstado(new CanceladoState());
 
         // Act
-        Action act = () => os.AvancarStatus();
+        Action act = () => state.Avancar(os);
 
         // Assert
         act.Should().Throw<InvalidOperationException>()
