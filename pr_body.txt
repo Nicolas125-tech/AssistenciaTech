@@ -1,0 +1,9 @@
+🎯 **What:**
+Added missing unit tests for the computed property `ValorComissao` inside the `OrdemServico` model. The logic provides a fallback to `0m` when `TecnicoResponsavel` is `null`.
+
+📊 **Coverage:**
+- Added a test case ensuring that when `TecnicoResponsavel` is `null`, `ValorComissao` correctly returns `0m`.
+- Added a test case ensuring that when `TecnicoResponsavel` is populated, `ValorComissao` calculates the correct value based on `CustoMaoDeObra` and `TecnicoResponsavel.PercentualComissao`.
+
+✨ **Result:**
+Improved test coverage for `OrdemServico` and ensured that the commission calculation logic is protected against regressions.
