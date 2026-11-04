@@ -1,0 +1,3 @@
+🎯 **What:** Add missing test covering the error path in `EmAnaliseState.Avancar` explicitly to verify the InvalidOperationException is thrown when no diagnostico is provided on the state directly.
+📊 **Coverage:** Increased robustness by explicitly testing `EmAnaliseState.Avancar(os)` directly rather than just through the wrapper `os.AvancarStatus()`.
+✨ **Result:** Better structural test coverage for state-pattern transition edge cases and preventing future regressions in state logic.
