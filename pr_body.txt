@@ -1,11 +1,9 @@
-💡 **What:**
-Updated `PecasController.DeleteConfirmed` to use `ExecuteDeleteAsync()` instead of the standard `FindAsync()` followed by `Remove()` and `SaveChangesAsync()`.
+🎯 **What:**
+Added unit tests for the `DataVencimentoGarantia` property in `Models/OrdemServico.cs` to ensure proper handling of null and non-null dates for the warranty expiration logic.
 
-🎯 **Why:**
-Using `FindAsync()` requires querying the database, instantiating the entity in memory, tracking it via the change tracker, marking it as deleted, and finally issuing a DELETE statement when `SaveChangesAsync()` is called. `ExecuteDeleteAsync()` skips all this overhead and directly issues a DELETE statement to the database, saving memory, change tracking CPU cycles, and an entire database round-trip.
+📊 **Coverage:**
+- Added `DataVencimentoGarantia_QuandoDataEntregaNula_DeveSerNula`: Verifies that when `DataEntregaCliente` is null, the warranty expiration date correctly evaluates to null (safe handling of the null-conditional operator).
+- Added `DataVencimentoGarantia_QuandoDataEntregaPreenchida_DeveAdicionar90Dias`: Verifies that when a valid delivery date is provided, the warranty expiration correctly evaluates to 90 days after the delivery date.
 
-📊 **Measured Improvement:**
-A benchmark was created using an SQLite in-memory database to simulate 500 deletions of `Peca` entities.
-- **Baseline Delete (FindAsync + Remove):** 1367 ms
-- **ExecuteDeleteAsync:** 208 ms
-- **Result:** ~84.8% reduction in execution time.
+✨ **Result:**
+Increased test coverage and confidence in the core business rules related to warranty calculations, ensuring regressions aren't introduced in this commonly referenced computed property.
