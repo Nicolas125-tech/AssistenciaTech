@@ -1,0 +1,9 @@
+🎯 **What:**
+Added unit tests for the `DataVencimentoGarantia` property in `Models/OrdemServico.cs` to ensure proper handling of null and non-null dates for the warranty expiration logic.
+
+📊 **Coverage:**
+- Added `DataVencimentoGarantia_QuandoDataEntregaNula_DeveSerNula`: Verifies that when `DataEntregaCliente` is null, the warranty expiration date correctly evaluates to null (safe handling of the null-conditional operator).
+- Added `DataVencimentoGarantia_QuandoDataEntregaPreenchida_DeveAdicionar90Dias`: Verifies that when a valid delivery date is provided, the warranty expiration correctly evaluates to 90 days after the delivery date.
+
+✨ **Result:**
+Increased test coverage and confidence in the core business rules related to warranty calculations, ensuring regressions aren't introduced in this commonly referenced computed property.
