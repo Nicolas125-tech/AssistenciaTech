@@ -1,95 +1,149 @@
 @{
-    ViewData["Title"] = "Página Inicial";
+    ViewData["Title"] = "Bancada e Rastreamento";
+    string telaAtual = ViewBag.TelaInicialAtual as string ?? "Bancada";
 }
 
-<!-- Hero Section -->
-<div class="bg-dark text-white text-center py-5 mb-5 shadow-sm">
-    <div class="container py-5">
-        <h1 class="display-4 fw-bold mb-3">Seu PC e Notebook em Boas Mãos</h1>
-        <p class="lead mb-4 fw-light text-white-50">Agilidade, confiança e preço justo. Especialistas em hardware e software.</p>
-        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-            <a asp-controller="Consulta" asp-action="Index" class="btn btn-primary btn-lg px-4 gap-3">Consultar minha OS <i class="bi bi-search"></i></a>
-            <a href="https://wa.me/5543984445767" target="_blank" class="btn btn-success btn-lg px-4 gap-3"><i class="bi bi-whatsapp"></i> Fale pelo WhatsApp</a>
-            <a asp-controller="Home" asp-action="Servicos" class="btn btn-outline-light btn-lg px-4">Ver Serviços</a>
-        </div>
-    </div>
-</div>
+<section class="workbench-stage mb-5">
+    <div class="container">
+        <div class="row g-4 align-items-start">
+            <div class="col-lg-7 pe-lg-4">
+                <div class="workbench-eyebrow mb-3">
+                    <i class="bi bi-wrench-adjustable-circle"></i>
+                    <span>Laboratório técnico e diagnóstico eletrônico</span>
+                </div>
+                <h1 class="workbench-title mb-3">Manutenção de hardware e rastreamento de OS</h1>
+                <p class="workbench-lead mb-4">
+                    Acompanhe em tempo real a etapa de bancada do seu equipamento, consulte laudos técnicos registrados ou solicite atendimento direto com a oficina.
+                </p>
 
-<div class="container">
-    <!-- Seção de Cards (Serviços Principais) -->
-    <div class="row g-4 mb-5 pb-5 border-bottom">
-        <div class="col-12 text-center mb-3">
-            <h2 class="fw-bold">Nossos Serviços Principais</h2>
-            <p class="text-muted">Soluções rápidas e eficientes para o seu equipamento.</p>
-        </div>
-
-        @foreach (var servico in ViewBag.ServicosHome)
-        {
-            <div class="col-md-4">
-                <div class="card h-100 shadow-sm border-0 rounded-4 text-center p-3 transition-hover">
-                    <div class="card-body">
-                        <div class="display-4 text-primary mb-3">
-                            <i class="bi @servico.Icone"></i>
+                <div class="telemetry-strip mb-4">
+                    <div class="telemetry-cell">
+                        <div class="telemetry-label">
+                            <span>Etapa 01</span>
+                            <i class="bi bi-box-seam text-primary"></i>
                         </div>
-                        <h4 class="card-title fw-bold">@servico.Titulo</h4>
-                        <p class="card-text text-muted mt-3">@servico.Descricao</p>
+                        <div class="fw-semibold">Recebimento e checklist</div>
+                        <div class="small text-muted mt-1">Registro de número de série, acessórios e sintoma relatado.</div>
                     </div>
-                    <div class="card-footer bg-transparent border-0 pb-3">
-                        <span class="badge bg-light text-dark border fs-6 p-2">@servico.Preco</span>
+                    <div class="telemetry-cell">
+                        <div class="telemetry-label">
+                            <span>Etapa 02</span>
+                            <i class="bi bi-cpu text-primary"></i>
+                        </div>
+                        <div class="fw-semibold">Diagnóstico em bancada</div>
+                        <div class="small text-muted mt-1">Testes de tensão, termografia e orçamento detalhado antes do reparo.</div>
+                    </div>
+                    <div class="telemetry-cell">
+                        <div class="telemetry-label">
+                            <span>Etapa 03</span>
+                            <i class="bi bi-shield-check text-primary"></i>
+                        </div>
+                        <div class="fw-semibold">Validação e entrega</div>
+                        <div class="small text-muted mt-1">Teste de estresse pós-reparo e emissão de comprovante em PDF.</div>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <a asp-controller="Home" asp-action="Servicos" class="btn btn-outline-secondary px-3 py-2">
+                        <i class="bi bi-table me-1"></i> Ver tabela completa de serviços
+                    </a>
+                    <a href="https://wa.me/5549999999999?text=Ol%C3%A1,%20gostaria%20de%20um%20or%C3%A7amento!" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary px-3 py-2">
+                        <i class="bi bi-whatsapp me-1"></i> Falar com técnico no WhatsApp
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="card workbench-panel">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span class="d-inline-flex align-items-center gap-2">
+                            <i class="bi bi-search text-primary"></i>
+                            <span>Consulta rápida de Ordem de Serviço</span>
+                        </span>
+                        <span class="font-monospace small text-muted">OS / CPF</span>
+                    </div>
+                    <div class="card-body p-4">
+                        <form asp-controller="Consulta" asp-action="Status" method="post">
+                            <div class="mb-3">
+                                <label for="numeroOSHome" class="form-label">Número da Ordem de Serviço</label>
+                                <div class="input-group">
+                                    <span class="input-group-text font-monospace">#</span>
+                                    <input type="number" class="form-control font-monospace" id="numeroOSHome" name="numeroOS" placeholder="Ex: 1024" min="1" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="cpfHome" class="form-label">CPF do titular</label>
+                                <input type="text" class="form-control font-monospace" id="cpfHome" name="cpf" placeholder="000.000.000-00" required maxlength="14">
+                            </div>
+                            <div class="d-grid gap-2 mt-4">
+                                <button type="submit" class="btn btn-primary py-2">
+                                    <i class="bi bi-arrow-right-circle me-1"></i> Consultar andamento da OS
+                                </button>
+                                <a asp-controller="Account" asp-action="LoginCliente" class="btn btn-outline-secondary btn-sm py-2">
+                                    <i class="bi bi-envelope-check me-1"></i> Acessar todos os meus equipamentos por e-mail
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="card-footer px-4 py-2 d-flex justify-content-between align-items-center small">
+                        <span class="text-muted">Preferência de abertura:</span>
+                        <form asp-controller="Home" asp-action="DefinirTelaInicial" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            @if (telaAtual == "Consulta")
+                            {
+                                <button type="submit" name="telaInicial" value="Bancada" class="btn btn-link btn-sm p-0 text-decoration-none text-primary">
+                                    Usar Bancada Completa como início
+                                </button>
+                            }
+                            else
+                            {
+                                <button type="submit" name="telaInicial" value="Consulta" class="btn btn-link btn-sm p-0 text-decoration-none text-primary">
+                                    Abrir sempre direto na Consulta de OS
+                                </button>
+                            }
+                        </form>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+</section>
+
+<section class="container mb-5">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-3 gap-2">
+        <div>
+            <h2 class="h4 mb-1">Serviços de bancada mais solicitados</h2>
+            <p class="text-muted small mb-0">Valores de referência para triagem inicial e manutenção preventiva.</p>
+        </div>
+        <a asp-controller="Home" asp-action="Servicos" class="small text-primary text-decoration-none fw-medium">
+            Abrir catálogo detalhado <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+
+    <div class="spec-grid">
+        @if (ViewBag.ServicosHome != null)
+        {
+            int idx = 1;
+            foreach (var servico in ViewBag.ServicosHome)
+            {
+                <div class="spec-cell">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="spec-code">SRV-0@(idx)</span>
+                            <i class="bi @servico.Icone text-primary fs-5"></i>
+                        </div>
+                        <h3 class="h5 fw-semibold mb-2">@servico.Titulo</h3>
+                        <p class="text-muted small mb-4">@servico.Descricao</p>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top border-secondary">
+                        <span class="spec-price">@servico.Preco</span>
+                        <a asp-controller="Home" asp-action="Servicos" class="small text-main text-decoration-none">
+                            Especificações <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </div>
+                </div>
+                idx++;
+            }
         }
     </div>
-
-    <!-- Seção Por que nos escolher? -->
-    <div class="row align-items-center mb-5 pb-4">
-        <div class="col-md-6 mb-4 mb-md-0">
-            <h2 class="fw-bold mb-4">Por que nos escolher?</h2>
-            
-            <div class="d-flex align-items-start mb-4">
-                <div class="text-primary me-3 fs-3"><i class="bi bi-check-circle-fill"></i></div>
-                <div>
-                    <h5 class="fw-bold mb-1">Orçamento Grátis</h5>
-                    <p class="text-muted mb-0">Traga seu aparelho, analisamos o defeito sem custo algum de avaliação.</p>
-                </div>
-            </div>
-
-            <div class="d-flex align-items-start mb-4">
-                <div class="text-primary me-3 fs-3"><i class="bi bi-shield-check"></i></div>
-                <div>
-                    <h5 class="fw-bold mb-1">Peças Originais e Garantia</h5>
-                    <p class="text-muted mb-0">Trabalhamos com fornecedores de confiança e oferecemos garantia em todos os serviços.</p>
-                </div>
-            </div>
-
-            <div class="d-flex align-items-start">
-                <div class="text-primary me-3 fs-3"><i class="bi bi-person-badge"></i></div>
-                <div>
-                    <h5 class="fw-bold mb-1">Técnicos Especializados</h5>
-                    <p class="text-muted mb-0">Profissionais atualizados com as últimas tecnologias do mercado.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6 text-center">
-            <!-- Um placeholder para imagem ilustrativa da assistência -->
-            <div class="bg-light rounded-4 p-5 shadow-sm d-flex justify-content-center align-items-center" style="min-height: 350px;">
-                <div class="text-muted">
-                    <i class="bi bi-cpu display-1"></i>
-                    <p class="mt-3 fw-bold">Assistência Técnica Especializada</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<style>
-    /* Pequeno efeito visual para os cards */
-    .transition-hover {
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    .transition-hover:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
-    }
-</style>
+</section>

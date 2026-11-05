@@ -1,123 +1,164 @@
 @{
-    ViewData["Title"] = "Nossos Serviços";
+    ViewData["Title"] = "Tabela de Serviços";
 }
 
-<div class="bg-primary text-white py-5 mb-5">
-    <div class="container text-center">
-        <h1 class="display-5 fw-bold mb-3">Catálogo de Serviços</h1>
-        <p class="lead mb-0">Soluções completas para todos os seus problemas de hardware e software.</p>
+<section class="workbench-stage mb-4">
+    <div class="container">
+        <div class="row align-items-end g-3">
+            <div class="col-lg-8">
+                <div class="workbench-eyebrow mb-2">
+                    <i class="bi bi-tools"></i>
+                    <span>Catálogo operacional de bancada</span>
+                </div>
+                <h1 class="h2 fw-bold mb-2">Tabela técnica de serviços e reparos</h1>
+                <p class="text-muted mb-0">
+                    Escopo técnico dos procedimentos executados em laboratório para notebooks, desktops e placas lógicas.
+                </p>
+            </div>
+            <div class="col-lg-4">
+                <label for="filtroCatalogoServicos" class="form-label small text-muted">Filtrar procedimento por palavra-chave</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="search" id="filtroCatalogoServicos" class="form-control" placeholder="Ex: BIOS, pasta térmica, Windows, BGA...">
+                </div>
+            </div>
+        </div>
     </div>
-</div>
+</section>
 
 <div class="container mb-5">
-    
-    <!-- Filtro/Busca Simples (Apenas visual para compor o layout) -->
-    <div class="row justify-content-center mb-5">
-        <div class="col-md-6">
-            <div class="input-group input-group-lg shadow-sm">
-                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                <input type="text" class="form-control border-start-0 ps-0" placeholder="Buscar por serviço...">
+    <div class="spec-grid" id="gradeCatalogoServicos">
+        <div class="spec-cell servico-item">
+            <div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="spec-code">SRV-101 · SISTEMA</span>
+                    <i class="bi bi-windows text-primary fs-5"></i>
+                </div>
+                <h2 class="h5 fw-semibold mb-2">Formatação e Instalação</h2>
+                <p class="text-muted small mb-3">
+                    Instalação limpa do Windows 10 ou 11, atualização de drivers oficiais do fabricante, suíte básica de trabalho e backup íntegro de arquivos do usuário.
+                </p>
+            </div>
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top border-secondary">
+                <span class="spec-price">A partir de R$ 120</span>
+                <span class="font-monospace small text-muted">Prazo médio: 24h</span>
+            </div>
+        </div>
+
+        <div class="spec-cell servico-item">
+            <div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="spec-code">SRV-102 · HARDWARE</span>
+                    <i class="bi bi-cpu-fill text-primary fs-5"></i>
+                </div>
+                <h2 class="h5 fw-semibold mb-2">Montagem de PC e Estações</h2>
+                <p class="text-muted small mb-3">
+                    Dimensionamento de fontes e componentes, montagem estruturada com organização de cabos, atualização de perfil XMP/EXPO e teste térmico sob carga.
+                </p>
+            </div>
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top border-secondary">
+                <span class="spec-price">Sob especificação</span>
+                <span class="font-monospace small text-muted">Prazo médio: 48h</span>
+            </div>
+        </div>
+
+        <div class="spec-cell servico-item">
+            <div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="spec-code">SRV-103 · SEGURANÇA</span>
+                    <i class="bi bi-shield-shaded text-primary fs-5"></i>
+                </div>
+                <h2 class="h5 fw-semibold mb-2">Remoção de Malware e Otimização</h2>
+                <p class="text-muted small mb-3">
+                    Varredura fora do sistema operacional para erradicação de trojans, adwares e processos persistentes, preservando dados e corrigindo registros corrompidos.
+                </p>
+            </div>
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top border-secondary">
+                <span class="spec-price">A partir de R$ 110</span>
+                <span class="font-monospace small text-muted">Prazo médio: 24h</span>
+            </div>
+        </div>
+
+        <div class="spec-cell servico-item">
+            <div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="spec-code">SRV-104 · ELETRÔNICA</span>
+                    <i class="bi bi-motherboard text-primary fs-5"></i>
+                </div>
+                <h2 class="h5 fw-semibold mb-2">Reparo de Placa-Mãe</h2>
+                <p class="text-muted small mb-3">
+                    Análise com esquema elétrico, localização de curtos em linhas primárias/secundárias, troca de componentes SMD, regravação de BIOS e reconstrução de trilhas.
+                </p>
+            </div>
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top border-secondary">
+                <span class="spec-price">Sob orçamento</span>
+                <span class="font-monospace small text-muted">Triagem: 2 a 4 dias</span>
+            </div>
+        </div>
+
+        <div class="spec-cell servico-item">
+            <div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="spec-code">SRV-105 · TÉRMICA</span>
+                    <i class="bi bi-fan text-primary fs-5"></i>
+                </div>
+                <h2 class="h5 fw-semibold mb-2">Limpeza Preventiva</h2>
+                <p class="text-muted small mb-3">
+                    Desmontagem completa do conjunto dissipador, desobstrução de aletas, lubrificação de cooler e aplicação de composto térmico de alta condutividade.
+                </p>
+            </div>
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top border-secondary">
+                <span class="spec-price">A partir de R$ 150</span>
+                <span class="font-monospace small text-muted">Prazo médio: 24h</span>
+            </div>
+        </div>
+
+        <div class="spec-cell servico-item">
+            <div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="spec-code">SRV-106 · ESTRUTURA</span>
+                    <i class="bi bi-laptop text-primary fs-5"></i>
+                </div>
+                <h2 class="h5 fw-semibold mb-2">Conserto de Carcaça e Dobradiças</h2>
+                <p class="text-muted small mb-3">
+                    Reconstrução de buchas de ancoragem em resina estrutural, alívio de pressão mecânica nas hastes metálicas e alinhamento de tampa e moldura da tela.
+                </p>
+            </div>
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top border-secondary">
+                <span class="spec-price">Sob avaliação</span>
+                <span class="font-monospace small text-muted">Prazo médio: 48h</span>
             </div>
         </div>
     </div>
 
-    <!-- Grid de Serviços Detalhados -->
-    <div class="row g-4">
-        
-        <!-- Serviço 1 -->
-        <div class="col-md-6 col-lg-4">
-            <div class="card h-100 shadow-sm border-0 rounded-3">
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="bg-light p-3 rounded-circle me-3 text-primary fs-3">
-                            <i class="bi bi-windows"></i>
-                        </div>
-                        <h5 class="card-title fw-bold mb-0">Formatação e Instalação</h5>
-                    </div>
-                    <p class="card-text text-muted">Instalação do Windows 10/11, pacote Office e softwares básicos. Inclui backup completo dos seus arquivos pessoais.</p>
-                </div>
-            </div>
+    <div class="workbench-panel p-4 mt-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <div>
+            <div class="fw-semibold">Equipamento já deu entrada na oficina?</div>
+            <div class="text-muted small">Consulte o andamento pelo número da Ordem de Serviço ou acesse todos os seus reparos vinculados ao seu e-mail.</div>
         </div>
-
-        <!-- Serviço 2 -->
-        <div class="col-md-6 col-lg-4">
-            <div class="card h-100 shadow-sm border-0 rounded-3">
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="bg-light p-3 rounded-circle me-3 text-primary fs-3">
-                            <i class="bi bi-cpu-fill"></i>
-                        </div>
-                        <h5 class="card-title fw-bold mb-0">Montagem de PC Gamer</h5>
-                    </div>
-                    <p class="card-text text-muted">Consultoria para escolha de peças, montagem profissional com cable management perfeito e testes de estresse.</p>
-                </div>
-            </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a asp-controller="Consulta" asp-action="Index" class="btn btn-primary">
+                <i class="bi bi-search me-1"></i> Consultar minha OS
+            </a>
+            <a href="https://wa.me/5549999999999?text=Ol%C3%A1,%20gostaria%20de%20agendar%20um%20servi%C3%A7o%20t%C3%A9cnico." target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary">
+                <i class="bi bi-whatsapp me-1"></i> Solicitar avaliação
+            </a>
         </div>
-
-        <!-- Serviço 3 -->
-        <div class="col-md-6 col-lg-4">
-            <div class="card h-100 shadow-sm border-0 rounded-3">
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="bg-light p-3 rounded-circle me-3 text-primary fs-3">
-                            <i class="bi bi-bug-fill"></i>
-                        </div>
-                        <h5 class="card-title fw-bold mb-0">Remoção de Vírus</h5>
-                    </div>
-                    <p class="card-text text-muted">Limpeza profunda do sistema para remoção de malwares, adwares e trojans, otimizando o desempenho da máquina.</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Serviço 4 -->
-        <div class="col-md-6 col-lg-4">
-            <div class="card h-100 shadow-sm border-0 rounded-3">
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="bg-light p-3 rounded-circle me-3 text-primary fs-3">
-                            <i class="bi bi-motherboard"></i>
-                        </div>
-                        <h5 class="card-title fw-bold mb-0">Reparo de Placa-Mãe</h5>
-                    </div>
-                    <p class="card-text text-muted">Análise de circuitos, substituição de componentes SMD/BGA, gravação de BIOS e recuperação de trilhas rompidas.</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Serviço 5 -->
-        <div class="col-md-6 col-lg-4">
-            <div class="card h-100 shadow-sm border-0 rounded-3">
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="bg-light p-3 rounded-circle me-3 text-primary fs-3">
-                            <i class="bi bi-fan"></i>
-                        </div>
-                        <h5 class="card-title fw-bold mb-0">Limpeza Preventiva</h5>
-                    </div>
-                    <p class="card-text text-muted">Remoção de poeira interna, troca da pasta térmica do processador e placa de vídeo para evitar superaquecimento.</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Serviço 6 -->
-        <div class="col-md-6 col-lg-4">
-            <div class="card h-100 shadow-sm border-0 rounded-3">
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="bg-light p-3 rounded-circle me-3 text-primary fs-3">
-                            <i class="bi bi-laptop"></i>
-                        </div>
-                        <h5 class="card-title fw-bold mb-0">Conserto de Carcaça</h5>
-                    </div>
-                    <p class="card-text text-muted">Restauração de dobradiças quebradas e reconstrução de partes plásticas da carcaça do seu notebook usando resina especial.</p>
-                </div>
-            </div>
-        </div>
-
     </div>
-
-    <div class="text-center mt-5">
-        <a asp-controller="Consulta" asp-action="Index" class="btn btn-outline-primary btn-lg">Já tem um serviço conosco? Consulte sua OS</a>
-    </div>
-
 </div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var input = document.getElementById('filtroCatalogoServicos');
+            if (!input) return;
+            input.addEventListener('input', function () {
+                var termo = (input.value || '').toLowerCase().trim();
+                document.querySelectorAll('#gradeCatalogoServicos .servico-item').forEach(function (item) {
+                    var texto = (item.textContent || '').toLowerCase();
+                    item.style.display = (!termo || texto.indexOf(termo) !== -1) ? '' : 'none';
+                });
+            });
+        })();
+    </script>
+}

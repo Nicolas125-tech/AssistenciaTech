@@ -1,14 +1,13 @@
 @model AssistenciaTech.Models.OrdemServico
 
 @{
-    ViewData["Title"] = "Detalhes da Ordem de Serviço";
+    ViewData["Title"] = $"Ficha Técnica OS #{Model.Id}";
 
-    // Define a cor do badge de status
     string statusBadgeClass = Model.Status switch
     {
         AssistenciaTech.Models.WorkflowStatus.Recebido => "bg-secondary",
-        AssistenciaTech.Models.WorkflowStatus.EmAnalise => "bg-warning text-dark",
-        AssistenciaTech.Models.WorkflowStatus.AguardandoAprovacao => "bg-info text-dark",
+        AssistenciaTech.Models.WorkflowStatus.EmAnalise => "bg-warning",
+        AssistenciaTech.Models.WorkflowStatus.AguardandoAprovacao => "bg-info",
         AssistenciaTech.Models.WorkflowStatus.AguardandoPecas => "bg-danger",
         AssistenciaTech.Models.WorkflowStatus.EmReparo => "bg-primary",
         AssistenciaTech.Models.WorkflowStatus.Concluido => "bg-success",
@@ -17,78 +16,85 @@
     };
 }
 
-<div class="container mt-5">
+<div class="container mt-4 mt-lg-5">
     <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow-sm border-0 rounded-lg">
-                <div class="card-header bg-dark text-white text-center py-3">
-                    <h4 class="mb-0">Detalhes da Ordem de Serviço #@Model.Id</h4>
+        <div class="col-lg-8">
+            <div class="card workbench-panel">
+                <div class="card-header d-flex justify-content-between align-items-center py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-file-earmark-medical text-primary"></i>
+                        <h1 class="h5 mb-0 fw-semibold">Ordem de Serviço <span class="font-monospace">#@Model.Id</span></h1>
+                    </div>
+                    <span class="badge @statusBadgeClass">@Model.Status</span>
                 </div>
                 <div class="card-body p-4">
-                    
-                    <div class="row mb-3">
-                        <div class="col-sm-4 fw-bold">Status Atual:</div>
-                        <div class="col-sm-8">
-                            <span class="badge @statusBadgeClass fs-6">@Model.Status</span>
-                        </div>
-                    </div>
+                    <div class="row g-3">
+                        <div class="col-sm-4 text-muted small">Titular</div>
+                        <div class="col-sm-8 fw-medium">@Model.Cliente?.Nome</div>
 
-                    <hr />
+                        <div class="col-12"><hr class="my-1 border-secondary" /></div>
 
-                    <div class="row mb-3">
-                        <div class="col-sm-4 fw-bold">Cliente:</div>
-                        <div class="col-sm-8">@Model.Cliente?.Nome</div>
-                    </div>
+                        <div class="col-sm-4 text-muted small">Equipamento</div>
+                        <div class="col-sm-8 fw-semibold">@Model.Equipamento</div>
 
-                    <div class="row mb-3">
-                        <div class="col-sm-4 fw-bold">Equipamento:</div>
-                        <div class="col-sm-8">@Model.Equipamento</div>
-                    </div>
+                        @if (!string.IsNullOrWhiteSpace(Model.NumeroSerie))
+                        {
+                            <div class="col-sm-4 text-muted small">Número de Série</div>
+                            <div class="col-sm-8 font-monospace">@Model.NumeroSerie</div>
+                        }
 
-                    <div class="row mb-3">
-                        <div class="col-sm-4 fw-bold">Problema Relatado:</div>
+                        <div class="col-12"><hr class="my-1 border-secondary" /></div>
+
+                        <div class="col-sm-4 text-muted small">Sintoma Relatado</div>
                         <div class="col-sm-8">@Model.ProblemaRelatado</div>
+
+                        @if (!string.IsNullOrWhiteSpace(Model.LaudoTecnico))
+                        {
+                            <div class="col-sm-4 text-muted small">Laudo de Bancada</div>
+                            <div class="col-sm-8">@Model.LaudoTecnico</div>
+                        }
+
+                        <div class="col-12"><hr class="my-1 border-secondary" /></div>
+
+                        <div class="col-sm-4 text-muted small">Entrada na Oficina</div>
+                        <div class="col-sm-8 font-monospace">@Model.DataEntrada.ToString("dd/MM/yyyy HH:mm")</div>
+
+                        @if (Model.DataConclusao.HasValue)
+                        {
+                            <div class="col-sm-4 text-muted small">Conclusão Técnica</div>
+                            <div class="col-sm-8 font-monospace">@Model.DataConclusao.Value.ToString("dd/MM/yyyy HH:mm")</div>
+                        }
+
+                        @if (Model.DataEntregaCliente.HasValue)
+                        {
+                            <div class="col-sm-4 text-muted small">Retirada pelo Cliente</div>
+                            <div class="col-sm-8 font-monospace">@Model.DataEntregaCliente.Value.ToString("dd/MM/yyyy HH:mm")</div>
+                        }
+
+                        @if (Model.ValorOrcamento > 0)
+                        {
+                            <div class="col-12"><hr class="my-1 border-secondary" /></div>
+                            <div class="col-sm-4 text-muted small">Orçamento Registrado</div>
+                            <div class="col-sm-8 font-monospace fw-bold text-primary fs-5">@Model.ValorOrcamento.ToString("C")</div>
+                        }
                     </div>
-
-                    <div class="row mb-3">
-                        <div class="col-sm-4 fw-bold">Data de Entrada:</div>
-                        <div class="col-sm-8">@Model.DataEntrada.ToString("dd/MM/yyyy HH:mm")</div>
-                    </div>
-
-                    @if (Model.DataConclusao.HasValue)
-                    {
-                        <div class="row mb-3">
-                            <div class="col-sm-4 fw-bold">Data de Conclusão:</div>
-                            <div class="col-sm-8">@Model.DataConclusao.Value.ToString("dd/MM/yyyy HH:mm")</div>
-                        </div>
-                    }
-
-                    @if (Model.DataEntregaCliente.HasValue)
-                    {
-                        <div class="row mb-3">
-                            <div class="col-sm-4 fw-bold">Data de Retirada:</div>
-                            <div class="col-sm-8">@Model.DataEntregaCliente.Value.ToString("dd/MM/yyyy HH:mm")</div>
-                        </div>
-                    }
-
-                    @if (Model.ValorOrcamento > 0)
-                    {
-                        <div class="row mb-3">
-                            <div class="col-sm-4 fw-bold">Valor do Orçamento:</div>
-                            <div class="col-sm-8 text-success fw-bold">@Model.ValorOrcamento.ToString("C")</div>
-                        </div>
-                    }
-
                 </div>
-                <div class="card-footer text-center py-3">
+                <div class="card-footer d-flex justify-content-between align-items-center py-3 px-4">
                     @if (User.Identity != null && User.Identity.IsAuthenticated && User.IsInRole("Cliente"))
                     {
-                        <a asp-controller="Consulta" asp-action="MeusEquipamentos" class="btn btn-outline-primary"><i class="bi bi-arrow-left"></i> Voltar para meus equipamentos</a>
+                        <a asp-controller="Consulta" asp-action="MeusEquipamentos" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-arrow-left me-1"></i> Voltar para meus equipamentos
+                        </a>
                     }
                     else
                     {
-                        <a href="~/Consulta/Index" class="btn btn-outline-primary">Fazer nova consulta</a>
+                        <a href="~/Consulta/Index" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-arrow-left me-1"></i> Nova consulta
+                        </a>
                     }
+                    <a href="https://wa.me/5549999999999?text=Ol%C3%A1,%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20a%20OS%20%23@Model.Id" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-whatsapp me-1"></i> Falar sobre a OS #@Model.Id
+                    </a>
                 </div>
             </div>
         </div>

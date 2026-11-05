@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Data.Common;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -9,6 +10,7 @@ using AssistenciaTech.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace AssistenciaTech.Application.Tests.Controllers
@@ -63,6 +65,56 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 (type.GetProperty("Descricao")?.GetValue(thirdService) as string).Should().Be("Conserto de curtos, troca de componentes e regravação de BIOS.");
                 (type.GetProperty("Icone")?.GetValue(thirdService) as string).Should().Be("bi-motherboard");
                 (type.GetProperty("Preco")?.GetValue(thirdService) as string).Should().Be("Sob Orçamento");
+            }
+        }
+
+        [Fact]
+        public void Index_WhenTelaInicialPadraoIsConsulta_RedirectsToConsulta()
+        {
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            var config = new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["UiSettings:TelaInicialPadrao"] = "Consulta"
+                })
+                .Build();
+
+            using (var context = new AppDbContext(options))
+            {
+                var controller = new HomeController(context, Mock.Of<ILogger<HomeController>>(), config);
+
+                var result = controller.Index();
+
+                var redirect = result.Should().BeOfType<RedirectToActionResult>().Which;
+                redirect.ControllerName.Should().Be("Consulta");
+                redirect.ActionName.Should().Be("Index");
+            }
+        }
+
+        [Fact]
+        public void Index_WhenTelaInicialPadraoIsConsulta_ButExplicitBancadaRequested_ReturnsView()
+        {
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            var config = new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["UiSettings:TelaInicialPadrao"] = "Consulta"
+                })
+                .Build();
+
+            using (var context = new AppDbContext(options))
+            {
+                var controller = new HomeController(context, Mock.Of<ILogger<HomeController>>(), config);
+
+                var result = controller.Index(tela: "Bancada");
+
+                result.Should().BeOfType<ViewResult>();
             }
         }
 

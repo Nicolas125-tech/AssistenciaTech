@@ -1,12 +1,12 @@
 @model AssistenciaTech.ViewModels.AdminDashboardViewModel
 
 @{
-    ViewData["Title"] = "Painel Administrativo - Ordens de Serviço";
+    ViewData["Title"] = "Painel Operacional · Ordens de Serviço";
     var kanbanColunas = new (string StatusKey, string Titulo, string BadgeClass, string IconClass)[]
     {
         (AssistenciaTech.Models.WorkflowStatus.Recebido, "Recebido", "bg-secondary", "bi-inbox"),
-        (AssistenciaTech.Models.WorkflowStatus.EmAnalise, "Em Análise", "bg-warning text-dark", "bi-search"),
-        (AssistenciaTech.Models.WorkflowStatus.AguardandoAprovacao, "Aguardando Aprovação", "bg-info text-dark", "bi-hourglass-split"),
+        (AssistenciaTech.Models.WorkflowStatus.EmAnalise, "Em Análise", "bg-warning", "bi-search"),
+        (AssistenciaTech.Models.WorkflowStatus.AguardandoAprovacao, "Aguardando Aprovação", "bg-info", "bi-hourglass-split"),
         (AssistenciaTech.Models.WorkflowStatus.AguardandoPecas, "Aguardando Peças", "bg-danger", "bi-box-seam"),
         (AssistenciaTech.Models.WorkflowStatus.EmReparo, "Em Reparo", "bg-primary", "bi-tools"),
         (AssistenciaTech.Models.WorkflowStatus.Concluido, "Concluído", "bg-success", "bi-check2-circle"),
@@ -14,33 +14,66 @@
     };
 }
 
-<div class="container-fluid mt-4">
+<div class="container-fluid mt-4 px-lg-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
         <div>
-            <h2 class="mb-0 fw-bold">Painel do Técnico</h2>
-            <small class="text-muted">Gestão operacional em tempo real de Ordens de Serviço e SLA</small>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="workbench-eyebrow">
+                    <i class="bi bi-terminal"></i>
+                    <span>Controle de Bancada</span>
+                </span>
+            </div>
+            <h1 class="h3 mb-0 fw-bold">Painel Operacional de Ordens de Serviço</h1>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <a asp-controller="Clientes" asp-action="Index" class="btn btn-secondary"><i class="bi bi-people"></i> Clientes</a>
-            <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Nova Ordem de Serviço</a>
-            <a asp-action="ExportarCsv" class="btn btn-success"><i class="bi bi-file-earmark-excel"></i> Exportar CSV</a>
+            <a asp-controller="Clientes" asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-people me-1"></i> Clientes</a>
+            <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i> Nova Ordem de Serviço</a>
+            <a asp-action="ExportarCsv" class="btn btn-outline-secondary"><i class="bi bi-file-earmark-spreadsheet me-1"></i> Exportar CSV</a>
         </div>
     </div>
 
     @if (Model.ErroBanco != null)
     {
-        <div class="alert alert-danger shadow-sm border-0 rounded-4" role="alert">
+        <div class="alert alert-danger py-2" role="alert">
             <i class="bi bi-exclamation-triangle-fill me-2"></i> @Model.ErroBanco
         </div>
     }
 
-    <div class="card shadow mb-4">
-        <div class="card-body">
-            <form asp-action="Index" method="get" class="row g-3 align-items-center">
+    <!-- Telemetria de Bancada (KPIs de Alta Densidade) -->
+    <div class="telemetry-strip mb-4">
+        <div class="telemetry-cell">
+            <div class="telemetry-label">
+                <span>Ordens de Serviço em aberto</span>
+                <i class="bi bi-tools text-primary"></i>
+            </div>
+            <div class="telemetry-value">@Model.DashboardData.TotalAbertas</div>
+            <div class="small text-muted mt-1">Equipamentos ativos em fila ou bancada</div>
+        </div>
+        <div class="telemetry-cell">
+            <div class="telemetry-label">
+                <span>Equipamentos prontos para retirada</span>
+                <i class="bi bi-check2-circle text-success"></i>
+            </div>
+            <div class="telemetry-value text-success">@Model.DashboardData.EquipamentosProntos</div>
+            <div class="small text-muted mt-1">Reparos concluídos aguardando cliente</div>
+        </div>
+        <div class="telemetry-cell">
+            <div class="telemetry-label">
+                <span>Faturamento previsto em carteira</span>
+                <i class="bi bi-calculator text-primary"></i>
+            </div>
+            <div class="telemetry-value text-primary">@(((decimal)Model.DashboardData.FaturamentoPrevisto).ToString("C"))</div>
+            <div class="small text-muted mt-1">Soma dos orçamentos ativos registrados</div>
+        </div>
+    </div>
+
+    <div class="card workbench-panel mb-4">
+        <div class="card-body py-3">
+            <form asp-action="Index" method="get" class="row g-2 align-items-center">
                 <div class="col-md-5 col-sm-12">
                     <div class="input-group">
-                        <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-search"></i></span>
-                        <input type="text" name="searchString" class="form-control" placeholder="Buscar por Cliente, Equipamento, NS ou Nº OS..." value="@Model.SearchString" />
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" name="searchString" class="form-control font-monospace" placeholder="Buscar por Cliente, Equipamento, NS ou Nº OS..." value="@Model.SearchString" />
                     </div>
                 </div>
                 <div class="col-md-4 col-sm-8">
@@ -56,7 +89,7 @@
                     </select>
                 </div>
                 <div class="col-md-3 col-sm-4 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary flex-grow-1"><i class="bi bi-funnel"></i> Filtrar</button>
+                    <button type="submit" class="btn btn-primary flex-grow-1"><i class="bi bi-funnel me-1"></i> Filtrar</button>
                     @if (!string.IsNullOrEmpty(Model.SearchString) || !string.IsNullOrEmpty(Model.StatusFilter))
                     {
                         <a asp-action="Index" class="btn btn-outline-secondary" title="Limpar Filtros"><i class="bi bi-x-lg"></i></a>
@@ -66,58 +99,15 @@
         </div>
     </div>
 
-    <!-- Dashboard Resumo -->
-    <div class="row mb-4">
-        <div class="col-md-4 mb-3 mb-md-0">
-            <div class="card bg-primary text-white shadow h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="me-3">
-                            <div class="text-white-50 small text-uppercase fw-semibold">Total de OS Abertas</div>
-                            <div class="fs-3 fw-bold">@Model.DashboardData.TotalAbertas</div>
-                        </div>
-                        <i class="bi bi-tools fs-1 text-info opacity-75"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4 mb-3 mb-md-0">
-            <div class="card bg-success text-white shadow h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="me-3">
-                            <div class="text-white-50 small text-uppercase fw-semibold">Equipamentos Prontos</div>
-                            <div class="fs-3 fw-bold text-success">@Model.DashboardData.EquipamentosProntos</div>
-                        </div>
-                        <i class="bi bi-check-circle fs-1 text-success opacity-75"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card bg-dark text-white shadow h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="me-3">
-                            <div class="text-white-50 small text-uppercase fw-semibold">Faturamento Previsto</div>
-                            <div class="fs-3 fw-bold text-info">@(((decimal)Model.DashboardData.FaturamentoPrevisto).ToString("C"))</div>
-                        </div>
-                        <i class="bi bi-cash-stack fs-1 text-info opacity-75"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div class="row mb-4">
         <div class="col-md-12">
-            <div class="card shadow">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 fw-bold text-info"><i class="bi bi-bar-chart-line me-2"></i>Distribuição de OS por Status</h6>
-                    <span class="badge bg-light text-dark">Total listado: @Model.DashboardData.TotalOrdens</span>
+            <div class="card workbench-panel">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold"><i class="bi bi-bar-chart-line text-primary me-2"></i>Distribuição de OS por Etapa</span>
+                    <span class="badge bg-secondary font-monospace">Total listado: @Model.DashboardData.TotalOrdens</span>
                 </div>
                 <div class="card-body">
-                    <canvas id="statusChart" style="max-height: 260px;"></canvas>
+                    <canvas id="statusChart" style="max-height: 240px;"></canvas>
                 </div>
             </div>
         </div>
@@ -128,14 +118,15 @@
     {
         <div class="row mb-4">
             <div class="col-md-12">
-                <div class="card shadow border-danger">
-                    <div class="card-header py-3 bg-danger text-white">
-                        <h6 class="m-0 fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i>Alertas de Estoque Mínimo</h6>
+                <div class="card workbench-panel">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span class="fw-semibold text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>Alertas de Estoque Mínimo</span>
+                        <span class="font-monospace small text-muted">Reposição necessária</span>
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0">
-                                <thead class="table-light">
+                                <thead>
                                     <tr>
                                         <th>Peça</th>
                                         <th class="text-center">Estoque Atual</th>
@@ -148,11 +139,11 @@
                                     @foreach (var peca in (IEnumerable<AssistenciaTech.Models.Peca>)Model.DashboardData.AlertasEstoque)
                                     {
                                         <tr>
-                                            <td class="fw-bold">@peca.Nome</td>
-                                            <td class="text-center">
-                                                <span class="badge @(peca.QuantidadeEstoque == 0 ? "bg-danger" : "bg-warning text-dark") fs-6">@peca.QuantidadeEstoque un.</span>
+                                            <td class="fw-semibold">@peca.Nome</td>
+                                            <td class="text-center font-monospace">
+                                                <span class="badge @(peca.QuantidadeEstoque == 0 ? "bg-danger" : "bg-warning")">@peca.QuantidadeEstoque un.</span>
                                             </td>
-                                            <td class="text-center">@peca.QuantidadeMinima un.</td>
+                                            <td class="text-center font-monospace">@peca.QuantidadeMinima un.</td>
                                             <td class="text-center">
                                                 @if (peca.QuantidadeEstoque == 0)
                                                 {
@@ -160,7 +151,7 @@
                                                 }
                                                 else
                                                 {
-                                                    <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i> Estoque Baixo</span>
+                                                    <span class="badge bg-warning"><i class="bi bi-exclamation-triangle"></i> Estoque Baixo</span>
                                                 }
                                             </td>
                                             <td class="text-end">
@@ -180,9 +171,9 @@
     }
 
     <!-- Seção Híbrida: Tabela Gerencial + Quadro Kanban -->
-    <div class="card shadow mb-4">
-        <div class="card-header py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <h6 class="m-0 fw-bold text-info"><i class="bi bi-kanban me-2"></i>Ordens de Serviço Recentes</h6>
+    <div class="card workbench-panel mb-4">
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <span class="fw-semibold"><i class="bi bi-kanban text-primary me-2"></i>Fila Operacional de Ordens de Serviço</span>
             <div class="view-switcher-group" role="group" aria-label="Alternar modo de visualização">
                 <button type="button" id="btnViewTable" class="btn view-switcher-btn active" onclick="switchDashboardView('table')">
                     <i class="bi bi-table me-1"></i> Tabela
@@ -196,8 +187,8 @@
             <!-- MODO 1: TABELA DE ALTA DENSIDADE -->
             <div id="osTableView">
                 <div class="table-responsive">
-                    <table class="table table-bordered table-hover align-middle" width="100%" cellspacing="0">
-                        <thead class="table-dark">
+                    <table class="table table-hover align-middle" width="100%" cellspacing="0">
+                        <thead>
                             <tr>
                                 <th>Nº OS</th>
                                 <th>Cliente</th>
@@ -213,9 +204,9 @@
                             {
                                 <tr>
                                     <td colspan="7" class="text-center py-5 text-muted">
-                                        <i class="bi bi-inbox fs-1 d-block mb-3"></i>
-                                        <h5>Nenhuma Ordem de Serviço encontrada</h5>
-                                        <p class="mb-3">As OS cadastradas ou filtradas aparecerão aqui.</p>
+                                        <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                                        <div class="fw-semibold">Nenhuma Ordem de Serviço encontrada</div>
+                                        <p class="small mb-3">As OS cadastradas ou filtradas aparecerão aqui.</p>
                                         <a asp-action="Create" class="btn btn-sm btn-primary"><i class="bi bi-plus-circle me-1"></i> Cadastrar Primeira OS</a>
                                     </td>
                                 </tr>
@@ -227,8 +218,8 @@
                                     string badgeClass = item.Status switch
                                     {
                                         AssistenciaTech.Models.WorkflowStatus.Recebido => "bg-secondary",
-                                        AssistenciaTech.Models.WorkflowStatus.EmAnalise => "bg-warning text-dark",
-                                        AssistenciaTech.Models.WorkflowStatus.AguardandoAprovacao => "bg-info text-dark",
+                                        AssistenciaTech.Models.WorkflowStatus.EmAnalise => "bg-warning",
+                                        AssistenciaTech.Models.WorkflowStatus.AguardandoAprovacao => "bg-info",
                                         AssistenciaTech.Models.WorkflowStatus.AguardandoPecas => "bg-danger",
                                         AssistenciaTech.Models.WorkflowStatus.EmReparo => "bg-primary",
                                         AssistenciaTech.Models.WorkflowStatus.Concluido => "bg-success",
@@ -249,11 +240,11 @@
                                             }
                                             else if (item.Prioridade == 1)
                                             {
-                                                <br /><span class="badge bg-warning text-dark mt-1"><i class="bi bi-lightning-charge"></i> Alta</span>
+                                                <br /><span class="badge bg-warning mt-1"><i class="bi bi-lightning-charge"></i> Alta</span>
                                             }
                                             @if (!string.IsNullOrEmpty(item.AnotacoesInternas))
                                             {
-                                                <br /><i class="bi bi-journal-text text-info mt-1" title="@item.AnotacoesInternas" data-bs-toggle="tooltip"></i>
+                                                <br /><i class="bi bi-journal-text text-primary mt-1" title="@item.AnotacoesInternas" data-bs-toggle="tooltip"></i>
                                             }
                                         </td>
                                         <td>@item.Cliente?.Nome</td>
@@ -261,10 +252,10 @@
                                             <div class="fw-semibold">@item.Equipamento</div>
                                             @if (!string.IsNullOrEmpty(item.NumeroSerie))
                                             {
-                                                <small class="font-monospace-tech">NS: @item.NumeroSerie</small>
+                                                <small class="font-monospace-tech text-muted">NS: @item.NumeroSerie</small>
                                             }
                                         </td>
-                                        <td>@item.DataEntrada.ToString("dd/MM/yyyy")</td>
+                                        <td class="font-monospace small">@item.DataEntrada.ToString("dd/MM/yyyy")</td>
                                         <td>
                                             <span class="badge @badgeClass">@item.Status</span>
                                             @if (item.Status == AssistenciaTech.Models.WorkflowStatus.Entregue && item.DataVencimentoGarantia.HasValue)
@@ -272,29 +263,29 @@
                                                 <br />
                                                 @if (item.GarantiaAtiva)
                                                 {
-                                                    <span class="badge bg-success mt-1" style="font-size: 0.65rem;">Garantia até @item.DataVencimentoGarantia.Value.ToString("dd/MM/yy")</span>
+                                                    <span class="badge bg-success mt-1">Garantia até @item.DataVencimentoGarantia.Value.ToString("dd/MM/yy")</span>
                                                 }
                                                 else
                                                 {
-                                                    <span class="badge bg-secondary mt-1" style="font-size: 0.65rem;">Garantia Expirada</span>
+                                                    <span class="badge bg-secondary mt-1">Garantia Expirada</span>
                                                 }
                                             }
                                         </td>
-                                        <td class="text-success fw-semibold">@item.ValorOrcamento.ToString("C")</td>
+                                        <td class="font-monospace text-success fw-semibold">@item.ValorOrcamento.ToString("C")</td>
                                         <td class="text-center">
-                                            <div class="d-inline-flex">
-                                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary me-2" title="Editar">
+                                            <div class="d-inline-flex gap-1">
+                                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary" title="Editar">
                                                     <i class="bi bi-pencil-square"></i> Editar
                                                 </a>
-                                                <a href="https://wa.me/55@(item.Cliente?.Telefone != null ? new string(item.Cliente.Telefone.Where(char.IsDigit).ToArray()) : string.Empty)?text=Ol%C3%A1%2C%20gostaria%20de%20atualizar%20sobre%20a%20Ordem%20de%20Servi%C3%A7o%20%23@item.Id%20do%20equipamento%20@Uri.EscapeDataString(item.Equipamento)." class="btn btn-sm btn-success me-2" target="_blank" title="Enviar WhatsApp">
+                                                <a href="https://wa.me/55@(item.Cliente?.Telefone != null ? new string(item.Cliente.Telefone.Where(char.IsDigit).ToArray()) : string.Empty)?text=Ol%C3%A1%2C%20gostaria%20de%20atualizar%20sobre%20a%20Ordem%20de%20Servi%C3%A7o%20%23@item.Id%20do%20equipamento%20@Uri.EscapeDataString(item.Equipamento)." class="btn btn-sm btn-outline-secondary" target="_blank" title="Enviar WhatsApp">
                                                     <i class="bi bi-whatsapp"></i> WhatsApp
                                                 </a>
-                                                <a asp-action="ImprimirOs" asp-route-id="@item.Id" class="btn btn-sm btn-secondary me-2" target="_blank" title="Imprimir Recibo">
+                                                <a asp-action="ImprimirOs" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary" target="_blank" title="Imprimir Recibo">
                                                     <i class="bi bi-printer"></i> Imprimir
                                                 </a>
                                                 <form asp-action="Delete" asp-route-id="@item.Id" method="post" onsubmit="return confirm('Tem certeza que deseja excluir a OS #@item.Id?');">
                                                     <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir">
-                                                        <i class="bi bi-trash"></i> Excluir
+                                                        <i class="bi bi-trash"></i>
                                                     </button>
                                                 </form>
                                             </div>
@@ -320,10 +311,10 @@
 
                         <div class="kanban-column">
                             <div class="kanban-column-header">
-                                <span class="fw-bold small text-uppercase d-flex align-items-center gap-2">
-                                    <i class="bi @col.IconClass text-info"></i> @col.Titulo
+                                <span class="fw-semibold small d-flex align-items-center gap-2">
+                                    <i class="bi @col.IconClass text-primary"></i> @col.Titulo
                                 </span>
-                                <span class="badge @col.BadgeClass">@ordensColuna.Count</span>
+                                <span class="badge @col.BadgeClass font-monospace">@ordensColuna.Count</span>
                             </div>
                             <div class="kanban-column-body">
                                 @if (!ordensColuna.Any())
@@ -348,7 +339,7 @@
                                                     }
                                                     else if (card.Prioridade == 1)
                                                     {
-                                                        <span class="badge bg-warning text-dark"><i class="bi bi-lightning-charge"></i> Alta</span>
+                                                        <span class="badge bg-warning"><i class="bi bi-lightning-charge"></i> Alta</span>
                                                     }
                                                     @if (card.AparelhoAbandonado)
                                                     {
@@ -356,24 +347,24 @@
                                                     }
                                                 </div>
                                             </div>
-                                            <div class="fw-bold mb-1">@card.Equipamento</div>
+                                            <div class="fw-semibold mb-1">@card.Equipamento</div>
                                             <div class="small text-muted mb-2">
                                                 <i class="bi bi-person me-1"></i>@(card.Cliente?.Nome ?? "Cliente N/D")
                                             </div>
                                             @if (!string.IsNullOrEmpty(card.NumeroSerie))
                                             {
-                                                <div class="small font-monospace-tech mb-2">NS: @card.NumeroSerie</div>
+                                                <div class="small font-monospace-tech text-muted mb-2">NS: @card.NumeroSerie</div>
                                             }
                                             <div class="d-flex justify-content-between align-items-center pt-2 border-top border-secondary">
                                                 <div>
-                                                    <small class="text-muted d-block"><i class="bi bi-calendar3 me-1"></i>@card.DataEntrada.ToString("dd/MM/yy")</small>
-                                                    <span class="text-success fw-bold small">@card.ValorOrcamento.ToString("C")</span>
+                                                    <small class="text-muted font-monospace d-block"><i class="bi bi-calendar3 me-1"></i>@card.DataEntrada.ToString("dd/MM/yy")</small>
+                                                    <span class="text-success font-monospace fw-semibold small">@card.ValorOrcamento.ToString("C")</span>
                                                 </div>
                                                 <div class="d-flex gap-1">
                                                     <a asp-action="Edit" asp-route-id="@card.Id" class="btn btn-sm btn-outline-primary px-2 py-1" title="Abrir OS #@card.Id">
                                                         <i class="bi bi-pencil-square"></i>
                                                     </a>
-                                                    <a asp-action="ImprimirOs" asp-route-id="@card.Id" target="_blank" class="btn btn-sm btn-secondary px-2 py-1" title="Imprimir PDF">
+                                                    <a asp-action="ImprimirOs" asp-route-id="@card.Id" target="_blank" class="btn btn-sm btn-outline-secondary px-2 py-1" title="Imprimir PDF">
                                                         <i class="bi bi-printer"></i>
                                                     </a>
                                                 </div>
@@ -394,7 +385,7 @@
                         @for (int p = 1; p <= Model.DashboardData.TotalPages; p++)
                         {
                             <li class="page-item @(p == Model.DashboardData.CurrentPage ? "active" : "")">
-                                <a class="page-link bg-dark border-secondary text-light"
+                                <a class="page-link bg-dark border-secondary text-light font-monospace"
                                    asp-action="Index"
                                    asp-route-page="@p"
                                    asp-route-searchString="@Model.SearchString"
@@ -455,23 +446,23 @@
                         label: 'Quantidade de OS',
                         data: chartData,
                         backgroundColor: [
-                            'rgba(56, 189, 248, 0.25)',
                             'rgba(245, 158, 11, 0.25)',
+                            'rgba(56, 189, 248, 0.25)',
                             'rgba(16, 185, 129, 0.25)',
                             'rgba(239, 68, 68, 0.25)',
-                            'rgba(139, 92, 246, 0.25)',
-                            'rgba(59, 130, 246, 0.25)'
+                            'rgba(156, 163, 175, 0.25)',
+                            'rgba(217, 119, 6, 0.25)'
                         ],
                         borderColor: [
-                            'rgba(56, 189, 248, 1)',
                             'rgba(245, 158, 11, 1)',
+                            'rgba(56, 189, 248, 1)',
                             'rgba(16, 185, 129, 1)',
                             'rgba(239, 68, 68, 1)',
-                            'rgba(139, 92, 246, 1)',
-                            'rgba(59, 130, 246, 1)'
+                            'rgba(156, 163, 175, 1)',
+                            'rgba(217, 119, 6, 1)'
                         ],
                         borderWidth: 1,
-                        borderRadius: 6
+                        borderRadius: 4
                     }]
                 },
                 options: {

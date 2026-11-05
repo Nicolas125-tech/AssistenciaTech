@@ -1,49 +1,55 @@
 @{
-    ViewData["Title"] = "Acesso Restrito";
+    ViewData["Title"] = "Autenticação de Operador";
 }
 
-<div class="container mt-5 pt-5 mb-5 pb-5">
+<div class="container mt-5">
     <div class="row justify-content-center">
-        <div class="col-md-5 col-lg-4">
-            <div class="card shadow-lg border-0 rounded-4">
-                <div class="card-header bg-dark text-white text-center py-4 rounded-top-4">
-                    <h3 class="mb-0 fw-bold"><i class="bi bi-shield-lock-fill"></i> Painel do Técnico</h3>
-                    <p class="mb-0 small text-white-50 mt-1">Acesso exclusivo para funcionários</p>
+        <div class="col-md-6 col-lg-4">
+            <div class="mb-3 d-flex justify-content-between align-items-center">
+                <span class="workbench-eyebrow">
+                    <i class="bi bi-shield-lock"></i>
+                    <span>Acesso Restrito</span>
+                </span>
+                <span class="font-monospace small text-muted">OPERADOR</span>
+            </div>
+
+            <div class="card workbench-panel">
+                <div class="card-header">
+                    <h1 class="h5 mb-0 fw-semibold">Credenciais de Bancada</h1>
                 </div>
-                <div class="card-body p-4 p-sm-5">
-                    
-                    @if (ViewBag.Error != null)
+                <div class="card-body p-4">
+                    @if (!ViewData.ModelState.IsValid)
                     {
-                        <div class="alert alert-danger text-center small rounded-3" role="alert">
-                            <i class="bi bi-exclamation-triangle-fill"></i> @ViewBag.Error
+                        <div class="alert alert-danger py-2 small">
+                            @Html.ValidationSummary(false, "", new { @class = "mb-0" })
                         </div>
                     }
 
                     <form asp-controller="Account" asp-action="Login" method="post">
-                        <!-- Campo oculto para garantir o retorno à página original caso haja bloqueio de Auth -->
-                        <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
-                        
-                        <div class="form-floating mb-3">
-                            <input type="text" class="form-control" id="username" name="username" placeholder="Usuário" required autofocus />
-                            <label for="username">Usuário (ex: admin)</label>
-                        </div>
-                        
-                        <div class="form-floating mb-4">
-                            <input type="password" class="form-control" id="password" name="password" placeholder="Senha" required />
-                            <label for="password">Senha (ex: admin123)</label>
+                        <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
+
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Operador / Usuário</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                <input type="text" class="form-control font-monospace" id="username" name="username" required autofocus autocomplete="username">
+                            </div>
                         </div>
 
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg fw-bold">
-                                Entrar <i class="bi bi-box-arrow-in-right"></i>
+                        <div class="mb-4">
+                            <label for="password" class="form-label">Senha</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-key"></i></span>
+                                <input type="password" class="form-control" id="password" name="password" required autocomplete="current-password">
+                            </div>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary py-2">
+                                <i class="bi bi-box-arrow-in-right me-1"></i> Acessar Painel Técnico
                             </button>
                         </div>
                     </form>
-                </div>
-                <div class="card-footer bg-transparent border-0 text-center pb-4">
-                    <a asp-controller="Home" asp-action="Index" class="text-decoration-none text-muted small">
-                        <i class="bi bi-arrow-left"></i> Voltar ao site principal
-                    </a>
                 </div>
             </div>
         </div>

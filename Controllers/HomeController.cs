@@ -1,21 +1,26 @@
 using System;
 using System.Collections.Generic;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using AssistenciaTech.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace AssistenciaTech.Controllers
 {
     public class HomeController : Controller
     {
+        private const string CookieTelaInicial = "TechOS_TelaInicial";
         private readonly AppDbContext _context;
         private readonly ILogger<HomeController> _logger;
+        private readonly IConfiguration? _configuration;
 
-        public HomeController(AppDbContext context, ILogger<HomeController> logger)
+        public HomeController(AppDbContext context, ILogger<HomeController> logger, IConfiguration? configuration = null)
         {
             _context = context;
             _logger = logger;
+            _configuration = configuration;
         }
 
         public IActionResult TestDb()
@@ -34,7 +39,7 @@ namespace AssistenciaTech.Controllers
         }
 
         // GET: / ou /Home/Index
-        public IActionResult Index()
+        public IActionResult Index(string? tela = null)
         {
             // Lista simples em memória com os 3 principais serviços para a Home
             var principaisServicos = new List<dynamic>
@@ -61,7 +66,51 @@ namespace AssistenciaTech.Controllers
 
             ViewBag.ServicosHome = principaisServicos;
 
+            string? preferenciaCookie = HttpContext?.Request?.Cookies[CookieTelaInicial];
+            string? padraoConfig = _configuration?["UiSettings:TelaInicialPadrao"];
+            string telaEfetiva = !string.IsNullOrWhiteSpace(tela)
+                ? tela
+                : (!string.IsNullOrWhiteSpace(preferenciaCookie) ? preferenciaCookie : (padraoConfig ?? "Bancada"));
+
+            ViewBag.TelaInicialAtual = telaEfetiva;
+
+            if (string.Equals(telaEfetiva, "Consulta", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(tela, "Bancada", StringComparison.OrdinalIgnoreCase))
+            {
+                return RedirectToAction("Index", "Consulta");
+            }
+
             return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult DefinirTelaInicial(string telaInicial, string? returnUrl = null)
+        {
+            string valorNormalizado = string.Equals(telaInicial, "Consulta", StringComparison.OrdinalIgnoreCase)
+                ? "Consulta"
+                : "Bancada";
+
+            Response?.Cookies.Append(CookieTelaInicial, valorNormalizado, new CookieOptions
+            {
+                Expires = DateTimeOffset.UtcNow.AddDays(365),
+                HttpOnly = true,
+                IsEssential = true,
+                SameSite = SameSiteMode.Lax
+            });
+
+            TempData["MensagemSucesso"] = valorNormalizado == "Consulta"
+                ? "Tela inicial configurada para abrir direto na Consulta de OS."
+                : "Tela inicial configurada para a Bancada Completa (Consulta + Catálogo).";
+
+            if (!string.IsNullOrWhiteSpace(returnUrl) && Url != null && Url.IsLocalUrl(returnUrl))
+            {
+                return LocalRedirect(returnUrl);
+            }
+
+            return valorNormalizado == "Consulta"
+                ? RedirectToAction("Index", "Consulta")
+                : RedirectToAction(nameof(Index), new { tela = "Bancada" });
         }
 
         // GET: /Home/Servicos

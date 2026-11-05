@@ -1,143 +1,95 @@
+@{
+    string telaPreferida = Context.Request.Cookies["TechOS_TelaInicial"] ?? "Bancada";
+}
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br" data-bs-theme="dark">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - TechOS</title>
-    <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
-    <!-- Google Fonts: Inter & Fira Code -->
+    <title>@ViewData["Title"] · TechOS Laboratório Técnico</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <!-- Custom TechOS CSS -->
-    <link rel="stylesheet" href="/css/site.css" />
-    
-    <style>
-        body {
-            /* Compensa a navbar fixa */
-            padding-top: 76px; 
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        main {
-            flex: 1;
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
-<body>
+<body class="d-flex flex-column min-vh-100">
     <header>
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top shadow-sm py-3">
+        <nav class="navbar navbar-expand-lg navbar-dark navbar-custom py-2 mb-0">
             <div class="container">
-                <a class="navbar-brand d-flex align-items-center" asp-controller="Home" asp-action="Index">
-                    <img src="/images/logo.svg" alt="TechOS Logo" height="36" />
+                <a class="navbar-brand brand-mark" asp-area="" asp-controller="Home" asp-action="Index" asp-route-tela="Bancada">
+                    <i class="bi bi-cpu text-primary"></i>
+                    <span>TechOS</span>
+                    <span class="brand-tag">BANCADA v2</span>
                 </a>
-                <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <button class="navbar-toggler border-secondary" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Alternar navegação">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav me-auto mb-2 mb-lg-0 fs-5">
+                <div class="navbar-collapse collapse d-lg-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1 gap-lg-1 ms-lg-3">
                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Home" asp-action="Index">Início</a>
+                            <a class="nav-link px-3" asp-area="" asp-controller="Home" asp-action="Index" asp-route-tela="Bancada">Bancada Inicial</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Home" asp-action="Servicos">Serviços</a>
+                            <a class="nav-link px-3" asp-area="" asp-controller="Home" asp-action="Servicos">Tabela de Serviços</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-info" asp-controller="Consulta" asp-action="Index">Consulta de OS</a>
+                            <a class="nav-link px-3" asp-area="" asp-controller="Consulta" asp-action="Index">Rastrear OS</a>
                         </li>
                     </ul>
-                    
-                    <ul class="navbar-nav ms-auto align-items-center">
-                        @* Exibição condicional baseada na Autenticação (Cookie Auth) *@
-                        @if (User.Identity != null && User.Identity.IsAuthenticated)
-                        {
-                            <li class="nav-item me-2">
-                                <a class="nav-link text-success fw-bold bg-dark border border-success rounded px-3" asp-controller="Pecas" asp-action="Index">
-                                    <i class="bi bi-box-seam"></i> Estoque
-                                </a>
-                            </li>
-                            <li class="nav-item me-2">
-                                <a class="nav-link text-info fw-bold bg-dark border border-info rounded px-3" asp-controller="Clientes" asp-action="Index">
-                                    <i class="bi bi-people"></i> Clientes
-                                </a>
-                            </li>
-                            <li class="nav-item dropdown me-3">
-                                <a class="nav-link dropdown-toggle text-warning fw-bold bg-dark border border-warning rounded px-3" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bi bi-speedometer2"></i> Painel Admin
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDropdown">
-                                    <li><a class="dropdown-item" asp-controller="Admin" asp-action="Index">Geral (OS)</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" asp-controller="Tecnicos" asp-action="Index"><i class="bi bi-person-badge"></i> Técnicos & Comissões</a></li>
-                                    <li><a class="dropdown-item" asp-controller="EquipamentoBackup" asp-action="Index"><i class="bi bi-laptop"></i> Equipamentos de Backup</a></li>
-                                    <li><a class="dropdown-item" asp-controller="Faturamentos" asp-action="Index"><i class="bi bi-cash-coin"></i> Faturamentos & PIX</a></li>
-                                </ul>
-                            </li>
-                            <li class="nav-item">
-                                <form asp-controller="Account" asp-action="Logout" method="post" class="m-0 p-0">
-                                    <button type="submit" class="btn btn-danger btn-sm px-3 fw-bold shadow-sm">
-                                        <i class="bi bi-box-arrow-right"></i> Sair
+                    <ul class="navbar-nav align-items-lg-center gap-2 mt-2 mt-lg-0">
+                        <li class="nav-item dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Configurar qual tela abre por padrão no acesso inicial">
+                                <i class="bi bi-sliders2 text-primary"></i>
+                                <span> Início: <strong class="font-monospace">@(telaPreferida == "Consulta" ? "Consulta OS" : "Bancada")</strong></span>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end p-3 workbench-panel" style="min-width: 270px;">
+                                <div class="small fw-semibold mb-1">Tela inicial do cliente</div>
+                                <p class="text-muted small mb-2">Escolha qual tela deve abrir automaticamente ao acessar a raiz do sistema.</p>
+                                <form asp-controller="Home" asp-action="DefinirTelaInicial" method="post" class="d-grid gap-2">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
+                                    <button type="submit" name="telaInicial" value="Bancada" class="btn btn-sm text-start @(telaPreferida != "Consulta" ? "btn-primary" : "btn-outline-secondary")">
+                                        <i class="bi bi-grid-1x2 me-1"></i> Bancada Completa (Consulta + Catálogo)
+                                    </button>
+                                    <button type="submit" name="telaInicial" value="Consulta" class="btn btn-sm text-start @(telaPreferida == "Consulta" ? "btn-primary" : "btn-outline-secondary")">
+                                        <i class="bi bi-search me-1"></i> Direto na Consulta de OS
                                     </button>
                                 </form>
-                            </li>
-                        }
-                        else
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link border border-secondary rounded px-3" asp-controller="Account" asp-action="Login">
-                                    <i class="bi bi-person-badge"></i> Acesso Restrito
-                                </a>
-                            </li>
-                        }
+                            </div>
+                        </li>
+                        <li class="nav-item">
+                            <a class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" asp-area="" asp-controller="Admin" asp-action="Index">
+                                <i class="bi bi-terminal"></i>
+                                <span>Operador / Admin</span>
+                            </a>
+                        </li>
                     </ul>
                 </div>
             </div>
         </nav>
     </header>
 
-    <main role="main">
-        @RenderBody()
-    </main>
-
-    <!-- Container Global de Toasts Flutuantes (Bootstrap 5) -->
-    <div id="techOsToastContainer" class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
-        @if (TempData["AlertaGarantia"] != null)
-        {
-            <div class="toast toast-tech align-items-center border-warning show" role="alert" aria-live="assertive" aria-atomic="true">
-                <div class="d-flex">
-                    <div class="toast-body">
-                        <i class="bi bi-shield-exclamation text-warning me-2"></i>
-                        <strong>Alerta de Garantia:</strong> @TempData["AlertaGarantia"]
-                    </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fechar"></button>
-                </div>
-            </div>
-        }
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1090;">
         @if (TempData["MensagemSucesso"] != null)
         {
-            <div class="toast toast-tech align-items-center border-success show" role="alert" aria-live="polite" aria-atomic="true">
+            <div class="toast align-items-center bg-success border-0 show" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="4500">
                 <div class="d-flex">
-                    <div class="toast-body">
-                        <i class="bi bi-check-circle-fill text-success me-2"></i>
-                        @TempData["MensagemSucesso"]
+                    <div class="toast-body fw-medium">
+                        <i class="bi bi-check2-circle me-2"></i>@TempData["MensagemSucesso"]
                     </div>
                     <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fechar"></button>
                 </div>
             </div>
         }
-        @if (Context.Request.Query.ContainsKey("erro"))
+        @if (TempData["MensagemErro"] != null)
         {
-            <div class="toast toast-tech align-items-center border-danger show" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast align-items-center bg-danger border-0 show" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="6000">
                 <div class="d-flex">
-                    <div class="toast-body">
-                        <i class="bi bi-exclamation-octagon-fill text-danger me-2"></i>
-                        @Context.Request.Query["erro"]
+                    <div class="toast-body fw-medium">
+                        <i class="bi bi-exclamation-octagon me-2"></i>@TempData["MensagemErro"]
                     </div>
                     <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fechar"></button>
                 </div>
@@ -145,41 +97,30 @@
         }
     </div>
 
-    <footer class="bg-dark text-white-50 py-4 mt-auto border-top border-secondary">
-        <div class="container text-center">
-            <div class="mb-3 fs-4">
-                <a href="https://wa.me/5543984445767" target="_blank" class="text-white-50 text-decoration-none me-3 transition-hover" title="Fale pelo WhatsApp">
-                    <i class="bi bi-whatsapp text-success"></i> (43) 98444-5767
-                </a>
-                <a href="https://instagram.com/_nicolas_mb" target="_blank" class="text-white-50 text-decoration-none transition-hover" title="Siga no Instagram">
-                    <i class="bi bi-instagram text-danger"></i> @@_nicolas_mb
-                </a>
+    <main role="main" class="flex-grow-1 pb-5">
+        @RenderBody()
+    </main>
+
+    <footer class="footer py-3 mt-auto">
+        <div class="container d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 small">
+            <div>
+                <span class="fw-semibold text-main">TechOS</span> · Laboratório de Manutenção de Hardware e Microeletrônica
             </div>
-            <p class="mb-0">&copy; @DateTime.Now.Year - TechOS. Todos os direitos reservados.</p>
-            <small>Desenvolvido com C# e .NET 8</small>
+            <div class="font-monospace text-muted">
+                Diagnóstico rastreável por Ordem de Serviço
+            </div>
         </div>
     </footer>
 
-    <!-- Bootstrap 5 JS Bundle (with Popper) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        window.TechOS = window.TechOS || {
-            showToast: function (title, message, variant) {
-                var container = document.getElementById('techOsToastContainer');
-                if (!container) return;
-                var icon = variant === 'danger' ? 'bi-exclamation-octagon-fill text-danger'
-                    : variant === 'warning' ? 'bi-exclamation-triangle-fill text-warning'
-                    : 'bi-check-circle-fill text-success';
-                var wrapper = document.createElement('div');
-                wrapper.className = 'toast toast-tech align-items-center show';
-                wrapper.setAttribute('role', 'alert');
-                wrapper.innerHTML = '<div class="d-flex"><div class="toast-body"><i class="bi ' + icon + ' me-2"></i><strong>' + title + ':</strong> ' + message + '</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fechar"></button></div>';
-                container.appendChild(wrapper);
-                setTimeout(function () { wrapper.remove(); }, 5000);
-            }
-        };
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.toast.show').forEach(function (el) {
+                var toast = new bootstrap.Toast(el);
+                toast.show();
+            });
+        });
     </script>
-    
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
