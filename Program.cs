@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using AssistenciaTech.Data;
 using AssistenciaTech.Services;
 
@@ -206,6 +207,35 @@ app.UseAuthorization();
 
 app.MapHealthChecks("/healthz");
 app.MapHealthChecks("/ready");
+
+app.MapGet("/health", async (HealthCheckService healthCheckService) =>
+{
+    var report = await healthCheckService.CheckHealthAsync();
+    var rawCommit = Environment.GetEnvironmentVariable("RENDER_GIT_COMMIT") 
+                    ?? Environment.GetEnvironmentVariable("GIT_COMMIT") 
+                    ?? "dev";
+    var shortCommit = rawCommit.Length > 7 ? rawCommit.Substring(0, 7) : rawCommit;
+
+    var response = new
+    {
+        status = report.Status.ToString(),
+        version = typeof(Program).Assembly.GetName().Version?.ToString() ?? "1.0.0",
+        commit = shortCommit,
+        fullCommit = rawCommit,
+        timestampUtc = DateTime.UtcNow,
+        durationMs = report.TotalDuration.TotalMilliseconds,
+        checks = report.Entries.Select(e => new
+        {
+            name = e.Key,
+            status = e.Value.Status.ToString(),
+            description = e.Value.Description,
+            data = e.Value.Data
+        })
+    };
+
+    var statusCode = report.Status == HealthStatus.Unhealthy ? 503 : 200;
+    return Results.Json(response, statusCode: statusCode);
+});
 
 app.MapControllerRoute(
     name: "default",
