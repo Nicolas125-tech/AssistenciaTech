@@ -44,7 +44,14 @@ if (Test-Path $OneDrivePath) {
     Write-Host "==> Sincronizando repositório primário no OneDrive ($OneDrivePath)..." -ForegroundColor Yellow
     git -C $OneDrivePath pull origin main --ff-only
     if ($LASTEXITCODE -ne 0) {
-        Write-Warning "Não foi possível atualizar a pasta OneDrive via fast-forward. Verifique se há alterações locais lá."
+        Write-Host "==> Tentando restaurar arquivos com alteração de quebra de linha (CRLF)..." -ForegroundColor Yellow
+        git -C $OneDrivePath restore .
+        git -C $OneDrivePath pull origin main --ff-only
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "Não foi possível atualizar a pasta OneDrive via fast-forward. Verifique se há alterações locais lá."
+        } else {
+            Write-Host "==> Repositório do OneDrive sincronizado com sucesso após restaurar quebras de linha." -ForegroundColor Green
+        }
     } else {
         Write-Host "==> Repositório do OneDrive sincronizado com sucesso." -ForegroundColor Green
     }
