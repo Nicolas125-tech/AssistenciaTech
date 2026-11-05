@@ -1,79 +1,148 @@
 @model IEnumerable<AssistenciaTech.Models.Peca>
 
 @{
-    ViewData["Title"] = "Estoque de Peças";
+    ViewData["Title"] = "Gestão de Estoque · TechOS";
+    int itensBaixo = Model.Count(p => p.QuantidadeEstoque <= p.QuantidadeMinima);
+    decimal valorTotalEstoque = Model.Sum(p => p.QuantidadeEstoque * p.ValorUnitario);
 }
 
-<div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Gestão de Estoque (Peças)</h2>
-        <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Nova Peça</a>
+<div class="container-fluid mt-4 px-lg-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="workbench-eyebrow">
+                    <i class="bi bi-box-seam"></i>
+                    <span>Almoxarifado e Componentes</span>
+                </span>
+                <span class="badge bg-secondary font-monospace">@Model.Count() item(ns)</span>
+            </div>
+            <h1 class="h3 mb-0 fw-bold">Gestão de Estoque de Peças</h1>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i> Nova Peça
+            </a>
+        </div>
     </div>
 
-    <div class="card shadow mb-4">
-        <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">Peças Cadastradas</h6>
+    <!-- Telemetria de Estoque -->
+    <div class="telemetry-strip mb-4">
+        <div class="telemetry-cell">
+            <div class="telemetry-label">
+                <span>Total de itens cadastrados</span>
+                <i class="bi bi-box text-primary"></i>
+            </div>
+            <div class="telemetry-value">@Model.Count()</div>
+            <div class="small text-muted mt-1">Variedade de componentes no almoxarifado</div>
         </div>
-        <div class="card-body">
+        <div class="telemetry-cell">
+            <div class="telemetry-label">
+                <span>Peças com reposição necessária</span>
+                <i class="bi bi-exclamation-triangle @(itensBaixo > 0 ? "text-danger" : "text-muted")"></i>
+            </div>
+            <div class="telemetry-value @(itensBaixo > 0 ? "text-danger" : "text-main")">@itensBaixo</div>
+            <div class="small text-muted mt-1">Abaixo ou igual à quantidade mínima</div>
+        </div>
+        <div class="telemetry-cell">
+            <div class="telemetry-label">
+                <span>Patrimônio total em peças</span>
+                <i class="bi bi-cash-stack text-primary"></i>
+            </div>
+            <div class="telemetry-value text-primary">@valorTotalEstoque.ToString("C")</div>
+            <div class="small text-muted mt-1">Custo acumulado de componentes estocados</div>
+        </div>
+    </div>
+
+    <div class="card workbench-panel mb-4">
+        <div class="card-body py-3">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-6 col-sm-12">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="search" id="filtroPecas" class="form-control font-monospace" placeholder="Buscar peça por nome...">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card workbench-panel overflow-hidden">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-semibold"><i class="bi bi-boxes text-primary me-2"></i>Peças e Componentes</span>
+            <span class="font-monospace small text-muted">TABELA DO ALMOXARIFADO</span>
+        </div>
+        <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-bordered table-hover align-middle" width="100%" cellspacing="0">
-                    <thead class="table-dark">
+                <table class="table table-hover align-middle mb-0" id="tabelaPecas">
+                    <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Nome da Peça</th>
-                            <th>Estoque Atual</th>
-                            <th>Valor Unit. Venda</th>
-                            <th class="text-center">Ações</th>
+                            <th class="ps-4">ID</th>
+                            <th>Descrição da Peça</th>
+                            <th class="text-center">Estoque Atual</th>
+                            <th class="text-center">Mínimo</th>
+                            <th>Valor Unitário</th>
+                            <th class="text-end pe-4">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         @if (!Model.Any())
                         {
                             <tr>
-                                <td colspan="5" class="text-center py-5 text-muted">
-                                    <i class="bi bi-box-seam fs-1 d-block mb-3"></i>
-                                    <h5>Nenhuma peça no estoque</h5>
-                                    <p>Clique em "Nova Peça" para adicionar itens ao estoque.</p>
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <i class="bi bi-box-seam fs-2 d-block mb-2"></i>
+                                    <div class="fw-semibold">Nenhuma peça cadastrada</div>
+                                    <p class="small mb-3">Adicione peças ao estoque para permitir a baixa automática ao finalizar ordens de serviço.</p>
+                                    <a asp-action="Create" class="btn btn-sm btn-primary"><i class="bi bi-plus-circle me-1"></i> Cadastrar Primeira Peça</a>
                                 </td>
                             </tr>
                         }
                         else
                         {
-                        @foreach (var item in Model)
-                        {
-                            <tr>
-                                <td class="fw-bold">#@item.Id</td>
-                                <td>@item.Nome</td>
-                                <td>
-                                    <span class="badge @(item.QuantidadeEstoque > 0 ? "bg-success" : "bg-danger") fs-6">
-                                        @item.QuantidadeEstoque un.
-                                    </span>
-                                </td>
-                                <td>
-                                    @if (item.QuantidadeMinima > 0)
-                                    {
-                                        <span>@item.QuantidadeMinima un.</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted">—</span>
-                                    }
-                                </td>
-                                <td>@item.ValorUnitario.ToString("C")</td>
-                                <td class="text-center">
-                                    <div class="d-inline-flex">
-                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary me-2" title="Editar">
-                                            <i class="bi bi-pencil-square"></i> Editar
-                                        </a>
-                                        <form asp-action="Delete" asp-route-id="@item.Id" method="post" onsubmit="return confirm('Excluir peça @item.Nome?');">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir">
-                                                <i class="bi bi-trash"></i> Excluir
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
+                            @foreach (var item in Model)
+                            {
+                                bool isCritico = item.QuantidadeEstoque == 0;
+                                bool isAlerta = !isCritico && item.QuantidadeEstoque <= item.QuantidadeMinima;
+
+                                <tr class="peca-linha">
+                                    <td class="ps-4 font-monospace fw-semibold">#@item.Id</td>
+                                    <td>
+                                        <span class="fw-semibold text-main">@item.Nome</span>
+                                    </td>
+                                    <td class="text-center font-monospace">
+                                        @if (isCritico)
+                                        {
+                                            <span class="badge bg-danger">0 un. (Esgotado)</span>
+                                        }
+                                        else if (isAlerta)
+                                        {
+                                            <span class="badge bg-warning">@item.QuantidadeEstoque un. (Baixo)</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">@item.QuantidadeEstoque un.</span>
+                                        }
+                                    </td>
+                                    <td class="text-center font-monospace text-muted small">
+                                        @(item.QuantidadeMinima > 0 ? $"{item.QuantidadeMinima} un." : "Sem limite")
+                                    </td>
+                                    <td class="font-monospace text-success fw-medium">
+                                        @item.ValorUnitario.ToString("C")
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <div class="d-inline-flex gap-1">
+                                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary" title="Editar / Ajustar saldo">
+                                                <i class="bi bi-pencil-square"></i> Editar
+                                            </a>
+                                            <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Confirmar exclusão da peça @item.Nome?');">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
                         }
                     </tbody>
                 </table>
@@ -81,3 +150,19 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var input = document.getElementById('filtroPecas');
+            if (!input) return;
+            input.addEventListener('input', function () {
+                var termo = (input.value || '').toLowerCase().trim();
+                document.querySelectorAll('#tabelaPecas .peca-linha').forEach(function (tr) {
+                    var texto = (tr.textContent || '').toLowerCase();
+                    tr.style.display = (!termo || texto.indexOf(termo) !== -1) ? '' : 'none';
+                });
+            });
+        })();
+    </script>
+}

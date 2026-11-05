@@ -4,108 +4,118 @@
     ViewData["Title"] = "Nova Ordem de Serviço";
 }
 
-<div class="container mt-4">
+<div class="container-fluid px-lg-4 py-4">
     <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">Dar Entrada em Equipamento</h5>
+        <div class="col-xl-8 col-lg-10">
+            <div class="workbench-panel">
+                <div class="card-header border-bottom border-secondary border-opacity-25 py-3 px-4 d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="workbench-eyebrow">Entrada em Bancada</div>
+                        <h5 class="mb-0 fw-semibold text-white">Nova Ordem de Serviço</h5>
+                    </div>
+                    <span class="badge bg-secondary text-uppercase font-monospace">Rascunho</span>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-4">
                     <form asp-action="Create">
                         <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
                         <div class="row mb-3">
                             <div class="col-md-12 form-group">
-                                <div class="d-flex justify-content-between">
-                                    <label asp-for="ClienteId" class="form-label fw-bold">Cliente</label>
-                                    <a asp-controller="Clientes" asp-action="Create" class="text-decoration-none"><i class="bi bi-person-plus"></i> Novo Cliente</a>
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label asp-for="ClienteId" class="form-label small text-muted mb-0">Cliente titular</label>
+                                    <a asp-controller="Clientes" asp-action="Create" class="btn btn-sm btn-outline-secondary py-0">
+                                        <i class="bi bi-person-plus me-1"></i>Novo Cliente
+                                    </a>
                                 </div>
-                                <select asp-for="ClienteId" class="form-select" asp-items="ViewBag.Clientes" required>
-                                    <option value="">-- Selecione o Cliente --</option>
+                                <select asp-for="ClienteId" class="form-select font-monospace" asp-items="ViewBag.Clientes" required>
+                                    <option value="">Selecione o cliente</option>
                                 </select>
-                                <span asp-validation-for="ClienteId" class="text-danger"></span>
+                                <span asp-validation-for="ClienteId" class="text-danger small"></span>
                             </div>
                         </div>
 
                         @if (TempData["AlertaGarantia"] != null)
                         {
-                            <div class="alert alert-warning shadow-sm border-0 rounded-4" role="alert">
-                                <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["AlertaGarantia"]
+                            <div class="alert alert-warning border border-warning border-opacity-50 rounded-2 p-3 mb-3 small" role="alert">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["AlertaGarantia"]
                             </div>
                         }
 
-                        <div class="row mb-3">
+                        <div class="row g-3 mb-3">
                             <div class="col-md-6 form-group">
-                                <label asp-for="Equipamento" class="form-label fw-bold">Equipamento</label>
+                                <label asp-for="Equipamento" class="form-label small text-muted mb-1">Equipamento (marca / modelo)</label>
                                 <input asp-for="Equipamento" class="form-control" placeholder="Ex: Notebook Dell Inspiron 15" required />
-                                <span asp-validation-for="Equipamento" class="text-danger"></span>
+                                <span asp-validation-for="Equipamento" class="text-danger small"></span>
                             </div>
                             <div class="col-md-6 form-group">
-                                <label asp-for="NumeroSerie" class="form-label fw-bold">Número de Série (S/N)</label>
-                                <input asp-for="NumeroSerie" class="form-control" placeholder="Opcional. Ajuda a rastrear retornos." />
-                                <span asp-validation-for="NumeroSerie" class="text-danger"></span>
+                                <label asp-for="NumeroSerie" class="form-label small text-muted mb-1">Número de Série (S/N)</label>
+                                <input asp-for="NumeroSerie" class="form-control font-monospace" placeholder="Opcional. Ajuda no rastreio de garantia" />
+                                <span asp-validation-for="NumeroSerie" class="text-danger small"></span>
                             </div>
                         </div>
 
-                        <div class="row mb-3">
+                        <div class="row g-3 mb-3">
                             <div class="col-md-9 form-group">
-                                <label asp-for="ProblemaRelatado" class="form-label fw-bold">Problema Relatado</label>
-                                <textarea asp-for="ProblemaRelatado" class="form-control" rows="3" placeholder="Descreva o defeito informado pelo cliente" required></textarea>
-                                <span asp-validation-for="ProblemaRelatado" class="text-danger"></span>
+                                <label asp-for="ProblemaRelatado" class="form-label small text-muted mb-1">Defeito relatado pelo cliente</label>
+                                <textarea asp-for="ProblemaRelatado" class="form-control" rows="3" placeholder="Descreva os sintomas apresentados pelo equipamento" required></textarea>
+                                <span asp-validation-for="ProblemaRelatado" class="text-danger small"></span>
                             </div>
                             <div class="col-md-3 form-group">
-                                <label asp-for="Prioridade" class="form-label fw-bold">Prioridade</label>
+                                <label asp-for="Prioridade" class="form-label small text-muted mb-1">Prioridade</label>
                                 <select asp-for="Prioridade" class="form-select">
                                     <option value="0">Normal</option>
                                     <option value="1">Alta</option>
                                     <option value="2">Urgente</option>
                                 </select>
-                                <span asp-validation-for="Prioridade" class="text-danger"></span>
+                                <span asp-validation-for="Prioridade" class="text-danger small"></span>
                             </div>
                         </div>
 
-                        <div class="row mb-3">
+                        <div class="row g-3 mb-3">
                             <div class="col-md-6 form-group">
-                                <label asp-for="AvariasPreExistentes" class="form-label fw-bold">Avarias Pré-Existentes (Checklist Visual)</label>
-                                <textarea asp-for="AvariasPreExistentes" class="form-control" rows="2" placeholder="Descreva arranhões, trincas, peças faltando, etc."></textarea>
-                                <span asp-validation-for="AvariasPreExistentes" class="text-danger"></span>
+                                <label asp-for="AvariasPreExistentes" class="form-label small text-muted mb-1">Checklist visual de entrada</label>
+                                <textarea asp-for="AvariasPreExistentes" class="form-control" rows="2" placeholder="Descreva marcas de uso, trincas ou peças faltantes"></textarea>
+                                <span asp-validation-for="AvariasPreExistentes" class="text-danger small"></span>
                             </div>
                             <div class="col-md-6 form-group">
-                                <label asp-for="AnotacoesInternas" class="form-label fw-bold text-info"><i class="bi bi-journal-text"></i> Anotações Internas (Privado)</label>
-                                <textarea asp-for="AnotacoesInternas" class="form-control border-info" rows="2" placeholder="Observações apenas para a equipe técnica..."></textarea>
-                                <span asp-validation-for="AnotacoesInternas" class="text-danger"></span>
+                                <label asp-for="AnotacoesInternas" class="form-label small text-muted mb-1">Anotações internas (privado da oficina)</label>
+                                <textarea asp-for="AnotacoesInternas" class="form-control" rows="2" placeholder="Observações exclusivas da equipe técnica"></textarea>
+                                <span asp-validation-for="AnotacoesInternas" class="text-danger small"></span>
                             </div>
                         </div>
 
-                        <div class="row mb-3">
+                        <div class="row g-3 mb-3">
                             <div class="col-md-4 form-group">
-                                <label asp-for="CustoPecas" class="form-label fw-bold">Custo de Peças (R$)</label>
-                                <input asp-for="CustoPecas" type="number" step="0.01" class="form-control custo-input" value="0.00" />
-                                <span asp-validation-for="CustoPecas" class="text-danger"></span>
+                                <label asp-for="CustoPecas" class="form-label small text-muted mb-1">Custo de Peças (R$)</label>
+                                <input asp-for="CustoPecas" type="number" step="0.01" class="form-control font-monospace custo-input" value="0.00" />
+                                <span asp-validation-for="CustoPecas" class="text-danger small"></span>
                             </div>
                             <div class="col-md-4 form-group">
-                                <label asp-for="CustoMaoDeObra" class="form-label fw-bold">Mão de Obra (R$)</label>
-                                <input asp-for="CustoMaoDeObra" type="number" step="0.01" class="form-control custo-input" value="0.00" />
-                                <span asp-validation-for="CustoMaoDeObra" class="text-danger"></span>
+                                <label asp-for="CustoMaoDeObra" class="form-label small text-muted mb-1">Mão de Obra (R$)</label>
+                                <input asp-for="CustoMaoDeObra" type="number" step="0.01" class="form-control font-monospace custo-input" value="0.00" />
+                                <span asp-validation-for="CustoMaoDeObra" class="text-danger small"></span>
                             </div>
                             <div class="col-md-4 form-group">
-                                <label asp-for="DescontoAplicado" class="form-label fw-bold">Desconto (R$)</label>
-                                <input asp-for="DescontoAplicado" type="number" step="0.01" class="form-control custo-input" value="0.00" />
-                                <span asp-validation-for="DescontoAplicado" class="text-danger"></span>
+                                <label asp-for="DescontoAplicado" class="form-label small text-muted mb-1">Desconto (R$)</label>
+                                <input asp-for="DescontoAplicado" type="number" step="0.01" class="form-control font-monospace custo-input" value="0.00" />
+                                <span asp-validation-for="DescontoAplicado" class="text-danger small"></span>
                             </div>
                         </div>
                         
-                        <div class="row mb-3">
-                            <div class="col-md-12 text-end">
-                                <h4 class="fw-bold">Total: <span id="valorTotalDisplay" class="text-success">R$ 0,00</span></h4>
+                        <div class="p-3 bg-body-tertiary rounded-2 mb-4 d-flex justify-content-between align-items-center">
+                            <span class="small text-muted">Orçamento estimado:</span>
+                            <div class="h5 mb-0 font-monospace text-primary fw-bold">
+                                Total: <span id="valorTotalDisplay">R$ 0,00</span>
                             </div>
                         </div>
 
-                        <hr />
-                        <div class="d-flex justify-content-between">
-                            <a asp-action="Index" class="btn btn-secondary">Voltar ao Painel</a>
-                            <button type="submit" class="btn btn-success"><i class="bi bi-save"></i> Salvar Ordem</button>
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top border-secondary border-opacity-25">
+                            <a asp-action="Index" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i>Voltar ao painel
+                            </a>
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-check2-circle me-1"></i>Salvar ordem
+                            </button>
                         </div>
                     </form>
                 </div>

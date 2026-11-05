@@ -1,48 +1,137 @@
 @model IEnumerable<AssistenciaTech.Models.EquipamentoBackup>
+
 @{
-    ViewData["Title"] = "Equipamentos de Backup";
+    ViewData["Title"] = "Equipamentos de Backup · TechOS";
+    int disponiveis = Model.Count(e => e.Disponivel);
+    int emprestados = Model.Count(e => !e.Disponivel);
 }
-<div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Equipamentos de Backup (Empréstimo)</h2>
-        <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Novo Equipamento</a>
+
+<div class="container-fluid mt-4 px-lg-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="workbench-eyebrow">
+                    <i class="bi bi-laptop"></i>
+                    <span>Parque de Empréstimo</span>
+                </span>
+                <span class="badge bg-secondary font-monospace">@Model.Count() máquina(s)</span>
+            </div>
+            <h1 class="h3 mb-0 fw-bold">Equipamentos de Backup para Clientes</h1>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i> Novo Equipamento
+            </a>
+        </div>
     </div>
-    <div class="card shadow mb-4">
-        <div class="card-body">
-            <table class="table table-bordered table-hover align-middle">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Descrição</th>
-                        <th>Nº Série / Patrimônio</th>
-                        <th>Status</th>
-                        <th class="text-center">Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in Model) {
+
+    <!-- Telemetria de Empréstimos -->
+    <div class="telemetry-strip mb-4">
+        <div class="telemetry-cell">
+            <div class="telemetry-label">
+                <span>Total de máquinas cadastradas</span>
+                <i class="bi bi-pc-display text-primary"></i>
+            </div>
+            <div class="telemetry-value">@Model.Count()</div>
+            <div class="small text-muted mt-1">Dispositivos disponíveis para comodato</div>
+        </div>
+        <div class="telemetry-cell">
+            <div class="telemetry-label">
+                <span>Prontos para empréstimo</span>
+                <i class="bi bi-check2-circle text-success"></i>
+            </div>
+            <div class="telemetry-value text-success">@disponiveis</div>
+            <div class="small text-muted mt-1">Guardados e disponíveis na oficina</div>
+        </div>
+        <div class="telemetry-cell">
+            <div class="telemetry-label">
+                <span>Em uso com clientes</span>
+                <i class="bi bi-arrow-left-right text-primary"></i>
+            </div>
+            <div class="telemetry-value text-primary">@emprestados</div>
+            <div class="small text-muted mt-1">Cedidos enquanto a OS principal está em reparo</div>
+        </div>
+    </div>
+
+    <div class="card workbench-panel overflow-hidden">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-semibold"><i class="bi bi-laptop text-primary me-2"></i>Máquinas de Backup</span>
+            <span class="font-monospace small text-muted">CONTROLE DE COMODATO</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
                         <tr>
-                            <td class="fw-bold">@item.Descricao</td>
-                            <td>@item.NumeroSerie</td>
-                            <td>
-                                @if (item.Disponivel) { <span class="badge bg-success">Disponível</span> }
-                                else { <span class="badge bg-danger">Emprestado</span> }
-                            </td>
-                            <td class="text-center">
-                                @if (!item.Disponivel)
-                                {
-                                    <form asp-action="Devolver" asp-route-id="@item.Id" asp-route-returnUrl="@Context.Request.Path" method="post" class="d-inline" onsubmit="return confirm('Marcar como Devolvido/Disponível?');">
-                                        <button type="submit" class="btn btn-sm btn-outline-success"><i class="bi bi-arrow-return-left"></i> Devolver</button>
-                                    </form>
-                                }
-                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil-square"></i> Editar</a>
-                                <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Deseja excluir?');">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Excluir</button>
-                                </form>
-                            </td>
+                            <th class="ps-4">ID</th>
+                            <th>Descrição / Modelo</th>
+                            <th>Número de Série / Patrimônio</th>
+                            <th class="text-center">Situação</th>
+                            <th class="text-end pe-4">Ações</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center py-5 text-muted">
+                                    <i class="bi bi-laptop fs-2 d-block mb-2"></i>
+                                    <div class="fw-semibold">Nenhum equipamento de backup cadastrado</div>
+                                    <p class="small mb-3">Cadastre computadores ou notebooks reservas para emprestar aos clientes durante reparos longos.</p>
+                                    <a asp-action="Create" class="btn btn-sm btn-primary"><i class="bi bi-plus-circle me-1"></i> Cadastrar Primeira Máquina</a>
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td class="ps-4 font-monospace fw-semibold">#@item.Id</td>
+                                    <td>
+                                        <span class="fw-semibold text-main">@item.Descricao</span>
+                                    </td>
+                                    <td class="font-monospace text-muted small">
+                                        @(string.IsNullOrWhiteSpace(item.NumeroSerie) ? "Sem registro" : item.NumeroSerie)
+                                    </td>
+                                    <td class="text-center">
+                                        @if (item.Disponivel)
+                                        {
+                                            <span class="badge bg-success">Disponível</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning">Emprestado</span>
+                                        }
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <div class="d-inline-flex gap-1 align-items-center">
+                                            @if (!item.Disponivel)
+                                            {
+                                                <form asp-action="Devolver" asp-route-id="@item.Id" asp-route-returnUrl="@Context.Request.Path" method="post" class="d-inline" onsubmit="return confirm('Confirmar devolução para a oficina?');">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Registrar devolução">
+                                                        <i class="bi bi-arrow-return-left"></i> Devolver
+                                                    </button>
+                                                </form>
+                                            }
+                                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary" title="Editar">
+                                                <i class="bi bi-pencil-square"></i> Editar
+                                            </a>
+                                            <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Confirmar exclusão da máquina @item.Descricao?');">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>

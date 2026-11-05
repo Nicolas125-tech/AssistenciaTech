@@ -1,42 +1,98 @@
 @model IEnumerable<AssistenciaTech.Models.Tecnico>
+
 @{
-    ViewData["Title"] = "Técnicos";
+    ViewData["Title"] = "Técnicos e Comissões · TechOS";
 }
-<div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Gestão de Técnicos</h2>
-        <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Novo Técnico</a>
+
+<div class="container-fluid mt-4 px-lg-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="workbench-eyebrow">
+                    <i class="bi bi-person-badge"></i>
+                    <span>Quadro Operacional</span>
+                </span>
+                <span class="badge bg-secondary font-monospace">@Model.Count() técnico(s)</span>
+            </div>
+            <h1 class="h3 mb-0 fw-bold">Técnicos e Comissões</h1>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i> Novo Técnico
+            </a>
+        </div>
     </div>
-    <div class="card shadow mb-4">
-        <div class="card-body">
-            <table class="table table-bordered table-hover align-middle">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Nome</th>
-                        <th>Comissão (%)</th>
-                        <th>Status</th>
-                        <th class="text-center">Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in Model) {
+
+    <div class="card workbench-panel overflow-hidden">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-semibold"><i class="bi bi-tools text-primary me-2"></i>Profissionais da Bancada</span>
+            <span class="font-monospace small text-muted">TABELA DE COMISSIONAMENTO</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
                         <tr>
-                            <td class="fw-bold">@item.Nome</td>
-                            <td>@item.PercentualComissao.ToString("0.00")%</td>
-                            <td>
-                                @if (item.Ativo) { <span class="badge bg-success">Ativo</span> }
-                                else { <span class="badge bg-danger">Inativo</span> }
-                            </td>
-                            <td class="text-center">
-                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil-square"></i> Editar</a>
-                                <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Deseja excluir?');">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Excluir</button>
-                                </form>
-                            </td>
+                            <th class="ps-4">ID</th>
+                            <th>Nome do Profissional</th>
+                            <th class="text-center">Comissão Fixada (%)</th>
+                            <th class="text-center">Situação</th>
+                            <th class="text-end pe-4">Ações</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center py-5 text-muted">
+                                    <i class="bi bi-person-badge fs-2 d-block mb-2"></i>
+                                    <div class="fw-semibold">Nenhum técnico cadastrado</div>
+                                    <p class="small mb-3">Cadastre profissionais para atribuir laudos e calcular relatórios de produtividade.</p>
+                                    <a asp-action="Create" class="btn btn-sm btn-primary"><i class="bi bi-plus-circle me-1"></i> Cadastrar Primeiro Técnico</a>
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td class="ps-4 font-monospace fw-semibold">#@item.Id</td>
+                                    <td>
+                                        <span class="fw-semibold text-main">@item.Nome</span>
+                                    </td>
+                                    <td class="text-center font-monospace fw-medium text-primary">
+                                        @item.PercentualComissao.ToString("0.00")%
+                                    </td>
+                                    <td class="text-center">
+                                        @if (item.Ativo)
+                                        {
+                                            <span class="badge bg-success">Ativo na bancada</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Inativo</span>
+                                        }
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <div class="d-inline-flex gap-1">
+                                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary" title="Editar">
+                                                <i class="bi bi-pencil-square"></i> Editar
+                                            </a>
+                                            <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Confirmar exclusão do técnico @item.Nome?');">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>

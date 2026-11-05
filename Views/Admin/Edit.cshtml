@@ -4,14 +4,18 @@
     ViewData["Title"] = "Atualizar Ordem de Serviço";
 }
 
-<div class="container mt-4">
+<div class="container-fluid px-lg-4 py-4">
     <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow">
-                <div class="card-header bg-warning text-dark">
-                    <h5 class="mb-0">Atualizar Equipamento - OS #@Model.Id</h5>
+        <div class="col-xl-8 col-lg-10">
+            <div class="workbench-panel">
+                <div class="card-header border-bottom border-secondary border-opacity-25 py-3 px-4 d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="workbench-eyebrow">Manutenção de Bancada</div>
+                        <h5 class="mb-0 fw-semibold text-white">Atualizar OS #@Model.Id</h5>
+                    </div>
+                    <span class="badge bg-secondary font-monospace">@Model.Status</span>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-4">
                     <form asp-action="Edit" enctype="multipart/form-data">
                         <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
                         
@@ -24,116 +28,116 @@
 
                         <div class="row mb-3">
                             <div class="col-md-12">
-                                <label class="form-label fw-bold">Cliente</label>
-                                <input class="form-control" value="@Model.Cliente?.Nome" disabled />
-                                <div class="form-text">O cliente vinculado não pode ser alterado na edição.</div>
+                                <label class="form-label small text-muted mb-1">Cliente titular</label>
+                                <input class="form-control font-monospace" value="@Model.Cliente?.Nome" disabled />
+                                <div class="form-text small text-muted">O cliente vinculado não pode ser alterado na edição.</div>
                             </div>
                         </div>
 
-                        <div class="row mb-3">
+                        <div class="row g-3 mb-3">
                             <div class="col-md-6 form-group">
-                                <label asp-for="Equipamento" class="form-label fw-bold">Equipamento</label>
+                                <label asp-for="Equipamento" class="form-label small text-muted mb-1">Equipamento (marca / modelo)</label>
                                 <input asp-for="Equipamento" class="form-control" required />
-                                <span asp-validation-for="Equipamento" class="text-danger"></span>
+                                <span asp-validation-for="Equipamento" class="text-danger small"></span>
                             </div>
                             <div class="col-md-6 form-group">
-                                <label asp-for="NumeroSerie" class="form-label fw-bold">Número de Série (S/N)</label>
-                                <input asp-for="NumeroSerie" class="form-control" />
-                                <span asp-validation-for="NumeroSerie" class="text-danger"></span>
+                                <label asp-for="NumeroSerie" class="form-label small text-muted mb-1">Número de Série (S/N)</label>
+                                <input asp-for="NumeroSerie" class="form-control font-monospace" />
+                                <span asp-validation-for="NumeroSerie" class="text-danger small"></span>
                             </div>
                         </div>
 
-                        <div class="row mb-3">
+                        <div class="row g-3 mb-3">
                             <div class="col-md-9 form-group">
-                                <label asp-for="ProblemaRelatado" class="form-label fw-bold">Problema / Diagnóstico</label>
+                                <label asp-for="ProblemaRelatado" class="form-label small text-muted mb-1">Problema / Diagnóstico inicial</label>
                                 <textarea asp-for="ProblemaRelatado" class="form-control" rows="2" required></textarea>
-                                <span asp-validation-for="ProblemaRelatado" class="text-danger"></span>
+                                <span asp-validation-for="ProblemaRelatado" class="text-danger small"></span>
                             </div>
                             <div class="col-md-3 form-group">
-                                <label asp-for="Prioridade" class="form-label fw-bold">Prioridade</label>
+                                <label asp-for="Prioridade" class="form-label small text-muted mb-1">Prioridade</label>
                                 <select asp-for="Prioridade" class="form-select">
                                     <option value="0">Normal</option>
                                     <option value="1">Alta</option>
                                     <option value="2">Urgente</option>
                                 </select>
-                                <span asp-validation-for="Prioridade" class="text-danger"></span>
+                                <span asp-validation-for="Prioridade" class="text-danger small"></span>
                             </div>
                         </div>
                         
                         <div class="row mb-3">
                             <div class="col-md-12 form-group">
-                                <label asp-for="AvariasPreExistentes" class="form-label fw-bold">Avarias Pré-Existentes (Checklist Visual)</label>
-                                <textarea asp-for="AvariasPreExistentes" class="form-control" rows="2" placeholder="Descreva arranhões, trincas, peças faltando, etc."></textarea>
-                                <span asp-validation-for="AvariasPreExistentes" class="text-danger"></span>
+                                <label asp-for="AvariasPreExistentes" class="form-label small text-muted mb-1">Checklist visual de entrada</label>
+                                <textarea asp-for="AvariasPreExistentes" class="form-control" rows="2" placeholder="Descreva marcas de uso, trincas ou peças faltantes"></textarea>
+                                <span asp-validation-for="AvariasPreExistentes" class="text-danger small"></span>
                             </div>
                         </div>
 
-                        <div class="row mb-3">
+                        <div class="row g-3 mb-3">
                             <div class="col-md-6 form-group">
-                                <label asp-for="LaudoTecnico" class="form-label fw-bold text-primary">Laudo Técnico (Diagnóstico Oficial)</label>
-                                <textarea asp-for="LaudoTecnico" class="form-control border-primary" rows="3" placeholder="Insira o laudo final..."></textarea>
-                                <span asp-validation-for="LaudoTecnico" class="text-danger"></span>
+                                <label asp-for="LaudoTecnico" class="form-label small text-muted mb-1">Laudo técnico (diagnóstico oficial)</label>
+                                <textarea asp-for="LaudoTecnico" class="form-control" rows="3" placeholder="Insira o laudo técnico final..."></textarea>
+                                <span asp-validation-for="LaudoTecnico" class="text-danger small"></span>
                             </div>
                             <div class="col-md-6 form-group">
-                                <label asp-for="AnotacoesInternas" class="form-label fw-bold text-info"><i class="bi bi-journal-text"></i> Anotações Internas (Privado)</label>
-                                <textarea asp-for="AnotacoesInternas" class="form-control border-info" rows="3" placeholder="Observações apenas para a equipe técnica..."></textarea>
-                                <span asp-validation-for="AnotacoesInternas" class="text-danger"></span>
+                                <label asp-for="AnotacoesInternas" class="form-label small text-muted mb-1">Anotações internas (privado da oficina)</label>
+                                <textarea asp-for="AnotacoesInternas" class="form-control" rows="3" placeholder="Observações apenas para a equipe técnica..."></textarea>
+                                <span asp-validation-for="AnotacoesInternas" class="text-danger small"></span>
                             </div>
                         </div>
 
-                        <div class="row mb-3">
+                        <div class="row g-3 mb-3">
                             <div class="col-md-6 form-group">
-                                <label asp-for="TecnicoId" class="form-label fw-bold">Técnico Responsável</label>
+                                <label asp-for="TecnicoId" class="form-label small text-muted mb-1">Técnico responsável</label>
                                 <select asp-for="TecnicoId" class="form-select" asp-items="ViewBag.Tecnicos">
-                                    <option value="">-- Selecione o Técnico --</option>
+                                    <option value="">Selecione o técnico</option>
                                 </select>
-                                <span asp-validation-for="TecnicoId" class="text-danger"></span>
+                                <span asp-validation-for="TecnicoId" class="text-danger small"></span>
                             </div>
                             <div class="col-md-6 form-group">
-                                <label asp-for="EquipamentoBackupId" class="form-label fw-bold text-danger">Empréstimo (Aparelho Backup)</label>
-                                <select asp-for="EquipamentoBackupId" class="form-select border-danger" asp-items="ViewBag.EquipamentosBackup">
-                                    <option value="">-- Nenhum Emprestado --</option>
+                                <label asp-for="EquipamentoBackupId" class="form-label small text-muted mb-1">Empréstimo (aparelho backup)</label>
+                                <select asp-for="EquipamentoBackupId" class="form-select" asp-items="ViewBag.EquipamentosBackup">
+                                    <option value="">Nenhum emprestado</option>
                                 </select>
-                                <span asp-validation-for="EquipamentoBackupId" class="text-danger"></span>
+                                <span asp-validation-for="EquipamentoBackupId" class="text-danger small"></span>
                             </div>
                         </div>
 
                         <!-- SLA e Contratos -->
                         <div class="row mb-3">
                             <div class="col-md-12 form-group">
-                                <label asp-for="ContratoId" class="form-label fw-bold text-success">Contrato SLA Vigente</label>
-                                <select asp-for="ContratoId" class="form-select border-success" asp-items="ViewBag.Contratos">
-                                    <option value="">-- Sem Contrato --</option>
+                                <label asp-for="ContratoId" class="form-label small text-muted mb-1">Contrato SLA vigente</label>
+                                <select asp-for="ContratoId" class="form-select" asp-items="ViewBag.Contratos">
+                                    <option value="">Sem contrato vinculado</option>
                                 </select>
                             </div>
                         </div>
 
-                        <div class="row mb-3">
+                        <div class="row g-3 mb-3">
                             <div class="col-md-6 form-group">
-                                <label asp-for="ContadorPaginasInicial" class="form-label fw-bold">Contador Inicial (Impressoras)</label>
-                                <input asp-for="ContadorPaginasInicial" type="number" class="form-control" />
+                                <label asp-for="ContadorPaginasInicial" class="form-label small text-muted mb-1">Contador inicial (impressoras)</label>
+                                <input asp-for="ContadorPaginasInicial" type="number" class="form-control font-monospace" />
                             </div>
                             <div class="col-md-6 form-group">
-                                <label asp-for="ContadorPaginasFinal" class="form-label fw-bold">Contador Final (Impressoras)</label>
-                                <input asp-for="ContadorPaginasFinal" type="number" class="form-control" />
+                                <label asp-for="ContadorPaginasFinal" class="form-label small text-muted mb-1">Contador final (impressoras)</label>
+                                <input asp-for="ContadorPaginasFinal" type="number" class="form-control font-monospace" />
                             </div>
                         </div>
 
                         <div class="row mb-3">
                             <div class="col-md-12 form-group">
-                                <label class="form-label fw-bold">Evidências (Fotos do Equipamento)</label>
+                                <label class="form-label small text-muted mb-1">Evidências (fotos do equipamento)</label>
                                 <input type="file" name="fotos" class="form-control" accept="image/*" multiple />
-                                <div class="form-text">Você pode selecionar múltiplas fotos para comprovar o estado do aparelho.</div>
+                                <div class="form-text small text-muted">Selecione fotos para comprovar o estado do aparelho.</div>
                                 
                                 @if (Model.Evidencias != null && Model.Evidencias.Any())
                                 {
                                     <div class="mt-3">
-                                        <h6>Fotos já enviadas:</h6>
+                                        <div class="small text-muted mb-2">Fotos já cadastradas:</div>
                                         <div class="d-flex flex-wrap gap-2">
                                             @foreach(var ev in Model.Evidencias)
                                             {
-                                                <a href="@ev.CaminhoArquivo" target="_blank">
-                                                    <img src="@ev.CaminhoArquivo" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;" />
+                                                <a href="@ev.CaminhoArquivo" target="_blank" class="border border-secondary border-opacity-25 rounded overflow-hidden">
+                                                    <img src="@ev.CaminhoArquivo" class="img-thumbnail bg-transparent border-0" style="width: 100px; height: 100px; object-fit: cover;" />
                                                 </a>
                                             }
                                         </div>
@@ -144,8 +148,8 @@
 
                         <div class="row mb-3">
                             <div class="col-md-12 form-group">
-                                <label asp-for="Status" class="form-label fw-bold">Status do Serviço</label>
-                                <select asp-for="Status" class="form-select">
+                                <label asp-for="Status" class="form-label small text-muted mb-1">Status do fluxo</label>
+                                <select asp-for="Status" class="form-select font-monospace">
                                     <option value="@AssistenciaTech.Models.WorkflowStatus.Recebido">@AssistenciaTech.Models.WorkflowStatus.Recebido</option>
                                     <option value="@AssistenciaTech.Models.WorkflowStatus.EmAnalise">@AssistenciaTech.Models.WorkflowStatus.EmAnalise</option>
                                     <option value="@AssistenciaTech.Models.WorkflowStatus.AguardandoAprovacao">@AssistenciaTech.Models.WorkflowStatus.AguardandoAprovacao</option>
@@ -154,68 +158,71 @@
                                     <option value="@AssistenciaTech.Models.WorkflowStatus.Concluido">@AssistenciaTech.Models.WorkflowStatus.Concluido</option>
                                     <option value="@AssistenciaTech.Models.WorkflowStatus.Entregue">@AssistenciaTech.Models.WorkflowStatus.Entregue</option>
                                 </select>
-                                <span asp-validation-for="Status" class="text-danger"></span>
+                                <span asp-validation-for="Status" class="text-danger small"></span>
                             </div>
                         </div>
 
-                        <div class="row mb-3">
+                        <div class="row g-3 mb-3">
                             <div class="col-md-4 form-group">
-                                <label asp-for="CustoPecas" class="form-label fw-bold">Custo de Peças (R$)</label>
-                                <input asp-for="CustoPecas" type="number" step="0.01" class="form-control custo-input" />
-                                <span asp-validation-for="CustoPecas" class="text-danger"></span>
+                                <label asp-for="CustoPecas" class="form-label small text-muted mb-1">Custo de Peças (R$)</label>
+                                <input asp-for="CustoPecas" type="number" step="0.01" class="form-control font-monospace custo-input" />
+                                <span asp-validation-for="CustoPecas" class="text-danger small"></span>
                             </div>
                             <div class="col-md-4 form-group">
-                                <label asp-for="CustoMaoDeObra" class="form-label fw-bold">Mão de Obra (R$)</label>
-                                <input asp-for="CustoMaoDeObra" type="number" step="0.01" class="form-control custo-input" />
-                                <span asp-validation-for="CustoMaoDeObra" class="text-danger"></span>
+                                <label asp-for="CustoMaoDeObra" class="form-label small text-muted mb-1">Mão de Obra (R$)</label>
+                                <input asp-for="CustoMaoDeObra" type="number" step="0.01" class="form-control font-monospace custo-input" />
+                                <span asp-validation-for="CustoMaoDeObra" class="text-danger small"></span>
                             </div>
                             <div class="col-md-4 form-group">
-                                <label asp-for="DescontoAplicado" class="form-label fw-bold">Desconto (R$)</label>
-                                <input asp-for="DescontoAplicado" type="number" step="0.01" class="form-control custo-input" />
-                                <span asp-validation-for="DescontoAplicado" class="text-danger"></span>
+                                <label asp-for="DescontoAplicado" class="form-label small text-muted mb-1">Desconto (R$)</label>
+                                <input asp-for="DescontoAplicado" type="number" step="0.01" class="form-control font-monospace custo-input" />
+                                <span asp-validation-for="DescontoAplicado" class="text-danger small"></span>
                             </div>
                         </div>
 
                         <!-- Seção de RMA / Terceirizado -->
-                        <div class="card bg-light mb-3">
-                            <div class="card-body">
-                                <h6 class="card-title fw-bold">RMA / Serviço Terceirizado</h6>
-                                <div class="form-check form-switch mb-3">
+                        <div class="p-3 rounded-2 border border-secondary border-opacity-25 bg-body-tertiary mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="fw-semibold small">RMA / Serviço Terceirizado</div>
+                                <div class="form-check form-switch mb-0">
                                     <input class="form-check-input" type="checkbox" asp-for="EnviadoParaTerceiro" id="switchRma">
-                                    <label class="form-check-label" for="switchRma">Foi enviado para parceiro/laboratório?</label>
+                                    <label class="form-check-label small" for="switchRma">Enviado para parceiro</label>
                                 </div>
-                                <div class="row" id="divRma" style="display: @(Model.EnviadoParaTerceiro ? "flex" : "none")">
-                                    <div class="col-md-4 form-group">
-                                        <label asp-for="NomeParceiro" class="form-label">Nome do Parceiro</label>
-                                        <input asp-for="NomeParceiro" class="form-control" />
-                                    </div>
-                                    <div class="col-md-4 form-group">
-                                        <label asp-for="CustoTerceirizado" class="form-label">Custo (R$)</label>
-                                        <input asp-for="CustoTerceirizado" class="form-control" type="number" step="0.01" />
-                                    </div>
-                                    <div class="col-md-4 form-group">
-                                        <label asp-for="PrevisaoRetornoParceiro" class="form-label">Previsão Retorno</label>
-                                        <input asp-for="PrevisaoRetornoParceiro" class="form-control" type="date" />
-                                    </div>
+                            </div>
+                            <div class="row g-3" id="divRma" style="display: @(Model.EnviadoParaTerceiro ? "flex" : "none")">
+                                <div class="col-md-4 form-group">
+                                    <label asp-for="NomeParceiro" class="form-label small text-muted mb-1">Nome do Parceiro</label>
+                                    <input asp-for="NomeParceiro" class="form-control" />
+                                </div>
+                                <div class="col-md-4 form-group">
+                                    <label asp-for="CustoTerceirizado" class="form-label small text-muted mb-1">Custo (R$)</label>
+                                    <input asp-for="CustoTerceirizado" class="form-control font-monospace" type="number" step="0.01" />
+                                </div>
+                                <div class="col-md-4 form-group">
+                                    <label asp-for="PrevisaoRetornoParceiro" class="form-label small text-muted mb-1">Previsão Retorno</label>
+                                    <input asp-for="PrevisaoRetornoParceiro" class="form-control font-monospace" type="date" />
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="row mb-3">
-                            <div class="col-md-6 text-start">
-                                <button type="submit" formaction="/Faturamentos/GerarDaOS?osId=@Model.Id" formmethod="post" class="btn btn-outline-success">
-                                    <i class="bi bi-qr-code"></i> Gerar Cobrança PIX
+                        <div class="p-3 bg-body-tertiary rounded-2 mb-4 d-flex justify-content-between align-items-center">
+                            <div>
+                                <button type="submit" formaction="/Faturamentos/GerarDaOS?osId=@Model.Id" formmethod="post" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-qr-code me-1"></i>Gerar Cobrança PIX
                                 </button>
                             </div>
-                            <div class="col-md-6 text-end">
-                                <h4 class="fw-bold">Total: <span id="valorTotalDisplay" class="text-success">R$ 0,00</span></h4>
+                            <div class="h5 mb-0 font-monospace text-primary fw-bold">
+                                Total: <span id="valorTotalDisplay">R$ 0,00</span>
                             </div>
                         </div>
 
-                        <hr />
-                        <div class="d-flex justify-content-between">
-                            <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
-                            <button type="submit" class="btn btn-warning"><i class="bi bi-arrow-repeat"></i> Atualizar Ordem</button>
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top border-secondary border-opacity-25">
+                            <a asp-action="Index" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i>Voltar ao painel
+                            </a>
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-check2-circle me-1"></i>Salvar alterações
+                            </button>
                         </div>
                     </form>
                 </div>

@@ -2,6 +2,7 @@
     string telaPreferida = Context.Request.Cookies["TechOS_TelaInicial"] ?? "Bancada";
     bool isAuthenticated = User.Identity != null && User.Identity.IsAuthenticated;
     bool isCliente = isAuthenticated && User.IsInRole("Cliente");
+    var currentPath = Context.Request.Path;
 }
 <!DOCTYPE html>
 <html lang="pt-br" data-bs-theme="dark">
@@ -19,7 +20,7 @@
 <body class="d-flex flex-column min-vh-100">
     <header class="layout-header">
         <nav class="navbar navbar-expand-lg navbar-dark navbar-custom py-2 mb-0">
-            <div class="container">
+            <div class="container-fluid px-lg-4">
                 <a class="navbar-brand brand-mark" asp-area="" asp-controller="Home" asp-action="Index" asp-route-tela="Bancada">
                     <i class="bi bi-cpu text-primary"></i>
                     <span>TechOS</span>
@@ -32,50 +33,50 @@
                 <div class="collapse navbar-collapse" id="navbarTechOs">
                     <ul class="navbar-nav me-auto gap-lg-1 ms-lg-3">
                         <li class="nav-item">
-                            <a class="nav-link px-2" asp-area="" asp-controller="Home" asp-action="Index" asp-route-tela="Bancada">Início</a>
+                            <a class="nav-link px-2 @(currentPath == "/" || currentPath.StartsWithSegments("/Home/Index") ? "active" : "")" asp-area="" asp-controller="Home" asp-action="Index" asp-route-tela="Bancada">Início</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link px-2" asp-area="" asp-controller="Home" asp-action="Servicos">Serviços</a>
+                            <a class="nav-link px-2 @(currentPath.StartsWithSegments("/Home/Servicos") ? "active" : "")" asp-area="" asp-controller="Home" asp-action="Servicos">Serviços</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link px-2" asp-area="" asp-controller="Consulta" asp-action="Index">Consultar OS</a>
+                            <a class="nav-link px-2 @(currentPath.StartsWithSegments("/Consulta") && !currentPath.StartsWithSegments("/Consulta/MeusEquipamentos") ? "active" : "")" asp-area="" asp-controller="Consulta" asp-action="Index">Consultar OS</a>
                         </li>
 
                         @if (isAuthenticated && !isCliente)
                         {
                             <li class="nav-item">
-                                <a class="nav-link px-2 text-success fw-medium" asp-area="" asp-controller="Pecas" asp-action="Index">
-                                    <i class="bi bi-box-seam me-1"></i>Estoque
+                                <a class="nav-link px-2 @(currentPath.StartsWithSegments("/Pecas") ? "active text-primary fw-medium" : "")" asp-area="" asp-controller="Pecas" asp-action="Index">
+                                    <i class="bi bi-box-seam me-1 text-muted"></i>Estoque
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link px-2 text-info fw-medium" asp-area="" asp-controller="Clientes" asp-action="Index">
-                                    <i class="bi bi-people me-1"></i>Clientes
+                                <a class="nav-link px-2 @(currentPath.StartsWithSegments("/Clientes") ? "active text-primary fw-medium" : "")" asp-area="" asp-controller="Clientes" asp-action="Index">
+                                    <i class="bi bi-people me-1 text-muted"></i>Clientes
                                 </a>
                             </li>
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle px-2 text-warning fw-medium" href="#" id="menuAdminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bi bi-speedometer2 me-1"></i>Painel Admin
+                                <a class="nav-link dropdown-toggle px-2 @(currentPath.StartsWithSegments("/Admin") || currentPath.StartsWithSegments("/Tecnicos") || currentPath.StartsWithSegments("/EquipamentoBackup") || currentPath.StartsWithSegments("/Faturamentos") ? "active text-primary fw-medium" : "")" href="#" id="menuAdminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-speedometer2 me-1 text-muted"></i>Painel Admin
                                 </a>
                                 <ul class="dropdown-menu workbench-dropdown shadow-lg" aria-labelledby="menuAdminDropdown">
                                     <li>
-                                        <a class="dropdown-item py-2" asp-area="" asp-controller="Admin" asp-action="Index">
+                                        <a class="dropdown-item py-2 @(currentPath.StartsWithSegments("/Admin") ? "active" : "")" asp-area="" asp-controller="Admin" asp-action="Index">
                                             <i class="bi bi-table me-2 text-primary"></i>Geral (OS)
                                         </a>
                                     </li>
                                     <li><hr class="dropdown-divider border-secondary my-1"></li>
                                     <li>
-                                        <a class="dropdown-item py-2" asp-area="" asp-controller="Tecnicos" asp-action="Index">
+                                        <a class="dropdown-item py-2 @(currentPath.StartsWithSegments("/Tecnicos") ? "active" : "")" asp-area="" asp-controller="Tecnicos" asp-action="Index">
                                             <i class="bi bi-person-badge me-2 text-primary"></i>Técnicos & Comissões
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item py-2" asp-area="" asp-controller="EquipamentoBackup" asp-action="Index">
+                                        <a class="dropdown-item py-2 @(currentPath.StartsWithSegments("/EquipamentoBackup") ? "active" : "")" asp-area="" asp-controller="EquipamentoBackup" asp-action="Index">
                                             <i class="bi bi-laptop me-2 text-primary"></i>Equipamentos de Backup
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item py-2" asp-area="" asp-controller="Faturamentos" asp-action="Index">
+                                        <a class="dropdown-item py-2 @(currentPath.StartsWithSegments("/Faturamentos") ? "active" : "")" asp-area="" asp-controller="Faturamentos" asp-action="Index">
                                             <i class="bi bi-cash-coin me-2 text-primary"></i>Faturamentos & PIX
                                         </a>
                                     </li>
@@ -85,8 +86,8 @@
                         else if (isCliente)
                         {
                             <li class="nav-item">
-                                <a class="nav-link px-2 text-info fw-medium" asp-area="" asp-controller="Consulta" asp-action="MeusEquipamentos">
-                                    <i class="bi bi-laptop me-1"></i>Meus Equipamentos
+                                <a class="nav-link px-2 @(currentPath.StartsWithSegments("/Consulta/MeusEquipamentos") ? "active text-primary fw-medium" : "")" asp-area="" asp-controller="Consulta" asp-action="MeusEquipamentos">
+                                    <i class="bi bi-laptop me-1 text-muted"></i>Meus Equipamentos
                                 </a>
                             </li>
                         }
@@ -193,7 +194,7 @@
     </main>
 
     <footer class="footer py-3 mt-auto">
-        <div class="container d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 small">
+        <div class="container-fluid px-lg-4 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 small">
             <div>
                 <span class="fw-semibold text-main">TechOS</span> · Oficina técnica de informática e manutenção de placas
             </div>

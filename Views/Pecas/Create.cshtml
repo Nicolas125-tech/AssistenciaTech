@@ -1,49 +1,61 @@
 @model AssistenciaTech.DTOs.PecaCreateDto
 
 @{
-    ViewData["Title"] = "Nova Peça";
+    ViewData["Title"] = "Nova Peça · TechOS";
 }
 
-<div class="container mt-5">
+<div class="container mt-4">
     <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow-sm border-0 rounded-lg">
-                <div class="card-header bg-primary text-white text-center py-3">
-                    <h5 class="mb-0">Adicionar Nova Peça ao Estoque</h5>
+        <div class="col-lg-8">
+            <div class="mb-3 d-flex justify-content-between align-items-center">
+                <span class="workbench-eyebrow">
+                    <i class="bi bi-box-seam"></i>
+                    <span>Entrada no Almoxarifado</span>
+                </span>
+                <a asp-action="Index" class="small text-muted text-decoration-none">
+                    <i class="bi bi-arrow-left me-1"></i> Voltar ao estoque
+                </a>
+            </div>
+
+            <div class="card workbench-panel">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h1 class="h5 mb-0 fw-semibold">Cadastrar Nova Peça</h1>
+                    <span class="font-monospace small text-muted">OFICINA</span>
                 </div>
-                <div class="card-body">
-                    <form asp-action="Create">
-                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-12 form-group">
-                                <label asp-for="Nome" class="form-label fw-bold">Nome da Peça</label>
-                                <input asp-for="Nome" class="form-control" placeholder="Ex: Tela iPhone 13, SSD 480GB Kingston" required />
-                                <span asp-validation-for="Nome" class="text-danger"></span>
+                <div class="card-body p-4">
+                    <form asp-action="Create" method="post">
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small mb-3"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="Nome" class="form-label">Descrição do componente</label>
+                            <input asp-for="Nome" class="form-control" placeholder="Ex: SSD NVMe 500GB Kingston, Cooler 120mm..." required />
+                            <span asp-validation-for="Nome" class="text-danger small"></span>
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                <label asp-for="QuantidadeEstoque" class="form-label">Quantidade em estoque</label>
+                                <input asp-for="QuantidadeEstoque" class="form-control font-monospace" type="number" min="0" required />
+                                <span asp-validation-for="QuantidadeEstoque" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="QuantidadeMinima" class="form-label">Estoque mínimo de alerta</label>
+                                <input asp-for="QuantidadeMinima" class="form-control font-monospace" type="number" min="0" />
+                                <span asp-validation-for="QuantidadeMinima" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="ValorUnitario" class="form-label">Preço unitário de venda (R$)</label>
+                                <input asp-for="ValorUnitario" class="form-control font-monospace" type="number" step="0.01" min="0" required />
+                                <span asp-validation-for="ValorUnitario" class="text-danger small"></span>
                             </div>
                         </div>
 
-                        <div class="row mb-3">
-                            <div class="col-md-4 form-group">
-                                <label asp-for="QuantidadeEstoque" class="form-label fw-bold">Qtd. Estoque</label>
-                                <input asp-for="QuantidadeEstoque" class="form-control" type="number" min="0" required />
-                                <span asp-validation-for="QuantidadeEstoque" class="text-danger"></span>
-                            </div>
-                            <div class="col-md-4 form-group">
-                                <label asp-for="QuantidadeMinima" class="form-label fw-bold">Qtd. Mínima (Alerta)</label>
-                                <input asp-for="QuantidadeMinima" class="form-control" type="number" min="0" />
-                                <span asp-validation-for="QuantidadeMinima" class="text-danger"></span>
-                            </div>
-                            <div class="col-md-4 form-group">
-                                <label asp-for="ValorUnitario" class="form-label fw-bold">Valor Unitário Venda</label>
-                                <input asp-for="ValorUnitario" class="form-control" type="number" step="0.01" min="0" required />
-                                <span asp-validation-for="ValorUnitario" class="text-danger"></span>
-                            </div>
-                        </div>
-
-                        <div class="d-flex justify-content-end mt-4">
-                            <a asp-action="Index" class="btn btn-secondary me-2">Cancelar</a>
-                            <button type="submit" class="btn btn-primary px-4"><i class="bi bi-save"></i> Salvar</button>
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top border-secondary">
+                            <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check2 me-1"></i> Salvar Peça
+                            </button>
                         </div>
                     </form>
                 </div>
