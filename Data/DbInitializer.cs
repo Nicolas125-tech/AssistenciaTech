@@ -36,10 +36,6 @@ namespace AssistenciaTech.Data
 
                 await SeedUsersAsync(context, config, logger);
             }
-            catch (InvalidOperationException)
-            {
-                throw;
-            }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Ocorreu um erro ao inicializar o banco de dados.");
@@ -180,22 +176,25 @@ namespace AssistenciaTech.Data
             var adminUser = config["AdminCredentials:Username"] ?? "admin";
             var adminHash = config["AdminCredentials:PasswordHash"];
 
-            if (string.IsNullOrEmpty(adminHash))
-            {
-                logger.LogCritical("CRITICAL SECURITY ERROR: The administrator password hash is not configured. Provide 'AdminCredentials:PasswordHash'.");
-                throw new InvalidOperationException("Missing required configuration: AdminCredentials:PasswordHash is not set.");
-            }
+            bool adminExiste = await context.Usuarios.AnyAsync(u => u.Username == adminUser);
 
-            if (!await context.Usuarios.AnyAsync(u => u.Username == adminUser))
+            if (!adminExiste)
             {
-                context.Usuarios.Add(new Usuario
+                if (string.IsNullOrEmpty(adminHash))
                 {
-                    Username = adminUser,
-                    PasswordHash = adminHash,
-                    Role = "Administrador"
-                });
-                await context.SaveChangesAsync();
-                logger.LogInformation("Usuário administrador padrão criado com sucesso.");
+                    logger.LogWarning("AdminCredentials:PasswordHash não está configurado. O usuário administrador padrão não foi inserido.");
+                }
+                else
+                {
+                    context.Usuarios.Add(new Usuario
+                    {
+                        Username = adminUser,
+                        PasswordHash = adminHash,
+                        Role = "Administrador"
+                    });
+                    await context.SaveChangesAsync();
+                    logger.LogInformation("Usuário administrador padrão criado com sucesso.");
+                }
             }
 
             var demoUsername = config["DemoCredentials:Username"] ?? "demo@assistenciatech.com";

@@ -53,7 +53,7 @@ namespace AssistenciaTech.Data.Tests
         }
 
         [Fact]
-        public async Task InitializeAsync_WhenAdminPasswordHashMissing_ShouldThrowInvalidOperationException()
+        public async Task InitializeAsync_WhenAdminPasswordHashMissing_ShouldNotThrowAndLogGracefully()
         {
             using var provider = BuildTestServiceProvider(new Dictionary<string, string?>
             {
@@ -62,8 +62,12 @@ namespace AssistenciaTech.Data.Tests
 
             Func<Task> act = async () => await DbInitializer.InitializeAsync(provider);
 
-            await act.Should().ThrowAsync<InvalidOperationException>()
-                .WithMessage("*AdminCredentials:PasswordHash*");
+            await act.Should().NotThrowAsync();
+
+            using var scope = provider.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var usuarios = await context.Usuarios.ToListAsync();
+            usuarios.Should().BeEmpty();
         }
     }
 }
