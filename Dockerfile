@@ -2,8 +2,9 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Copia o arquivo de projeto e restaura dependências (Camada de cache do Docker)
+# Copia os arquivos de projeto e restaura dependências (Camada de cache do Docker)
 COPY ["AssistenciaTech.csproj", "./"]
+COPY ["src/AssistenciaTech.Domain/AssistenciaTech.Domain.csproj", "src/AssistenciaTech.Domain/"]
 RUN dotnet restore "AssistenciaTech.csproj"
 
 # Copia o restante do código fonte e faz o build em modo Release

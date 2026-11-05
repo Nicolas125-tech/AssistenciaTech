@@ -95,6 +95,9 @@ if (!string.IsNullOrEmpty(connectionString) && (connectionString.StartsWith("pos
         if (connectionString.Contains("sslmode=require", StringComparison.OrdinalIgnoreCase))
         {
             connBuilder.SslMode = SslMode.Require;
+#pragma warning disable CS0618
+            connBuilder.TrustServerCertificate = true;
+#pragma warning restore CS0618
         }
 
         connectionString = connBuilder.ConnectionString;
@@ -181,7 +184,7 @@ app.UseRequestLocalization(localizationOptions);
 
 app.UseForwardedHeaders();
 
-// Inicialização formal do banco de dados (EF Core Migrations + Seed)
+// Inicialização segura do banco de dados (EnsureCreated + Schema updates idempotentes + Seed)
 await DbInitializer.InitializeAsync(app.Services);
 
 // Configure the HTTP request pipeline.
