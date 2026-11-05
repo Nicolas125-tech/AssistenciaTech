@@ -6,7 +6,9 @@ using AssistenciaTech.Models;
 using AssistenciaTech.DTOs;
 using AssistenciaTech.Services;
 using AssistenciaTech.ViewModels;
+using AssistenciaTech.Domain.States;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Text;
@@ -95,7 +97,7 @@ namespace AssistenciaTech.Controllers
             }
         }
 
-        public async Task<IActionResult> Index(string searchString, string statusFilter, int page = 1)
+        public async Task<IActionResult> Index(string? searchString, string? statusFilter, int page = 1)
         {
             var viewModel = new AdminDashboardViewModel
             {
@@ -105,7 +107,7 @@ namespace AssistenciaTech.Controllers
 
             if (TempData["ErroBanco"] != null)
             {
-                viewModel.ErroBanco = TempData["ErroBanco"].ToString();
+                viewModel.ErroBanco = TempData["ErroBanco"]?.ToString();
             }
 
             try
@@ -243,7 +245,7 @@ namespace AssistenciaTech.Controllers
         // POST: Admin/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, OrdemServico ordemServico, IFormFileCollection fotos)
+        public async Task<IActionResult> Edit(int id, OrdemServico ordemServico, IFormFileCollection? fotos)
         {
             if (id != ordemServico.Id) return NotFound();
 
@@ -353,7 +355,7 @@ namespace AssistenciaTech.Controllers
             return File(pdfBytes, "application/pdf", $"OS_{os.Id}_{os.Cliente?.Nome}.pdf");
         }
         [HttpGet]
-        public IActionResult GetEvidencia(string fileName)
+        public IActionResult GetEvidencia(string? fileName)
         {
             if (string.IsNullOrEmpty(fileName))
             {
@@ -455,12 +457,12 @@ namespace AssistenciaTech.Controllers
 
         private async Task<bool> ProcessWorkflowRulesAsync(OrdemServico ordemExistente, string statusAnterior, OrdemServico ordemServico)
         {
-            if (ordemExistente.Status == WorkflowStatus.Concluido && ordemExistente.DataConclusao == null)
+            if (ordemExistente.Status == WorkflowStatus.Concluido && OrdemServicoStateMachine.ExigeBaixaDeEstoque(statusAnterior, ordemExistente.Status, ordemExistente.DataConclusao))
             {
                 ordemExistente.DataConclusao = DateTime.UtcNow;
                 await _facade.Estoque.DeduzirEstoque(ordemExistente.Id);
             }
-            else if (statusAnterior == WorkflowStatus.Concluido && ordemExistente.Status != WorkflowStatus.Concluido && ordemExistente.Status != WorkflowStatus.Entregue)
+            else if (OrdemServicoStateMachine.ExigeEstornoDeEstoque(statusAnterior, ordemExistente.Status))
             {
                 ordemExistente.DataConclusao = null;
                 await _facade.Estoque.RestaurarEstoque(ordemExistente.Id);
@@ -471,9 +473,10 @@ namespace AssistenciaTech.Controllers
                 if (ordemExistente.EquipamentoBackupId.HasValue)
                 {
                     var backup = await _context.EquipamentosBackup.FindAsync(ordemExistente.EquipamentoBackupId);
-                    if (backup != null && backup.Disponivel == false)
+                    bool possuiBackupNaoDevolvido = backup != null && backup.Disponivel == false;
+                    if (!OrdemServicoStateMachine.ValidarTransicao(statusAnterior, ordemExistente.Status, possuiBackupNaoDevolvido, backup?.Descricao, out var erroDominio))
                     {
-                        ModelState.AddModelError(string.Empty, $"O status não pode ser 'Entregue' até que o equipamento '{backup.Descricao}' seja devolvido no sistema.");
+                        ModelState.AddModelError(string.Empty, erroDominio!);
                         return false;
                     }
                 }
@@ -516,7 +519,7 @@ namespace AssistenciaTech.Controllers
             ViewBag.Contratos = new SelectList(contratos, "Id", "NomeDesc", ordemServico.ContratoId);
         }
 
-        private async Task ProcessEvidenciaUploadsAsync(OrdemServico ordemExistente, IFormFileCollection fotos)
+        private async Task ProcessEvidenciaUploadsAsync(OrdemServico ordemExistente, IFormFileCollection? fotos)
         {
             if (fotos != null && fotos.Count > 0)
             {

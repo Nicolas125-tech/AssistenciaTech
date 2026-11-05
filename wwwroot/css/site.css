@@ -153,7 +153,14 @@ body {
 .form-control:focus, .form-select:focus {
     background-color: rgba(0, 0, 0, 0.35) !important;
     border-color: var(--bs-primary) !important;
+    color: var(--tech-text-main) !important;
     box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.2) !important;
+}
+
+/* Corrige o fundo e texto das opções nos dropdowns (Selects) */
+option {
+    background-color: var(--tech-surface) !important;
+    color: var(--tech-text-main) !important;
 }
 
 /* Badges e Status */
@@ -214,28 +221,6 @@ body {
 }
 .card.bg-danger {
     border-left: 4px solid #EF4444 !important;
-}
-
-/* Elementos de Formulário */
-.form-control, .form-select {
-    background-color: rgba(0, 0, 0, 0.2) !important;
-    border: 1px solid var(--tech-border) !important;
-    color: var(--tech-text-main) !important;
-    border-radius: 8px !important;
-    padding: 0.6rem 1rem !important;
-    transition: all 0.2s ease-in-out;
-}
-.form-control:focus, .form-select:focus {
-    background-color: rgba(0, 0, 0, 0.35) !important;
-    border-color: var(--bs-primary) !important;
-    color: var(--tech-text-main) !important;
-    box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.2) !important;
-}
-
-/* Corrige o fundo e texto das opções nos dropdowns (Selects) */
-option {
-    background-color: var(--tech-surface) !important;
-    color: var(--tech-text-main) !important;
 }
 
 /* Tabelas Premium */
@@ -306,3 +291,107 @@ footer {
     border-top: 1px solid var(--tech-border) !important;
 }
 
+/* === Quadro Kanban Interativo & View Switcher (Fase 2) === */
+.view-switcher-group {
+    background-color: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--tech-border);
+    border-radius: 10px;
+    padding: 4px;
+    display: inline-flex;
+    gap: 4px;
+}
+
+.view-switcher-btn {
+    border-radius: 7px !important;
+    padding: 0.35rem 0.9rem !important;
+    font-size: 0.85rem;
+    color: var(--tech-text-muted) !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.view-switcher-btn.active {
+    background: var(--bs-primary-gradient) !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(0, 82, 204, 0.35) !important;
+}
+
+.kanban-board {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    padding-bottom: 1rem;
+    align-items: flex-start;
+}
+
+.kanban-column {
+    min-width: 290px;
+    max-width: 320px;
+    flex: 1 0 290px;
+    background-color: rgba(11, 15, 25, 0.65);
+    border: 1px solid var(--tech-border);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    max-height: 680px;
+}
+
+.kanban-column-header {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--tech-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.02);
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}
+
+.kanban-column-body {
+    padding: 0.75rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.kanban-card {
+    background-color: var(--tech-surface);
+    border: 1px solid var(--tech-border);
+    border-radius: 10px;
+    padding: 0.9rem;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.kanban-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(56, 189, 248, 0.35);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.kanban-card.priority-urgent {
+    border-left: 3px solid #EF4444;
+}
+
+.kanban-card.priority-high {
+    border-left: 3px solid #F59E0B;
+}
+
+.kanban-empty {
+    padding: 2rem 1rem;
+    text-align: center;
+    color: var(--tech-text-muted);
+    font-size: 0.85rem;
+    border: 1px dashed rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+}
+
+/* Toasts Flutuantes */
+.toast-tech {
+    background-color: rgba(21, 27, 38, 0.96) !important;
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--tech-border) !important;
+    color: var(--tech-text-main) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+}

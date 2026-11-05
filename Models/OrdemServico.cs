@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using AssistenciaTech.Domain.Interfaces;
+using AssistenciaTech.Domain.States;
 
 namespace AssistenciaTech.Models
 {
@@ -134,5 +137,11 @@ namespace AssistenciaTech.Models
 
         [NotMapped]
         public bool AparelhoAbandonado => Status == "Concluído" && DataConclusao.HasValue && !DataEntregaCliente.HasValue && (DateTime.UtcNow - DataConclusao.Value).TotalDays > 90;
+
+        /// <summary>
+        /// Representação do estado atual via State Pattern da camada de Domínio.
+        /// </summary>
+        [NotMapped]
+        public IOrdemServicoState EstadoDominio => OrdemServicoStateMachine.ResolverEstado(Status);
     }
 }

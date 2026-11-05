@@ -6,11 +6,10 @@ namespace AssistenciaTech.Data
 {
     /// <summary>
     /// Contexto do banco de dados do Entity Framework Core.
-    /// Gerencia a conexão com o banco e o mapeamento das entidades.
+    /// Gerencia a conexão com o banco e o mapeamento das entidades via Fluent API.
     /// </summary>
     public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options), IDataProtectionKeyContext
     {
-
         // Representação das tabelas no banco de dados
         public DbSet<Cliente> Clientes { get; set; }
         public virtual DbSet<OrdemServico> OrdensServico { get; set; }
@@ -34,10 +33,7 @@ namespace AssistenciaTech.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Mapeamento extra (Fluent API), se necessário
-            modelBuilder.Entity<OrdemServico>()
-                .Property(o => o.ValorOrcamento)
-                .HasColumnType("decimal(18,2)");
+            modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
         }
     }
 }

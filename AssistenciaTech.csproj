@@ -26,6 +26,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="src\AssistenciaTech.Domain\AssistenciaTech.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Remove="src/**" />
     <Compile Remove="tests/**" />
     <Content Remove="tests/**" />
