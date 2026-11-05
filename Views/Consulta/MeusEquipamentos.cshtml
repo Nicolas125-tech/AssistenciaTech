@@ -1,7 +1,7 @@
 @model IEnumerable<AssistenciaTech.Models.OrdemServico>
 
 @{
-    ViewData["Title"] = "Meus Equipamentos";
+    ViewData["Title"] = "Meus Equipamentos · TechOS";
 }
 
 <div class="container mt-4 mt-lg-5">
@@ -10,18 +10,19 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h1 class="h3 fw-bold mb-1"><i class="bi bi-laptop text-primary me-1"></i> Meus Equipamentos</h1>
-                    <p class="text-muted small mb-0">Histórico e andamento das ordens de serviço vinculadas ao seu cadastro</p>
+                    <p class="text-muted small mb-0">Ordens de serviço registradas para o seu e-mail</p>
                 </div>
                 <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
                     <button type="submit" class="btn btn-outline-secondary btn-sm">
-                        Encerrar sessão <i class="bi bi-box-arrow-right ms-1"></i>
+                        Sair da conta <i class="bi bi-box-arrow-right ms-1"></i>
                     </button>
                 </form>
             </div>
 
             <div class="card workbench-panel overflow-hidden">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-list-task text-primary me-2"></i>Ordens de Serviço Registradas</span>
+                    <span><i class="bi bi-list-task text-primary me-2"></i>Ordens de serviço</span>
                     <span class="font-monospace small text-muted">@Model.Count() registro(s)</span>
                 </div>
                 <div class="card-body p-0">
@@ -42,7 +43,7 @@
                                         <th>Equipamento</th>
                                         <th>Entrada</th>
                                         <th>Status</th>
-                                        <th class="text-end pe-4">Ficha</th>
+                                        <th class="text-end pe-4">Detalhes</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -66,7 +67,7 @@
                                                 <span class="d-block fw-semibold">@os.Equipamento</span>
                                                 @if (!string.IsNullOrEmpty(os.NumeroSerie))
                                                 {
-                                                    <small class="font-monospace text-muted">S/N: @os.NumeroSerie</small>
+                                                    <small class="font-monospace text-muted">NS: @os.NumeroSerie</small>
                                                 }
                                             </td>
                                             <td class="font-monospace small">@os.DataEntrada.ToString("dd/MM/yyyy HH:mm")</td>
@@ -89,7 +90,7 @@
 
             <div class="text-center mt-3">
                 <small class="text-muted font-monospace">
-                    Titular autenticado: <strong>@User.Identity?.Name</strong> (@User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value)
+                    Cliente identificado: <strong>@User.Identity?.Name</strong> (@User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value)
                 </small>
             </div>
         </div>

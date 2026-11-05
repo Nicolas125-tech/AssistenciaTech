@@ -55,7 +55,7 @@
                 <i class="bi bi-check2-circle text-success"></i>
             </div>
             <div class="telemetry-value text-success">@Model.DashboardData.EquipamentosProntos</div>
-            <div class="small text-muted mt-1">Reparos concluídos aguardando cliente</div>
+            <div class="small text-muted mt-1">Reparos concluídos aguardando o cliente</div>
         </div>
         <div class="telemetry-cell">
             <div class="telemetry-label">
@@ -73,12 +73,12 @@
                 <div class="col-md-5 col-sm-12">
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" name="searchString" class="form-control font-monospace" placeholder="Buscar por Cliente, Equipamento, NS ou Nº OS..." value="@Model.SearchString" />
+                        <input type="text" name="searchString" class="form-control font-monospace" placeholder="Buscar por cliente, equipamento, número de série ou OS..." value="@Model.SearchString" />
                     </div>
                 </div>
                 <div class="col-md-4 col-sm-8">
                     <select name="statusFilter" class="form-select">
-                        <option value="">Todos os Status do Fluxo</option>
+                        <option value="">Todos os status do fluxo</option>
                         <option value="@AssistenciaTech.Models.WorkflowStatus.Recebido" selected="@(Model.StatusFilter == AssistenciaTech.Models.WorkflowStatus.Recebido)">Recebido</option>
                         <option value="@AssistenciaTech.Models.WorkflowStatus.EmAnalise" selected="@(Model.StatusFilter == AssistenciaTech.Models.WorkflowStatus.EmAnalise)">Em Análise</option>
                         <option value="@AssistenciaTech.Models.WorkflowStatus.AguardandoAprovacao" selected="@(Model.StatusFilter == AssistenciaTech.Models.WorkflowStatus.AguardandoAprovacao)">Aguardando Aprovação do Orçamento</option>
@@ -206,8 +206,8 @@
                                     <td colspan="7" class="text-center py-5 text-muted">
                                         <i class="bi bi-inbox fs-2 d-block mb-2"></i>
                                         <div class="fw-semibold">Nenhuma Ordem de Serviço encontrada</div>
-                                        <p class="small mb-3">As OS cadastradas ou filtradas aparecerão aqui.</p>
-                                        <a asp-action="Create" class="btn btn-sm btn-primary"><i class="bi bi-plus-circle me-1"></i> Cadastrar Primeira OS</a>
+                                        <p class="small mb-3">As ordens cadastradas ou filtradas aparecerão aqui.</p>
+                                        <a asp-action="Create" class="btn btn-sm btn-primary"><i class="bi bi-plus-circle me-1"></i> Cadastrar primeira OS</a>
                                     </td>
                                 </tr>
                             }
@@ -277,13 +277,14 @@
                                                 <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary" title="Editar">
                                                     <i class="bi bi-pencil-square"></i> Editar
                                                 </a>
-                                                <a href="https://wa.me/55@(item.Cliente?.Telefone != null ? new string(item.Cliente.Telefone.Where(char.IsDigit).ToArray()) : string.Empty)?text=Ol%C3%A1%2C%20gostaria%20de%20atualizar%20sobre%20a%20Ordem%20de%20Servi%C3%A7o%20%23@item.Id%20do%20equipamento%20@Uri.EscapeDataString(item.Equipamento)." class="btn btn-sm btn-outline-secondary" target="_blank" title="Enviar WhatsApp">
+                                                <a href="https://wa.me/55@(item.Cliente?.Telefone != null ? new string(item.Cliente.Telefone.Where(char.IsDigit).ToArray()) : string.Empty)?text=Ol%C3%A1%2C%20atualiza%C3%A7%C3%A3o%20sobre%20a%20OS%20%23@item.Id%20do%20equipamento%20@Uri.EscapeDataString(item.Equipamento)." class="btn btn-sm btn-outline-secondary" target="_blank" title="Enviar WhatsApp">
                                                     <i class="bi bi-whatsapp"></i> WhatsApp
                                                 </a>
                                                 <a asp-action="ImprimirOs" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary" target="_blank" title="Imprimir Recibo">
                                                     <i class="bi bi-printer"></i> Imprimir
                                                 </a>
-                                                <form asp-action="Delete" asp-route-id="@item.Id" method="post" onsubmit="return confirm('Tem certeza que deseja excluir a OS #@item.Id?');">
+                                                <form asp-action="Delete" asp-route-id="@item.Id" method="post" onsubmit="return confirm('Confirmar exclusão da OS #@item.Id?');">
+                                                    @Html.AntiForgeryToken()
                                                     <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir">
                                                         <i class="bi bi-trash"></i>
                                                     </button>
@@ -321,7 +322,7 @@
                                 {
                                     <div class="kanban-empty">
                                         <i class="bi bi-dash-circle d-block mb-1"></i>
-                                        Sem OS nesta etapa
+                                        Sem ordens nesta etapa
                                     </div>
                                 }
                                 else
@@ -349,7 +350,7 @@
                                             </div>
                                             <div class="fw-semibold mb-1">@card.Equipamento</div>
                                             <div class="small text-muted mb-2">
-                                                <i class="bi bi-person me-1"></i>@(card.Cliente?.Nome ?? "Cliente N/D")
+                                                <i class="bi bi-person me-1"></i>@(card.Cliente?.Nome ?? "Cliente não informado")
                                             </div>
                                             @if (!string.IsNullOrEmpty(card.NumeroSerie))
                                             {
@@ -364,7 +365,7 @@
                                                     <a asp-action="Edit" asp-route-id="@card.Id" class="btn btn-sm btn-outline-primary px-2 py-1" title="Abrir OS #@card.Id">
                                                         <i class="bi bi-pencil-square"></i>
                                                     </a>
-                                                    <a asp-action="ImprimirOs" asp-route-id="@card.Id" target="_blank" class="btn btn-sm btn-outline-secondary px-2 py-1" title="Imprimir PDF">
+                                                    <a asp-action="ImprimirOs" asp-route-id="@card.Id" target="_blank" class="btn btn-sm btn-outline-secondary px-2 py-1" title="Imprimir recibo">
                                                         <i class="bi bi-printer"></i>
                                                     </a>
                                                 </div>

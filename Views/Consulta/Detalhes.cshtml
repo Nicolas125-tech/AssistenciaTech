@@ -1,7 +1,7 @@
 @model AssistenciaTech.Models.OrdemServico
 
 @{
-    ViewData["Title"] = $"Ficha Técnica OS #{Model.Id}";
+    ViewData["Title"] = $"Ordem de Serviço #{Model.Id}";
 
     string statusBadgeClass = Model.Status switch
     {
@@ -22,14 +22,14 @@
             <div class="card workbench-panel">
                 <div class="card-header d-flex justify-content-between align-items-center py-3">
                     <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-file-earmark-medical text-primary"></i>
+                        <i class="bi bi-file-earmark-text text-primary"></i>
                         <h1 class="h5 mb-0 fw-semibold">Ordem de Serviço <span class="font-monospace">#@Model.Id</span></h1>
                     </div>
                     <span class="badge @statusBadgeClass">@Model.Status</span>
                 </div>
                 <div class="card-body p-4">
                     <div class="row g-3">
-                        <div class="col-sm-4 text-muted small">Titular</div>
+                        <div class="col-sm-4 text-muted small">Cliente</div>
                         <div class="col-sm-8 fw-medium">@Model.Cliente?.Nome</div>
 
                         <div class="col-12"><hr class="my-1 border-secondary" /></div>
@@ -39,42 +39,42 @@
 
                         @if (!string.IsNullOrWhiteSpace(Model.NumeroSerie))
                         {
-                            <div class="col-sm-4 text-muted small">Número de Série</div>
+                            <div class="col-sm-4 text-muted small">Número de série</div>
                             <div class="col-sm-8 font-monospace">@Model.NumeroSerie</div>
                         }
 
                         <div class="col-12"><hr class="my-1 border-secondary" /></div>
 
-                        <div class="col-sm-4 text-muted small">Sintoma Relatado</div>
+                        <div class="col-sm-4 text-muted small">Defeito informado</div>
                         <div class="col-sm-8">@Model.ProblemaRelatado</div>
 
                         @if (!string.IsNullOrWhiteSpace(Model.LaudoTecnico))
                         {
-                            <div class="col-sm-4 text-muted small">Laudo de Bancada</div>
+                            <div class="col-sm-4 text-muted small">Laudo da bancada</div>
                             <div class="col-sm-8">@Model.LaudoTecnico</div>
                         }
 
                         <div class="col-12"><hr class="my-1 border-secondary" /></div>
 
-                        <div class="col-sm-4 text-muted small">Entrada na Oficina</div>
+                        <div class="col-sm-4 text-muted small">Data de entrada</div>
                         <div class="col-sm-8 font-monospace">@Model.DataEntrada.ToString("dd/MM/yyyy HH:mm")</div>
 
                         @if (Model.DataConclusao.HasValue)
                         {
-                            <div class="col-sm-4 text-muted small">Conclusão Técnica</div>
+                            <div class="col-sm-4 text-muted small">Conclusão do reparo</div>
                             <div class="col-sm-8 font-monospace">@Model.DataConclusao.Value.ToString("dd/MM/yyyy HH:mm")</div>
                         }
 
                         @if (Model.DataEntregaCliente.HasValue)
                         {
-                            <div class="col-sm-4 text-muted small">Retirada pelo Cliente</div>
+                            <div class="col-sm-4 text-muted small">Entrega ao cliente</div>
                             <div class="col-sm-8 font-monospace">@Model.DataEntregaCliente.Value.ToString("dd/MM/yyyy HH:mm")</div>
                         }
 
                         @if (Model.ValorOrcamento > 0)
                         {
                             <div class="col-12"><hr class="my-1 border-secondary" /></div>
-                            <div class="col-sm-4 text-muted small">Orçamento Registrado</div>
+                            <div class="col-sm-4 text-muted small">Valor do orçamento</div>
                             <div class="col-sm-8 font-monospace fw-bold text-primary fs-5">@Model.ValorOrcamento.ToString("C")</div>
                         }
                     </div>
@@ -92,7 +92,7 @@
                             <i class="bi bi-arrow-left me-1"></i> Nova consulta
                         </a>
                     }
-                    <a href="https://wa.me/5549999999999?text=Ol%C3%A1,%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20a%20OS%20%23@Model.Id" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">
+                    <a href="https://wa.me/5543984445767?text=Ol%C3%A1,%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20a%20OS%20%23@Model.Id" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">
                         <i class="bi bi-whatsapp me-1"></i> Falar sobre a OS #@Model.Id
                     </a>
                 </div>

@@ -1,0 +1,63 @@
+@{
+    ViewData["Title"] = "Acesso do Cliente";
+}
+
+<div class="container mt-4 mt-lg-5">
+    <div class="row justify-content-center">
+        <div class="col-md-7 col-lg-5">
+            <div class="mb-3 d-flex justify-content-between align-items-center">
+                <span class="workbench-eyebrow">
+                    <i class="bi bi-person-check"></i>
+                    <span>Área do Cliente</span>
+                </span>
+                <a asp-controller="Consulta" asp-action="Index" class="small text-muted text-decoration-none">
+                    <i class="bi bi-search me-1"></i> Consultar por número de OS
+                </a>
+            </div>
+
+            <div class="card workbench-panel">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h1 class="h5 mb-0 fw-semibold">Meus Equipamentos</h1>
+                    <span class="font-monospace small text-muted">HISTÓRICO</span>
+                </div>
+                <div class="card-body p-4">
+                    <p class="text-muted small mb-4">
+                        Digite o e-mail cadastrado na entrada do seu equipamento para listar todas as suas ordens de serviço ativas e concluídas.
+                    </p>
+
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger py-2 small">
+                            @Html.ValidationSummary(false, "", new { @class = "mb-0" })
+                        </div>
+                    }
+
+                    <form asp-controller="Account" asp-action="LoginCliente" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+
+                        <div class="mb-4">
+                            <label for="emailCliente" class="form-label">Seu e-mail</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                <input type="email" class="form-control" id="emailCliente" name="email" placeholder="nome@exemplo.com" required autofocus autocomplete="email">
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary py-2">
+                                <i class="bi bi-arrow-right-circle me-1"></i> Acessar meus equipamentos
+                            </button>
+                            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary py-2">
+                                Voltar para o início
+                            </a>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer px-4 py-3 small text-muted">
+                    Precisa de suporte com o seu cadastro? Entre em contato diretamente pelo WhatsApp da oficina.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

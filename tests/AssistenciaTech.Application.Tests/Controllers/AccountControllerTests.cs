@@ -163,6 +163,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
             ((string)_controller.ViewBag.Error).Should().Be("Usuário ou senha incorretos. Acesso negado.");
         }
+
         [Fact]
         public void NeonCallback_ReturnsViewResult()
         {
@@ -171,10 +172,9 @@ namespace AssistenciaTech.Application.Tests.Controllers
 
             // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
-            viewResult.ViewName.Should().BeNull(); // Uses default view
+            viewResult.ViewName.Should().BeNull();
             viewResult.ViewData.Should().NotBeNull();
         }
-
 
         [Fact]
         public async Task Logout_CallsSignOutAsyncAndRedirectsToHomeIndex()
@@ -244,6 +244,95 @@ namespace AssistenciaTech.Application.Tests.Controllers
             var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
             redirectResult.ActionName.Should().Be("Index");
             redirectResult.ControllerName.Should().Be("Admin");
+        }
+
+        [Fact]
+        public void LoginCliente_Get_WhenNotAuthenticated_ReturnsViewResult()
+        {
+            // Act
+            var result = _controller.LoginCliente();
+
+            // Assert
+            result.Should().BeOfType<ViewResult>();
+        }
+
+        [Fact]
+        public void LoginCliente_Get_WhenAuthenticatedAsCliente_RedirectsToMeusEquipamentos()
+        {
+            // Arrange
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, "Maria"),
+                new Claim(ClaimTypes.Role, "Cliente")
+            };
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var principal = new ClaimsPrincipal(identity);
+
+            var mockHttpContext = new Mock<HttpContext>();
+            mockHttpContext.Setup(c => c.User).Returns(principal);
+
+            var controller = new AccountController(_mockConfig.Object, _context)
+            {
+                ControllerContext = new ControllerContext { HttpContext = mockHttpContext.Object }
+            };
+
+            // Act
+            var result = controller.LoginCliente();
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectResult.ActionName.Should().Be("MeusEquipamentos");
+            redirectResult.ControllerName.Should().Be("Consulta");
+        }
+
+        [Fact]
+        public async Task LoginCliente_Post_WhenEmailIsEmpty_ReturnsViewResultWithModelError()
+        {
+            // Act
+            var result = await _controller.LoginClientePost("");
+
+            // Assert
+            result.Should().BeOfType<ViewResult>();
+            _controller.ModelState.IsValid.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task LoginCliente_Post_WhenClienteNotFound_ReturnsViewResultWithModelError()
+        {
+            // Act
+            var result = await _controller.LoginClientePost("naoexiste@email.com");
+
+            // Assert
+            result.Should().BeOfType<ViewResult>();
+            _controller.ModelState.IsValid.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task LoginCliente_Post_WhenClienteExists_SignsInAndRedirectsToMeusEquipamentos()
+        {
+            // Arrange
+            var cliente = new Cliente
+            {
+                Nome = "Carlos da Silva",
+                Cpf = "12345678900",
+                Telefone = "43999999999",
+                Email = "carlos@email.com"
+            };
+            _context.Clientes.Add(cliente);
+            await _context.SaveChangesAsync();
+            _context.ChangeTracker.Clear();
+
+            // Act
+            var result = await _controller.LoginClientePost("carlos@email.com");
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirectResult.ActionName.Should().Be("MeusEquipamentos");
+            redirectResult.ControllerName.Should().Be("Consulta");
+
+            _mockAuthService.Verify(
+                x => x.SignInAsync(It.IsAny<HttpContext>(), CookieAuthenticationDefaults.AuthenticationScheme, It.IsAny<ClaimsPrincipal>(), It.IsAny<AuthenticationProperties>()),
+                Times.Once);
         }
 
         public void Dispose()

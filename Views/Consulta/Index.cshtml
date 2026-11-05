@@ -8,22 +8,22 @@
         <div class="col-md-7 col-lg-5">
             <div class="mb-3 d-flex justify-content-between align-items-center">
                 <span class="workbench-eyebrow">
-                    <i class="bi bi-upc-scan"></i>
-                    <span>Terminal de Rastreamento</span>
+                    <i class="bi bi-search"></i>
+                    <span>Consulta de Bancada</span>
                 </span>
                 <a asp-controller="Home" asp-action="Index" asp-route-tela="Bancada" class="small text-muted text-decoration-none">
-                    <i class="bi bi-grid-1x2 me-1"></i> Ir para a Bancada
+                    <i class="bi bi-grid-1x2 me-1"></i> Ir para a bancada
                 </a>
             </div>
 
             <div class="card workbench-panel">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h1 class="h5 mb-0 fw-semibold">Consultar Ordem de Serviço</h1>
-                    <span class="font-monospace small text-muted">TECH-OS</span>
+                    <span class="font-monospace small text-muted">OFICINA</span>
                 </div>
                 <div class="card-body p-4">
                     <p class="text-muted small mb-4">
-                        Informe o número impresso no comprovante de entrada e o CPF do titular para visualizar o laudo técnico e a etapa atual do equipamento.
+                        Informe o número da sua OS e o CPF cadastrado para ver o laudo do técnico e a situação do seu conserto.
                     </p>
 
                     @if (!ViewData.ModelState.IsValid)
@@ -34,6 +34,8 @@
                     }
 
                     <form asp-controller="Consulta" asp-action="Status" method="post">
+                        @Html.AntiForgeryToken()
+
                         <div class="mb-3">
                             <label for="numeroOS" class="form-label">Número da OS</label>
                             <div class="input-group">
@@ -43,35 +45,35 @@
                         </div>
 
                         <div class="mb-4">
-                            <label for="cpf" class="form-label">CPF do Cliente</label>
+                            <label for="cpf" class="form-label">CPF do titular</label>
                             <input type="text" class="form-control font-monospace" id="cpf" name="cpf" placeholder="000.000.000-00" required maxlength="14">
                         </div>
 
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary py-2">
-                                <i class="bi bi-search me-1"></i> Consultar Status
+                                <i class="bi bi-search me-1"></i> Consultar andamento
                             </button>
                             <a asp-controller="Account" asp-action="LoginCliente" class="btn btn-outline-secondary py-2">
-                                <i class="bi bi-envelope-at me-1"></i> Receber link de acesso por e-mail
+                                <i class="bi bi-envelope me-1"></i> Acessar todos os meus equipamentos por e-mail
                             </a>
                         </div>
                     </form>
                 </div>
                 <div class="card-footer px-4 py-2 d-flex justify-content-between align-items-center small">
-                    <span class="text-muted">Tela padrão ao abrir o site:</span>
+                    <span class="text-muted">Abrir esta tela ao entrar no site:</span>
                     <form asp-controller="Home" asp-action="DefinirTelaInicial" method="post" class="d-inline">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="returnUrl" value="/Consulta" />
                         @if (telaPreferida == "Consulta")
                         {
                             <button type="submit" name="telaInicial" value="Bancada" class="btn btn-link btn-sm p-0 text-decoration-none text-primary">
-                                Alterar para Bancada Completa
+                                Mudar para bancada completa
                             </button>
                         }
                         else
                         {
                             <button type="submit" name="telaInicial" value="Consulta" class="btn btn-link btn-sm p-0 text-decoration-none text-primary">
-                                Fixar esta tela como inicial
+                                Manter como tela inicial
                             </button>
                         }
                     </form>

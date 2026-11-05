@@ -1,12 +1,14 @@
 @{
     string telaPreferida = Context.Request.Cookies["TechOS_TelaInicial"] ?? "Bancada";
+    bool isAuthenticated = User.Identity != null && User.Identity.IsAuthenticated;
+    bool isCliente = isAuthenticated && User.IsInRole("Cliente");
 }
 <!DOCTYPE html>
 <html lang="pt-br" data-bs-theme="dark">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] · TechOS Laboratório Técnico</title>
+    <title>@ViewData["Title"] · TechOS Laboratório</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -15,57 +17,124 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body class="d-flex flex-column min-vh-100">
-    <header>
+    <header class="layout-header">
         <nav class="navbar navbar-expand-lg navbar-dark navbar-custom py-2 mb-0">
             <div class="container">
                 <a class="navbar-brand brand-mark" asp-area="" asp-controller="Home" asp-action="Index" asp-route-tela="Bancada">
                     <i class="bi bi-cpu text-primary"></i>
                     <span>TechOS</span>
-                    <span class="brand-tag">BANCADA v2</span>
+                    <span class="brand-tag">OFICINA</span>
                 </a>
-                <button class="navbar-toggler border-secondary" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                <button class="navbar-toggler border-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#navbarTechOs" aria-controls="navbarTechOs"
                         aria-expanded="false" aria-label="Alternar navegação">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-lg-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1 gap-lg-1 ms-lg-3">
+                <div class="collapse navbar-collapse" id="navbarTechOs">
+                    <ul class="navbar-nav me-auto gap-lg-1 ms-lg-3">
                         <li class="nav-item">
-                            <a class="nav-link px-3" asp-area="" asp-controller="Home" asp-action="Index" asp-route-tela="Bancada">Bancada Inicial</a>
+                            <a class="nav-link px-2" asp-area="" asp-controller="Home" asp-action="Index" asp-route-tela="Bancada">Início</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link px-3" asp-area="" asp-controller="Home" asp-action="Servicos">Tabela de Serviços</a>
+                            <a class="nav-link px-2" asp-area="" asp-controller="Home" asp-action="Servicos">Serviços</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link px-3" asp-area="" asp-controller="Consulta" asp-action="Index">Rastrear OS</a>
+                            <a class="nav-link px-2" asp-area="" asp-controller="Consulta" asp-action="Index">Consultar OS</a>
                         </li>
+
+                        @if (isAuthenticated && !isCliente)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link px-2 text-success fw-medium" asp-area="" asp-controller="Pecas" asp-action="Index">
+                                    <i class="bi bi-box-seam me-1"></i>Estoque
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link px-2 text-info fw-medium" asp-area="" asp-controller="Clientes" asp-action="Index">
+                                    <i class="bi bi-people me-1"></i>Clientes
+                                </a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle px-2 text-warning fw-medium" href="#" id="menuAdminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-speedometer2 me-1"></i>Painel Admin
+                                </a>
+                                <ul class="dropdown-menu workbench-dropdown shadow-lg" aria-labelledby="menuAdminDropdown">
+                                    <li>
+                                        <a class="dropdown-item py-2" asp-area="" asp-controller="Admin" asp-action="Index">
+                                            <i class="bi bi-table me-2 text-primary"></i>Geral (OS)
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider border-secondary my-1"></li>
+                                    <li>
+                                        <a class="dropdown-item py-2" asp-area="" asp-controller="Tecnicos" asp-action="Index">
+                                            <i class="bi bi-person-badge me-2 text-primary"></i>Técnicos & Comissões
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item py-2" asp-area="" asp-controller="EquipamentoBackup" asp-action="Index">
+                                            <i class="bi bi-laptop me-2 text-primary"></i>Equipamentos de Backup
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item py-2" asp-area="" asp-controller="Faturamentos" asp-action="Index">
+                                            <i class="bi bi-cash-coin me-2 text-primary"></i>Faturamentos & PIX
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                        else if (isCliente)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link px-2 text-info fw-medium" asp-area="" asp-controller="Consulta" asp-action="MeusEquipamentos">
+                                    <i class="bi bi-laptop me-1"></i>Meus Equipamentos
+                                </a>
+                            </li>
+                        }
                     </ul>
+
                     <ul class="navbar-nav align-items-lg-center gap-2 mt-2 mt-lg-0">
                         <li class="nav-item dropdown">
-                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Configurar qual tela abre por padrão no acesso inicial">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Escolha qual tela abre por padrão no acesso ao site">
                                 <i class="bi bi-sliders2 text-primary"></i>
-                                <span> Início: <strong class="font-monospace">@(telaPreferida == "Consulta" ? "Consulta OS" : "Bancada")</strong></span>
+                                <span>Início: <strong class="font-monospace">@(telaPreferida == "Consulta" ? "Consulta" : "Bancada")</strong></span>
                             </button>
-                            <div class="dropdown-menu dropdown-menu-end p-3 workbench-panel" style="min-width: 270px;">
-                                <div class="small fw-semibold mb-1">Tela inicial do cliente</div>
-                                <p class="text-muted small mb-2">Escolha qual tela deve abrir automaticamente ao acessar a raiz do sistema.</p>
+                            <div class="dropdown-menu dropdown-menu-end p-3 workbench-dropdown workbench-panel shadow-lg" style="width: 320px; max-width: calc(100vw - 2rem);">
+                                <div class="fw-semibold small mb-1">Tela de abertura</div>
+                                <p class="text-muted small mb-3">Defina qual tela abre quando alguém entra no endereço principal.</p>
                                 <form asp-controller="Home" asp-action="DefinirTelaInicial" method="post" class="d-grid gap-2">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
-                                    <button type="submit" name="telaInicial" value="Bancada" class="btn btn-sm text-start @(telaPreferida != "Consulta" ? "btn-primary" : "btn-outline-secondary")">
-                                        <i class="bi bi-grid-1x2 me-1"></i> Bancada Completa (Consulta + Catálogo)
+                                    <button type="submit" name="telaInicial" value="Bancada" class="btn btn-sm text-start py-2 @(telaPreferida != "Consulta" ? "btn-primary" : "btn-outline-secondary")">
+                                        <i class="bi bi-grid-1x2 me-2"></i>Bancada completa (Consulta + Catálogo)
                                     </button>
-                                    <button type="submit" name="telaInicial" value="Consulta" class="btn btn-sm text-start @(telaPreferida == "Consulta" ? "btn-primary" : "btn-outline-secondary")">
-                                        <i class="bi bi-search me-1"></i> Direto na Consulta de OS
+                                    <button type="submit" name="telaInicial" value="Consulta" class="btn btn-sm text-start py-2 @(telaPreferida == "Consulta" ? "btn-primary" : "btn-outline-secondary")">
+                                        <i class="bi bi-search me-2"></i>Direto na consulta de OS
                                     </button>
                                 </form>
                             </div>
                         </li>
-                        <li class="nav-item">
-                            <a class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" asp-area="" asp-controller="Admin" asp-action="Index">
-                                <i class="bi bi-terminal"></i>
-                                <span>Operador / Admin</span>
-                            </a>
-                        </li>
+
+                        @if (isAuthenticated)
+                        {
+                            <li class="nav-item">
+                                <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1">
+                                        <i class="bi bi-box-arrow-right"></i>
+                                        <span>Sair</span>
+                                    </button>
+                                </form>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" asp-area="" asp-controller="Account" asp-action="Login">
+                                    <i class="bi bi-person-lock"></i>
+                                    <span>Operador</span>
+                                </a>
+                            </li>
+                        }
                     </ul>
                 </div>
             </div>
@@ -75,7 +144,7 @@
     <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1090;">
         @if (TempData["MensagemSucesso"] != null)
         {
-            <div class="toast align-items-center bg-success border-0 show" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="4500">
+            <div class="toast align-items-center bg-success border-0 show" role="alert" aria-live="polite" aria-atomic="true" data-bs-delay="4500">
                 <div class="d-flex">
                     <div class="toast-body fw-medium">
                         <i class="bi bi-check2-circle me-2"></i>@TempData["MensagemSucesso"]
@@ -95,6 +164,28 @@
                 </div>
             </div>
         }
+        @if (Context.Request.Query.ContainsKey("erro"))
+        {
+            <div class="toast align-items-center bg-danger border-0 show" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="6000">
+                <div class="d-flex">
+                    <div class="toast-body fw-medium">
+                        <i class="bi bi-exclamation-octagon me-2"></i>@Context.Request.Query["erro"]
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fechar"></button>
+                </div>
+            </div>
+        }
+        @if (TempData["AlertaGarantia"] != null)
+        {
+            <div class="toast align-items-center bg-warning border-0 show" role="alert" aria-live="polite" aria-atomic="true" data-bs-delay="6000">
+                <div class="d-flex">
+                    <div class="toast-body text-dark fw-medium">
+                        <i class="bi bi-shield-exclamation me-2"></i><strong>Garantia:</strong> @TempData["AlertaGarantia"]
+                    </div>
+                    <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Fechar"></button>
+                </div>
+            </div>
+        }
     </div>
 
     <main role="main" class="flex-grow-1 pb-5">
@@ -104,10 +195,14 @@
     <footer class="footer py-3 mt-auto">
         <div class="container d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 small">
             <div>
-                <span class="fw-semibold text-main">TechOS</span> · Laboratório de Manutenção de Hardware e Microeletrônica
+                <span class="fw-semibold text-main">TechOS</span> · Oficina técnica de informática e manutenção de placas
             </div>
-            <div class="font-monospace text-muted">
-                Diagnóstico rastreável por Ordem de Serviço
+            <div class="d-flex gap-3 text-muted">
+                <a href="https://wa.me/5543984445767" target="_blank" rel="noopener noreferrer" class="text-muted text-decoration-none">
+                    <i class="bi bi-whatsapp text-success me-1"></i>(43) 98444-5767
+                </a>
+                <span>·</span>
+                <span>Registro de bancada e consulta de OS</span>
             </div>
         </div>
     </footer>

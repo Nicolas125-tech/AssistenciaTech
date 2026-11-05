@@ -9,8 +9,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using System;
-using System.Security.Cryptography;
-using System.Text;
+using System.Linq;
 
 namespace AssistenciaTech.Controllers
 {
@@ -28,8 +27,8 @@ namespace AssistenciaTech.Controllers
         // GET: /Account/Login
         public IActionResult Login(string? returnUrl = null)
         {
-            // Se o usuário já estiver logado, redireciona para o painel admin
-            if (User.Identity != null && User.Identity.IsAuthenticated)
+            // Se o usuário já estiver logado como admin, redireciona para o painel admin
+            if (User.Identity != null && User.Identity.IsAuthenticated && !User.IsInRole("Cliente"))
             {
                 return RedirectToAction("Index", "Admin");
             }
@@ -96,13 +95,80 @@ namespace AssistenciaTech.Controllers
             ViewBag.Error = "Usuário ou senha incorretos. Acesso negado.";
             return View();
         }
+
+        // GET: /Account/LoginCliente
+        [HttpGet]
+        [ActionName("LoginCliente")]
+        public IActionResult LoginCliente(string? returnUrl = null)
+        {
+            if (User?.Identity != null && User.Identity.IsAuthenticated && User.IsInRole("Cliente"))
+            {
+                return RedirectToAction("MeusEquipamentos", "Consulta");
+            }
+
+            ViewData["ReturnUrl"] = returnUrl;
+            return View();
+        }
+
+        // POST: /Account/LoginCliente
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [ActionName("LoginCliente")]
+        public async Task<IActionResult> LoginClientePost(string email, string? returnUrl = null)
+        {
+            ViewData["ReturnUrl"] = returnUrl;
+
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                ModelState.AddModelError(string.Empty, "Informe seu e-mail cadastrado.");
+                return View("LoginCliente");
+            }
+
+            string emailNormalizado = email.Trim().ToLowerInvariant();
+
+            var cliente = await _context.Clientes
+                .AsNoTracking()
+                .Include(c => c.OrdensServico)
+                .FirstOrDefaultAsync(c => c.Email != null && c.Email.ToLower() == emailNormalizado);
+
+            if (cliente == null)
+            {
+                ModelState.AddModelError(string.Empty, "Nenhum cliente cadastrado com este e-mail.");
+                return View("LoginCliente");
+            }
+
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, cliente.Nome),
+                new Claim(ClaimTypes.Email, cliente.Email ?? emailNormalizado),
+                new Claim(ClaimTypes.Role, "Cliente")
+            };
+
+            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var authProperties = new AuthenticationProperties
+            {
+                IsPersistent = true
+            };
+
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(claimsIdentity),
+                authProperties);
+
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            {
+                return Redirect(returnUrl);
+            }
+
+            return RedirectToAction("MeusEquipamentos", "Consulta");
+        }
+
         // GET: /Account/NeonCallback
         [HttpGet]
         public IActionResult NeonCallback()
         {
             return View();
         }
-
 
         // POST: /Account/Logout
         [HttpPost]

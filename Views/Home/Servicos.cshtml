@@ -1,5 +1,5 @@
 @{
-    ViewData["Title"] = "Tabela de Serviços";
+    ViewData["Title"] = "Tabela de Serviços · TechOS";
 }
 
 <section class="workbench-stage mb-4">
@@ -8,18 +8,18 @@
             <div class="col-lg-8">
                 <div class="workbench-eyebrow mb-2">
                     <i class="bi bi-tools"></i>
-                    <span>Catálogo operacional de bancada</span>
+                    <span>Serviços da oficina</span>
                 </div>
-                <h1 class="h2 fw-bold mb-2">Tabela técnica de serviços e reparos</h1>
+                <h1 class="h2 fw-bold mb-2">Tabela de serviços e mão de obra</h1>
                 <p class="text-muted mb-0">
-                    Escopo técnico dos procedimentos executados em laboratório para notebooks, desktops e placas lógicas.
+                    Principais procedimentos de reparo e manutenção em computadores, notebooks e placas-mãe.
                 </p>
             </div>
             <div class="col-lg-4">
-                <label for="filtroCatalogoServicos" class="form-label small text-muted">Filtrar procedimento por palavra-chave</label>
+                <label for="filtroCatalogoServicos" class="form-label small text-muted">Buscar serviço por nome</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-search"></i></span>
-                    <input type="search" id="filtroCatalogoServicos" class="form-control" placeholder="Ex: BIOS, pasta térmica, Windows, BGA...">
+                    <input type="search" id="filtroCatalogoServicos" class="form-control" placeholder="Ex: BIOS, pasta térmica, Windows, fonte...">
                 </div>
             </div>
         </div>
@@ -31,12 +31,12 @@
         <div class="spec-cell servico-item">
             <div>
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="spec-code">SRV-101 · SISTEMA</span>
+                    <span class="spec-code">SRV-101 (SISTEMA)</span>
                     <i class="bi bi-windows text-primary fs-5"></i>
                 </div>
-                <h2 class="h5 fw-semibold mb-2">Formatação e Instalação</h2>
+                <h2 class="h5 fw-semibold mb-2">Formatação e instalação do sistema</h2>
                 <p class="text-muted small mb-3">
-                    Instalação limpa do Windows 10 ou 11, atualização de drivers oficiais do fabricante, suíte básica de trabalho e backup íntegro de arquivos do usuário.
+                    Instalação limpa do Windows 10 ou 11 com drivers originais do fabricante, programas essenciais e cópia de segurança dos seus arquivos pessoais.
                 </p>
             </div>
             <div class="d-flex justify-content-between align-items-center pt-3 border-top border-secondary">
@@ -48,16 +48,16 @@
         <div class="spec-cell servico-item">
             <div>
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="spec-code">SRV-102 · HARDWARE</span>
+                    <span class="spec-code">SRV-102 (MONTAGEM)</span>
                     <i class="bi bi-cpu-fill text-primary fs-5"></i>
                 </div>
-                <h2 class="h5 fw-semibold mb-2">Montagem de PC e Estações</h2>
+                <h2 class="h5 fw-semibold mb-2">Montagem de computador e upgrade</h2>
                 <p class="text-muted small mb-3">
-                    Dimensionamento de fontes e componentes, montagem estruturada com organização de cabos, atualização de perfil XMP/EXPO e teste térmico sob carga.
+                    Montagem completa de computadores para trabalho ou jogos, organização de cabos, atualização de BIOS e testes de carga na bancada.
                 </p>
             </div>
             <div class="d-flex justify-content-between align-items-center pt-3 border-top border-secondary">
-                <span class="spec-price">Sob especificação</span>
+                <span class="spec-price">Sob orçamento</span>
                 <span class="font-monospace small text-muted">Prazo médio: 48h</span>
             </div>
         </div>
@@ -65,12 +65,12 @@
         <div class="spec-cell servico-item">
             <div>
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="spec-code">SRV-103 · SEGURANÇA</span>
+                    <span class="spec-code">SRV-103 (SEGURANÇA)</span>
                     <i class="bi bi-shield-shaded text-primary fs-5"></i>
                 </div>
-                <h2 class="h5 fw-semibold mb-2">Remoção de Malware e Otimização</h2>
+                <h2 class="h5 fw-semibold mb-2">Remoção de vírus e lentidão</h2>
                 <p class="text-muted small mb-3">
-                    Varredura fora do sistema operacional para erradicação de trojans, adwares e processos persistentes, preservando dados e corrigindo registros corrompidos.
+                    Varredura profunda para eliminar malwares, propagandas invasivas e programas em segundo plano, sem perder documentos ou fotos.
                 </p>
             </div>
             <div class="d-flex justify-content-between align-items-center pt-3 border-top border-secondary">
@@ -82,29 +82,29 @@
         <div class="spec-cell servico-item">
             <div>
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="spec-code">SRV-104 · ELETRÔNICA</span>
+                    <span class="spec-code">SRV-104 (ELETRÔNICA)</span>
                     <i class="bi bi-motherboard text-primary fs-5"></i>
                 </div>
-                <h2 class="h5 fw-semibold mb-2">Reparo de Placa-Mãe</h2>
+                <h2 class="h5 fw-semibold mb-2">Conserto de placa-mãe</h2>
                 <p class="text-muted small mb-3">
-                    Análise com esquema elétrico, localização de curtos em linhas primárias/secundárias, troca de componentes SMD, regravação de BIOS e reconstrução de trilhas.
+                    Diagnóstico com multímetro e osciloscópio, identificação de curto-circuito, troca de componentes SMD, regravação de chip de BIOS e reparo de trilhas.
                 </p>
             </div>
             <div class="d-flex justify-content-between align-items-center pt-3 border-top border-secondary">
                 <span class="spec-price">Sob orçamento</span>
-                <span class="font-monospace small text-muted">Triagem: 2 a 4 dias</span>
+                <span class="font-monospace small text-muted">Análise: 2 a 4 dias</span>
             </div>
         </div>
 
         <div class="spec-cell servico-item">
             <div>
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="spec-code">SRV-105 · TÉRMICA</span>
+                    <span class="spec-code">SRV-105 (TÉRMICA)</span>
                     <i class="bi bi-fan text-primary fs-5"></i>
                 </div>
-                <h2 class="h5 fw-semibold mb-2">Limpeza Preventiva</h2>
+                <h2 class="h5 fw-semibold mb-2">Limpeza preventiva interna</h2>
                 <p class="text-muted small mb-3">
-                    Desmontagem completa do conjunto dissipador, desobstrução de aletas, lubrificação de cooler e aplicação de composto térmico de alta condutividade.
+                    Desmontagem do dissipador, retirada de poeira do cooler e aplicação de pasta térmica nova de boa condutividade para evitar travamentos por calor.
                 </p>
             </div>
             <div class="d-flex justify-content-between align-items-center pt-3 border-top border-secondary">
@@ -116,12 +116,12 @@
         <div class="spec-cell servico-item">
             <div>
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="spec-code">SRV-106 · ESTRUTURA</span>
+                    <span class="spec-code">SRV-106 (ESTRUTURA)</span>
                     <i class="bi bi-laptop text-primary fs-5"></i>
                 </div>
-                <h2 class="h5 fw-semibold mb-2">Conserto de Carcaça e Dobradiças</h2>
+                <h2 class="h5 fw-semibold mb-2">Conserto de carcaça e dobradiças</h2>
                 <p class="text-muted small mb-3">
-                    Reconstrução de buchas de ancoragem em resina estrutural, alívio de pressão mecânica nas hastes metálicas e alinhamento de tampa e moldura da tela.
+                    Restauração de fixações plásticas quebradas com resina estrutural, alívio da pressão mecânica das hastes e alinhamento da tampa do notebook.
                 </p>
             </div>
             <div class="d-flex justify-content-between align-items-center pt-3 border-top border-secondary">
@@ -133,15 +133,15 @@
 
     <div class="workbench-panel p-4 mt-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
         <div>
-            <div class="fw-semibold">Equipamento já deu entrada na oficina?</div>
-            <div class="text-muted small">Consulte o andamento pelo número da Ordem de Serviço ou acesse todos os seus reparos vinculados ao seu e-mail.</div>
+            <div class="fw-semibold">Seu equipamento já foi deixado na oficina?</div>
+            <div class="text-muted small">Consulte a situação atual pelo número da Ordem de Serviço ou veja o histórico completo pelo seu e-mail.</div>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <a asp-controller="Consulta" asp-action="Index" class="btn btn-primary">
                 <i class="bi bi-search me-1"></i> Consultar minha OS
             </a>
-            <a href="https://wa.me/5549999999999?text=Ol%C3%A1,%20gostaria%20de%20agendar%20um%20servi%C3%A7o%20t%C3%A9cnico." target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary">
-                <i class="bi bi-whatsapp me-1"></i> Solicitar avaliação
+            <a href="https://wa.me/5543984445767?text=Ol%C3%A1,%20gostaria%20de%20combinar%20uma%20avalia%C3%A7%C3%A3o%20t%C3%A9cnica." target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary">
+                <i class="bi bi-whatsapp me-1"></i> Falar no WhatsApp
             </a>
         </div>
     </div>
