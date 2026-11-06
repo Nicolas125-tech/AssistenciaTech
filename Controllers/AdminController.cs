@@ -34,13 +34,31 @@ namespace AssistenciaTech.Controllers
         private static readonly string[] _allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".pdf" };
         private readonly AppDbContext _context;
         private readonly ILogger<AdminController> _logger;
-        private readonly IAdminFacade _facade;
+        private readonly IOrdemServicoLifecycle _lifecycle;
+        private readonly IAdminDashboardService _dashboard;
+        private readonly IPdfGeneratorService _pdfGenerator;
+        private readonly IClienteService _clienteService;
+        private readonly AssistenciaTech.Extensions.IResilientCacheService _cache;
+        private readonly IWebHostEnvironment _env;
 
-        public AdminController(AppDbContext context, ILogger<AdminController> logger, IAdminFacade facade)
+        public AdminController(
+            AppDbContext context,
+            ILogger<AdminController> logger,
+            IOrdemServicoLifecycle lifecycle,
+            IAdminDashboardService dashboard,
+            IPdfGeneratorService pdfGenerator,
+            IClienteService clienteService,
+            AssistenciaTech.Extensions.IResilientCacheService cache,
+            IWebHostEnvironment env)
         {
             _context = context;
             _logger = logger;
-            _facade = facade;
+            _lifecycle = lifecycle;
+            _dashboard = dashboard;
+            _pdfGenerator = pdfGenerator;
+            _clienteService = clienteService;
+            _cache = cache;
+            _env = env;
         }
 
         // GET: Admin/Index
@@ -112,7 +130,7 @@ namespace AssistenciaTech.Controllers
 
             try
             {
-                viewModel.DashboardData = await _facade.Dashboard.GetDashboardDataAsync(searchString, statusFilter, page);
+                viewModel.DashboardData = await _dashboard.GetDashboardDataAsync(searchString, statusFilter, page);
                 return View(viewModel);
             }
             catch (DbException ex)
@@ -151,41 +169,23 @@ namespace AssistenciaTech.Controllers
                 // Validação de segurança básica e ModelState
                 if (ModelState.IsValid)
                 {
-                    var ordemServico = new OrdemServico
+                    var result = await _lifecycle.RegistrarEntradaAsync(dto, User?.Identity?.Name);
+                    if (result.Sucesso)
                     {
-                        ClienteId = dto.ClienteId,
-                        Equipamento = dto.Equipamento,
-                        NumeroSerie = dto.NumeroSerie,
-                        ProblemaRelatado = dto.ProblemaRelatado,
-                        Prioridade = dto.Prioridade,
-                        AvariasPreExistentes = dto.AvariasPreExistentes,
-                        AnotacoesInternas = dto.AnotacoesInternas,
-                        CustoPecas = dto.CustoPecas,
-                        CustoMaoDeObra = dto.CustoMaoDeObra,
-                        DescontoAplicado = dto.DescontoAplicado,
-                        DataEntrada = DateTime.UtcNow,
-                        Status = WorkflowStatus.Recebido
-                    };
-
-                    // The model calculates ValorOrcamento based on costs and discount
-                    ordemServico.ValorOrcamento = ordemServico.ValorTotalCalculado;
-
-                    _context.Add(ordemServico);
-                    await _context.SaveChangesAsync();
-
-                    // Regra: Alerta de Retorno por Número de Série (30 dias)
-                    if (!string.IsNullOrEmpty(ordemServico.NumeroSerie))
-                    {
-                        var retornoRecente = await _context.OrdensServico
-                            .AnyAsync(o => o.NumeroSerie == ordemServico.NumeroSerie && o.Id != ordemServico.Id && o.DataEntrada >= DateTime.UtcNow.AddDays(-30));
-
-                        if (retornoRecente)
+                        if (!string.IsNullOrEmpty(result.Mensagem) && result.Mensagem.Contains("garantia", StringComparison.OrdinalIgnoreCase))
                         {
-                            TempData["AlertaGarantia"] = $"ATENÇÃO: O equipamento com NS {ordemServico.NumeroSerie} já deu entrada na assistência nos últimos 30 dias. Verifique se é um retorno em garantia!";
+                            if (TempData != null)
+                            {
+                                TempData["AlertaGarantia"] = result.Mensagem;
+                            }
                         }
+                        return RedirectToAction(nameof(Index));
                     }
 
-                    return RedirectToAction(nameof(Index));
+                    foreach (var erro in result.Erros)
+                    {
+                        ModelState.AddModelError(string.Empty, erro);
+                    }
                 }
             }
             catch (Exception ex)
@@ -222,11 +222,11 @@ namespace AssistenciaTech.Controllers
                 ViewBag.Tecnicos = new SelectList(await _context.Tecnicos.AsNoTracking().Where(t => t.Ativo).Select(t => new { t.Id, t.Nome }).ToListAsync(), "Id", "Nome");
 
                 var cacheKeyEq = "EquipamentosBackup_All";
-                var allEquipamentos = await _facade.Cache.GetAsync<System.Collections.Generic.List<EquipamentoBackup>>(cacheKeyEq);
+                var allEquipamentos = await _cache.GetAsync<System.Collections.Generic.List<EquipamentoBackup>>(cacheKeyEq);
                 if (allEquipamentos == null)
                 {
                     allEquipamentos = await _context.EquipamentosBackup.AsNoTracking().ToListAsync();
-                    await _facade.Cache.SetAsync(cacheKeyEq, allEquipamentos, TimeSpan.FromMinutes(60));
+                    await _cache.SetAsync(cacheKeyEq, allEquipamentos, TimeSpan.FromMinutes(60));
                 }
                 ViewBag.EquipamentosBackup = new SelectList(allEquipamentos.Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).Select(e => new { e.Id, e.Descricao }).ToList(), "Id", "Descricao");
                 var contratosData = await _context.Contratos.AsNoTracking().Where(c => c.ClienteId == ordemServico.ClienteId).Select(c => new { c.Id, c.HorasSLA, c.ValorMensal }).ToListAsync();
@@ -252,41 +252,20 @@ namespace AssistenciaTech.Controllers
             try
             {
                 var ordemExistente = await _context.OrdensServico
-                    .Include(o => o.Cliente)
-                    .Include(o => o.Evidencias)
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(o => o.Id == id);
 
                 if (ordemExistente == null) return NotFound();
 
-                string statusAnterior = ordemExistente.Status;
-
-                await _facade.EquipamentoBackup.ProcessarTrocaEquipamentoAsync(ordemExistente.EquipamentoBackupId, ordemServico.EquipamentoBackupId);
-
-                UpdateOrdemServicoProperties(ordemExistente, ordemServico);
-
-                bool canProceed = await ProcessWorkflowRulesAsync(ordemExistente, statusAnterior, ordemServico);
-                if (!canProceed)
+                var result = await _lifecycle.AtualizarOrdemAsync(id, ordemServico, fotos, User?.Identity?.Name);
+                if (!result.Sucesso)
                 {
+                    foreach (var erro in result.Erros)
+                    {
+                        ModelState.AddModelError(string.Empty, erro);
+                    }
                     await PopulateViewBagsForEditAsync(ordemServico);
-                    return View(ordemExistente);
-                }
-
-                await ProcessEvidenciaUploadsAsync(ordemExistente, fotos);
-
-                _context.Update(ordemExistente);
-                await _context.SaveChangesAsync();
-
-                // Dispara notificação automática se o status mudou
-                if (ordemExistente.Status != statusAnterior && ordemExistente.Cliente != null)
-                {
-                    try
-                    {
-                        await _facade.Notification.EnviarNotificacaoStatusAsync(ordemExistente.Cliente, ordemExistente, statusAnterior);
-                    }
-                    catch (Exception notifEx)
-                    {
-                        _logger.LogError(notifEx, "Erro ao enviar notificação para OS #{OsId}", ordemExistente.Id);
-                    }
+                    return View(ordemServico);
                 }
 
                 return RedirectToAction(nameof(Index));
@@ -295,6 +274,7 @@ namespace AssistenciaTech.Controllers
             {
                 _logger.LogError(ex, "DB_UPDATE_ERROR_EDIT");
                 ModelState.AddModelError(string.Empty, "Ocorreu um erro ao atualizar os dados.");
+                await PopulateViewBagsForEditAsync(ordemServico);
                 return View(ordemServico);
             }
         }
@@ -350,7 +330,7 @@ namespace AssistenciaTech.Controllers
 
             if (os == null) return NotFound();
 
-            var pdfBytes = _facade.PdfGenerator.GenerateOsPdf(os);
+            var pdfBytes = _pdfGenerator.GenerateOsPdf(os);
 
             return File(pdfBytes, "application/pdf", $"OS_{os.Id}_{os.Cliente?.Nome}.pdf");
         }
@@ -374,7 +354,7 @@ namespace AssistenciaTech.Controllers
                 return BadRequest();
             }
 
-            string uploadsFolder = Path.GetFullPath(Path.Combine(_facade.Env.ContentRootPath, "SecureUploads", "Evidencias"));
+            string uploadsFolder = Path.GetFullPath(Path.Combine(_env.ContentRootPath, "SecureUploads", "Evidencias"));
             string filePath = Path.GetFullPath(Path.Combine(uploadsFolder, safeFileName));
 
             if (!filePath.StartsWith(uploadsFolder + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
@@ -400,112 +380,16 @@ namespace AssistenciaTech.Controllers
             return PhysicalFile(filePath, contentType);
         }
 
-        private static readonly Dictionary<string, List<byte[]>> _fileSignatures = new Dictionary<string, List<byte[]>>
-        {
-            { ".jpg", new List<byte[]> { new byte[] { 0xFF, 0xD8, 0xFF } } },
-            { ".jpeg", new List<byte[]> { new byte[] { 0xFF, 0xD8, 0xFF } } },
-            { ".png", new List<byte[]> { new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A } } },
-            { ".gif", new List<byte[]> { new byte[] { 0x47, 0x49, 0x46, 0x38 } } },
-            { ".pdf", new List<byte[]> { new byte[] { 0x25, 0x50, 0x44, 0x46, 0x2D } } }
-        };
-
-        private static async Task<bool> IsValidFileSignatureAsync(IFormFile file, string extension)
-        {
-            if (file == null || file.Length == 0) return false;
-
-            await using var stream = file.OpenReadStream();
-
-            if (!_fileSignatures.TryGetValue(extension, out var expectedSignatures))
-                return false;
-
-            var maxSignatureLength = expectedSignatures.Max(s => s.Length);
-            var headerBytes = new byte[maxSignatureLength];
-
-            int bytesRead = await stream.ReadAsync(headerBytes, 0, maxSignatureLength);
-            if (bytesRead < maxSignatureLength && bytesRead < expectedSignatures.Min(s => s.Length))
-            {
-                return false;
-            }
-
-            return expectedSignatures.Any(signature =>
-                headerBytes.Take(signature.Length).SequenceEqual(signature));
-        }
-
-
-        private void UpdateOrdemServicoProperties(OrdemServico ordemExistente, OrdemServico ordemServico)
-        {
-            ordemExistente.Equipamento = ordemServico.Equipamento;
-            ordemExistente.NumeroSerie = ordemServico.NumeroSerie;
-            ordemExistente.ProblemaRelatado = ordemServico.ProblemaRelatado;
-            ordemExistente.AvariasPreExistentes = ordemServico.AvariasPreExistentes;
-            ordemExistente.LaudoTecnico = ordemServico.LaudoTecnico;
-            ordemExistente.TecnicoId = ordemServico.TecnicoId;
-            ordemExistente.EnviadoParaTerceiro = ordemServico.EnviadoParaTerceiro;
-            ordemExistente.NomeParceiro = ordemServico.NomeParceiro;
-            ordemExistente.CustoTerceirizado = ordemServico.CustoTerceirizado;
-            ordemExistente.PrevisaoRetornoParceiro = ordemServico.PrevisaoRetornoParceiro;
-            ordemExistente.ContratoId = ordemServico.ContratoId;
-            ordemExistente.ContadorPaginasInicial = ordemServico.ContadorPaginasInicial;
-            ordemExistente.ContadorPaginasFinal = ordemServico.ContadorPaginasFinal;
-            ordemExistente.EquipamentoBackupId = ordemServico.EquipamentoBackupId;
-            ordemExistente.Status = ordemServico.Status;
-            ordemExistente.CustoPecas = ordemServico.CustoPecas;
-            ordemExistente.CustoMaoDeObra = ordemServico.CustoMaoDeObra;
-            ordemExistente.DescontoAplicado = ordemServico.DescontoAplicado;
-            ordemExistente.ValorOrcamento = ordemExistente.ValorTotalCalculado;
-        }
-
-        private async Task<bool> ProcessWorkflowRulesAsync(OrdemServico ordemExistente, string statusAnterior, OrdemServico ordemServico)
-        {
-            if (ordemExistente.Status == WorkflowStatus.Concluido && OrdemServicoStateMachine.ExigeBaixaDeEstoque(statusAnterior, ordemExistente.Status, ordemExistente.DataConclusao))
-            {
-                ordemExistente.DataConclusao = DateTime.UtcNow;
-                await _facade.Estoque.DeduzirEstoque(ordemExistente.Id);
-            }
-            else if (OrdemServicoStateMachine.ExigeEstornoDeEstoque(statusAnterior, ordemExistente.Status))
-            {
-                ordemExistente.DataConclusao = null;
-                await _facade.Estoque.RestaurarEstoque(ordemExistente.Id);
-            }
-
-            if (ordemExistente.Status == WorkflowStatus.Entregue && ordemExistente.DataEntregaCliente == null)
-            {
-                if (ordemExistente.EquipamentoBackupId.HasValue)
-                {
-                    var backup = await _context.EquipamentosBackup.FindAsync(ordemExistente.EquipamentoBackupId);
-                    bool possuiBackupNaoDevolvido = backup != null && backup.Disponivel == false;
-                    if (!OrdemServicoStateMachine.ValidarTransicao(statusAnterior, ordemExistente.Status, possuiBackupNaoDevolvido, backup?.Descricao, out var erroDominio))
-                    {
-                        ModelState.AddModelError(string.Empty, erroDominio!);
-                        return false;
-                    }
-                }
-
-                ordemExistente.DataEntregaCliente = DateTime.UtcNow;
-
-                if (ordemExistente.DataConclusao == null)
-                {
-                    ordemExistente.DataConclusao = DateTime.UtcNow;
-                    await _facade.Estoque.DeduzirEstoque(ordemExistente.Id);
-                }
-            }
-            else if (ordemExistente.Status != WorkflowStatus.Entregue)
-            {
-                ordemExistente.DataEntregaCliente = null;
-            }
-            return true;
-        }
-
         private async Task PopulateViewBagsForEditAsync(OrdemServico ordemServico)
         {
             var tecnicos = await _context.Tecnicos.AsNoTracking().Where(t => t.Ativo).ToListAsync();
 
             var cacheKeyEq = "EquipamentosBackup_All";
-            var allEquipamentos = await _facade.Cache.GetAsync<System.Collections.Generic.List<EquipamentoBackup>>(cacheKeyEq);
+            var allEquipamentos = await _cache.GetAsync<System.Collections.Generic.List<EquipamentoBackup>>(cacheKeyEq);
             if (allEquipamentos == null)
             {
                 allEquipamentos = await _context.EquipamentosBackup.AsNoTracking().ToListAsync();
-                await _facade.Cache.SetAsync(cacheKeyEq, allEquipamentos, TimeSpan.FromMinutes(60));
+                await _cache.SetAsync(cacheKeyEq, allEquipamentos, TimeSpan.FromMinutes(60));
             }
             var equipamentos = allEquipamentos.Where(e => e.Disponivel || e.Id == ordemServico.EquipamentoBackupId).ToList();
 
@@ -519,57 +403,9 @@ namespace AssistenciaTech.Controllers
             ViewBag.Contratos = new SelectList(contratos, "Id", "NomeDesc", ordemServico.ContratoId);
         }
 
-        private async Task ProcessEvidenciaUploadsAsync(OrdemServico ordemExistente, IFormFileCollection? fotos)
-        {
-            if (fotos != null && fotos.Count > 0)
-            {
-                string uploadsFolder = Path.Combine(_facade.Env.ContentRootPath, "SecureUploads", "Evidencias");
-                Directory.CreateDirectory(uploadsFolder);
-
-                var uploadTasks = new List<Task>();
-
-                var validationTasks = fotos.Select(async foto =>
-                {
-                    if (foto.Length == 0) return (foto, isValid: false, extension: string.Empty);
-
-                    var extension = Path.GetExtension(foto.FileName).ToLowerInvariant();
-                    if (!_allowedExtensions.Contains(extension)) return (foto, isValid: false, extension);
-
-                    var isValid = await IsValidFileSignatureAsync(foto, extension);
-                    return (foto, isValid, extension);
-                });
-
-                var validationResults = await Task.WhenAll(validationTasks);
-
-                foreach (var result in validationResults.Where(r => r.isValid))
-                {
-                    string uniqueFileName = $"{Guid.NewGuid()}{result.extension}";
-                    string filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                    var currentFoto = result.foto;
-                    async Task SaveFileAsync()
-                    {
-                        await using (var fileStream = new FileStream(filePath, FileMode.Create))
-                        {
-                            await currentFoto.CopyToAsync(fileStream);
-                        }
-                    }
-
-                    uploadTasks.Add(SaveFileAsync());
-
-                    ordemExistente.Evidencias.Add(new Evidencia
-                    {
-                        CaminhoArquivo = $"/Admin/GetEvidencia?fileName={uniqueFileName}",
-                        DataUpload = DateTime.UtcNow
-                    });
-                }
-
-                await Task.WhenAll(uploadTasks);
-            }
-        }
         private async Task PopulateClientesViewBagAsync(int? selectedId = null)
         {
-            var selectListItems = await _facade.Cliente.GetClientesSelectListAsync(selectedId);
+            var selectListItems = await _clienteService.GetClientesSelectListAsync(selectedId);
             ViewBag.Clientes = new SelectList(selectListItems, "Value", "Text", selectedId?.ToString());
         }
     }

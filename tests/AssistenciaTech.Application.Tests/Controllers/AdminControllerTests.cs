@@ -34,6 +34,10 @@ namespace AssistenciaTech.Application.Tests.Controllers
         private readonly Mock<IAdminDashboardService> _mockDashboardService;
         private readonly Mock<ILogger<AdminController>> _mockLogger;
         private readonly Mock<IServiceScopeFactory> _mockScopeFactory;
+        private readonly Mock<IEquipamentoBackupService> _mockEquipamentoBackupService;
+        private readonly Mock<INotificationService> _mockNotificationService;
+        private readonly Mock<IClienteService> _mockClienteService;
+        private readonly Mock<AssistenciaTech.Extensions.IResilientCacheService> _mockCacheService;
         private readonly AdminController _controller;
 
         public AdminControllerTests()
@@ -50,6 +54,12 @@ namespace AssistenciaTech.Application.Tests.Controllers
             _mockDashboardService = new Mock<IAdminDashboardService>();
             _mockLogger = new Mock<ILogger<AdminController>>();
             _mockScopeFactory = new Mock<IServiceScopeFactory>();
+            _mockEquipamentoBackupService = new Mock<IEquipamentoBackupService>();
+            _mockNotificationService = new Mock<INotificationService>();
+            _mockClienteService = new Mock<IClienteService>();
+            _mockClienteService.Setup(s => s.GetClientesSelectListAsync(It.IsAny<int?>()))
+                .ReturnsAsync(new List<SelectListItem>());
+            _mockCacheService = new Mock<AssistenciaTech.Extensions.IResilientCacheService>();
 
             // Setup ScopeFactory to return a scope containing the DbContext
             var mockScope = new Mock<IServiceScope>();
@@ -58,9 +68,38 @@ namespace AssistenciaTech.Application.Tests.Controllers
             mockScope.Setup(s => s.ServiceProvider).Returns(mockServiceProvider.Object);
             _mockScopeFactory.Setup(s => s.CreateScope()).Returns(mockScope.Object);
 
-            var _mockEquipamentoBackupService = new Mock<IEquipamentoBackupService>();
-            var _mockNotificationService = new Mock<AssistenciaTech.Services.INotificationService>();
-            _controller = new AdminController(_context, _mockLogger.Object, new AssistenciaTech.Services.AdminFacade(_mockEstoqueService.Object, _mockEnv.Object, _mockPdfGeneratorService.Object, _mockDashboardService.Object, _mockEquipamentoBackupService.Object, _mockScopeFactory.Object, _mockNotificationService.Object, new Mock<IClienteService>().Object, new Mock<AssistenciaTech.Extensions.IResilientCacheService>().Object));
+            _controller = CreateAdminController(_context);
+        }
+
+        private AdminController CreateAdminController(
+            AppDbContext context,
+            ILogger<AdminController>? logger = null,
+            IOrdemServicoLifecycle? lifecycle = null,
+            IAdminDashboardService? dashboard = null,
+            IPdfGeneratorService? pdfGenerator = null,
+            IClienteService? clienteService = null,
+            AssistenciaTech.Extensions.IResilientCacheService? cache = null,
+            IWebHostEnvironment? env = null)
+        {
+            var ctx = context;
+            var osLifecycle = lifecycle ?? (ctx != null
+                ? new OrdemServicoLifecycle(
+                    ctx,
+                    _mockEstoqueService.Object,
+                    _mockNotificationService.Object,
+                    _mockEnv.Object,
+                    new Mock<ILogger<OrdemServicoLifecycle>>().Object)
+                : new Mock<IOrdemServicoLifecycle>().Object);
+
+            return new AdminController(
+                ctx!,
+                logger ?? _mockLogger.Object,
+                osLifecycle,
+                dashboard ?? _mockDashboardService.Object,
+                pdfGenerator ?? _mockPdfGeneratorService.Object,
+                clienteService ?? _mockClienteService.Object,
+                cache ?? _mockCacheService.Object,
+                env ?? _mockEnv.Object);
         }
 
 
@@ -530,7 +569,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
 
             var exceptionContext = new TestExceptionDbContext(options);
 
-            var localController = new AdminController(exceptionContext, _mockLogger.Object, new AssistenciaTech.Services.AdminFacade(_mockEstoqueService.Object, _mockEnv.Object, _mockPdfGeneratorService.Object, _mockDashboardService.Object, new Mock<IEquipamentoBackupService>().Object, _mockScopeFactory.Object, new Mock<INotificationService>().Object, new Mock<IClienteService>().Object, new Mock<AssistenciaTech.Extensions.IResilientCacheService>().Object));
+            var localController = CreateAdminController(exceptionContext);
 
             var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
             var tempData = new Microsoft.AspNetCore.Mvc.ViewFeatures.TempDataDictionary(httpContext, Mock.Of<Microsoft.AspNetCore.Mvc.ViewFeatures.ITempDataProvider>());
@@ -567,7 +606,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             mockClienteServiceFailing.Setup(s => s.GetClientesSelectListAsync(It.IsAny<int?>()))
                 .ThrowsAsync(new System.Exception("Simulated DB failure"));
 
-            var localController = new AdminController(null, _mockLogger.Object, new AssistenciaTech.Services.AdminFacade(_mockEstoqueService.Object, _mockEnv.Object, _mockPdfGeneratorService.Object, _mockDashboardService.Object, new Mock<IEquipamentoBackupService>().Object, _mockScopeFactory.Object, new Mock<INotificationService>().Object, mockClienteServiceFailing.Object, new Mock<AssistenciaTech.Extensions.IResilientCacheService>().Object));
+            var localController = CreateAdminController(null!, clienteService: mockClienteServiceFailing.Object);
 
             var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
             var tempData = new Microsoft.AspNetCore.Mvc.ViewFeatures.TempDataDictionary(httpContext, Mock.Of<Microsoft.AspNetCore.Mvc.ViewFeatures.ITempDataProvider>());
@@ -615,7 +654,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
 
             var exceptionContext = new TestInnerExceptionDbContext(options);
 
-            var localController = new AdminController(exceptionContext, _mockLogger.Object, new AssistenciaTech.Services.AdminFacade(_mockEstoqueService.Object, _mockEnv.Object, _mockPdfGeneratorService.Object, _mockDashboardService.Object, new Mock<IEquipamentoBackupService>().Object, _mockScopeFactory.Object, new Mock<INotificationService>().Object, new Mock<IClienteService>().Object, new Mock<AssistenciaTech.Extensions.IResilientCacheService>().Object));
+            var localController = CreateAdminController(exceptionContext);
 
             var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
             var tempData = new Microsoft.AspNetCore.Mvc.ViewFeatures.TempDataDictionary(httpContext, Mock.Of<Microsoft.AspNetCore.Mvc.ViewFeatures.ITempDataProvider>());
@@ -846,7 +885,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
 
             var exceptionContext = new AppDbContext(options);
 
-            var localController = new AdminController(exceptionContext, _mockLogger.Object, new AssistenciaTech.Services.AdminFacade(_mockEstoqueService.Object, _mockEnv.Object, _mockPdfGeneratorService.Object, _mockDashboardService.Object, new Mock<IEquipamentoBackupService>().Object, _mockScopeFactory.Object, new Mock<INotificationService>().Object, new Mock<IClienteService>().Object, new Mock<AssistenciaTech.Extensions.IResilientCacheService>().Object));
+            var localController = CreateAdminController(exceptionContext);
 
             var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
             var tempData = new TempDataDictionary(httpContext, Mock.Of<ITempDataProvider>());
@@ -942,7 +981,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             var exceptionContext = new TestExceptionDbContext(options);
             var mockEquipamentoBackupService = new Mock<IEquipamentoBackupService>();
 
-            var localController = new AdminController(exceptionContext, _mockLogger.Object, new AssistenciaTech.Services.AdminFacade(_mockEstoqueService.Object, _mockEnv.Object, _mockPdfGeneratorService.Object, _mockDashboardService.Object, mockEquipamentoBackupService.Object, _mockScopeFactory.Object, new Mock<INotificationService>().Object, new Mock<IClienteService>().Object, new Mock<AssistenciaTech.Extensions.IResilientCacheService>().Object));
+            var localController = CreateAdminController(exceptionContext);
 
             var osAlterada = new OrdemServico { Id = 102, Equipamento = "PC Atualizado", Status = "Orçamento", ClienteId = 1 };
 
@@ -1252,7 +1291,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
 
             var _mockEquipamentoBackupService = new Mock<IEquipamentoBackupService>();
             var _mockNotificationService = new Mock<AssistenciaTech.Services.INotificationService>();
-            var localController = new AdminController(exceptionContext, _mockLogger.Object, new AssistenciaTech.Services.AdminFacade(_mockEstoqueService.Object, _mockEnv.Object, _mockPdfGeneratorService.Object, _mockDashboardService.Object, _mockEquipamentoBackupService.Object, _mockScopeFactory.Object, new Mock<INotificationService>().Object, new Mock<IClienteService>().Object, new Mock<AssistenciaTech.Extensions.IResilientCacheService>().Object));
+            var localController = CreateAdminController(exceptionContext);
 
             // Act
             var result = await localController.Delete(9999);
@@ -1360,7 +1399,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
 
             var _mockEquipamentoBackupService = new Mock<IEquipamentoBackupService>();
             var _mockNotificationService = new Mock<AssistenciaTech.Services.INotificationService>();
-            var localController = new AdminController(mockContext.Object, _mockLogger.Object, new AssistenciaTech.Services.AdminFacade(_mockEstoqueService.Object, _mockEnv.Object, _mockPdfGeneratorService.Object, _mockDashboardService.Object, _mockEquipamentoBackupService.Object, _mockScopeFactory.Object, _mockNotificationService.Object, new Mock<IClienteService>().Object, new Mock<AssistenciaTech.Extensions.IResilientCacheService>().Object));
+            var localController = CreateAdminController(mockContext.Object);
 
             // Set up Controller Context for TempData and Response
             var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();

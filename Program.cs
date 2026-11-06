@@ -22,7 +22,7 @@ builder.Services.AddProblemDetails();
 builder.Services.AddScoped<IEstoqueService, EstoqueService>();
 builder.Services.AddScoped<IPdfGeneratorService, PdfGeneratorService>();
 builder.Services.AddScoped<IClienteService, ClienteService>();
-builder.Services.AddScoped<IAdminFacade, AdminFacade>();
+builder.Services.AddScoped<IOrdemServicoLifecycle, OrdemServicoLifecycle>();
 builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
 builder.Services.AddScoped<IEquipamentoBackupService, EquipamentoBackupService>();
 builder.Services.AddMemoryCache();

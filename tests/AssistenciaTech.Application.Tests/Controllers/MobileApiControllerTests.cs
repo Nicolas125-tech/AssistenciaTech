@@ -9,12 +9,14 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
+using AssistenciaTech.Services;
 
 namespace AssistenciaTech.Application.Tests.Controllers
 {
     public class MobileApiControllerTests : IDisposable
     {
         private readonly AppDbContext _context;
+        private readonly Moq.Mock<IOrdemServicoLifecycle> _mockLifecycle;
         private readonly MobileApiController _controller;
 
         public MobileApiControllerTests()
@@ -25,7 +27,19 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 .Options;
 
             _context = new AppDbContext(options);
-            _controller = new MobileApiController(_context, mockConfiguration.Object);
+            _mockLifecycle = new Moq.Mock<IOrdemServicoLifecycle>();
+            _mockLifecycle.Setup(l => l.AvancarStatusAsync(Moq.It.IsAny<int>(), Moq.It.IsAny<string>(), Moq.It.IsAny<string?>(), Moq.It.IsAny<string?>()))
+                .Returns<int, string, string?, string?>((osId, status, laudo, user) =>
+                {
+                    var os = _context.OrdensServico.Find(osId);
+                    if (os == null) return Task.FromResult(OrdemServicoResult.Falha($"OS #{osId} não encontrada."));
+                    os.Status = status;
+                    if (!string.IsNullOrWhiteSpace(laudo)) os.LaudoTecnico = laudo.Trim();
+                    _context.SaveChanges();
+                    return Task.FromResult(OrdemServicoResult.Ok(os));
+                });
+
+            _controller = new MobileApiController(_context, mockConfiguration.Object, _mockLifecycle.Object);
         }
 
         private void SetUserContext(int tecnicoId)
@@ -465,7 +479,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             mockConfiguration.Setup(x => x["Jwt:Issuer"]).Returns("AssistenciaTech");
             mockConfiguration.Setup(x => x["Jwt:Audience"]).Returns("AssistenciaTechMobile");
 
-            var controller = new MobileApiController(_context, mockConfiguration.Object);
+            var controller = new MobileApiController(_context, mockConfiguration.Object, _mockLifecycle.Object);
 
             var request = new MobileApiController.MobileLoginRequest
             {
@@ -495,7 +509,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
 
             var mockConfiguration = new Moq.Mock<Microsoft.Extensions.Configuration.IConfiguration>();
             mockConfiguration.Setup(x => x["Jwt:Key"]).Returns("UmaChaveSuperSecretaMuitoLongaParaOJWT123456789_AppMobile_AssistenciaTech_IsNowRequired_123456789_AppMobile_AssistenciaTech!");
-            var controller = new MobileApiController(_context, mockConfiguration.Object);
+            var controller = new MobileApiController(_context, mockConfiguration.Object, _mockLifecycle.Object);
 
             var request = new MobileApiController.MobileLoginRequest
             {

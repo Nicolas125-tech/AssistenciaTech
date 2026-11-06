@@ -12,6 +12,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using AssistenciaTech.Services;
 
 namespace AssistenciaTech.Controllers
 {
@@ -22,11 +23,13 @@ namespace AssistenciaTech.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly IOrdemServicoLifecycle _lifecycle;
 
-        public MobileApiController(AppDbContext context, IConfiguration configuration)
+        public MobileApiController(AppDbContext context, IConfiguration configuration, IOrdemServicoLifecycle lifecycle)
         {
             _context = context;
             _configuration = configuration;
+            _lifecycle = lifecycle;
         }
 
         public class MobileLoginRequest
@@ -156,19 +159,19 @@ namespace AssistenciaTech.Controllers
             if (visita.TecnicoId != tecnicoId)
                 return Forbid();
 
+            // Avança o status da OS pelo ciclo de vida formal (valida transição, baixa estoque, notifica cliente e audita)
+            var tecnicoNome = User.FindFirst(ClaimTypes.Name)?.Value ?? $"Tecnico#{tecnicoId}";
+            var lifecycleResult = await _lifecycle.AvancarStatusAsync(id, WorkflowStatus.Concluido, request.LaudoFinal, tecnicoNome);
+            if (!lifecycleResult.Sucesso)
+            {
+                return BadRequest(new { error = lifecycleResult.Mensagem, erros = lifecycleResult.Erros });
+            }
+
             // Atualiza a Visita
             visita.CheckOut = DateTime.UtcNow;
             visita.AssinaturaClienteBase64 = request.AssinaturaBase64;
 
-            // Atualiza a OS
-            os.Status = WorkflowStatus.Concluido;
-            if (!string.IsNullOrEmpty(request.LaudoFinal))
-            {
-                os.LaudoTecnico = request.LaudoFinal;
-            }
-
             _context.VisitasCampo.Update(visita);
-            _context.OrdensServico.Update(os);
             await _context.SaveChangesAsync();
 
             return Ok(new { status = "success", message = "Visita finalizada e OS atualizada." });

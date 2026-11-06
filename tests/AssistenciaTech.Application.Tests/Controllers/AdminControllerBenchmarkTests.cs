@@ -60,21 +60,16 @@ namespace AssistenciaTech.Application.Tests.Controllers
             cacheMock.Setup(c => c.GetAsync<System.Collections.Generic.List<EquipamentoBackup>>(It.IsAny<string>()))
                 .ReturnsAsync(cachedData);
 
-            var mockFacade = new AdminFacade(
-                mockEstoqueService.Object,
-                mockEnv.Object,
-                mockPdfGeneratorService.Object,
+            var mockLifecycle = new Mock<IOrdemServicoLifecycle>();
+            var controller = new AdminController(
+                context,
+                new Mock<ILogger<AdminController>>().Object,
+                mockLifecycle.Object,
                 mockDashboardService.Object,
-                mockEquipamentoBackupService.Object,
-                mockScopeFactory.Object,
-                mockNotificationService.Object,
+                mockPdfGeneratorService.Object,
                 mockClienteService.Object,
-                cacheMock.Object
-            );
-
-
-            // This relies on the current constructor
-            var controller = new AdminController(context, new Mock<ILogger<AdminController>>().Object, mockFacade);
+                cacheMock.Object,
+                mockEnv.Object);
 
             // Warmup
             await controller.Edit(1);
