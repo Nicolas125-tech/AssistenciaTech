@@ -1,102 +1,54 @@
-using System;
-using System.Linq;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using AssistenciaTech.Controllers;
-using AssistenciaTech.Data;
-using AssistenciaTech.Models;
 using AssistenciaTech.DTOs;
+using AssistenciaTech.Models;
+using AssistenciaTech.Services;
 using FluentAssertions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using Moq;
 using Xunit;
 
 namespace AssistenciaTech.Application.Tests.Controllers
 {
-    public class PecasControllerTests : IDisposable
+    public class PecasControllerTests
     {
-        private readonly AppDbContext _context;
+        private readonly Mock<IEstoqueEngine> _mockEngine;
         private readonly PecasController _controller;
 
-                public PecasControllerTests()
+        public PecasControllerTests()
         {
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlite("DataSource=:memory:;Foreign Keys=False")
-                .Options;
+            _mockEngine = new Mock<IEstoqueEngine>();
+            _controller = new PecasController(_mockEngine.Object);
 
-            _context = new AppDbContext(options);
-            _context.Database.OpenConnection();
-            _context.Database.EnsureCreated();
-            _controller = new PecasController(_context);
+            var httpContext = new DefaultHttpContext();
+            var tempData = new TempDataDictionary(httpContext, Mock.Of<ITempDataProvider>());
+            _controller.TempData = tempData;
         }
 
         [Fact]
-        public async Task Index_ReturnsViewResult_WithListOfPecas()
+        public async Task Index_DeveRetornarViewComListaDePecas()
         {
             // Arrange
-            _context.Pecas.Add(new Peca { Nome = "Peca 1", QuantidadeEstoque = 10, ValorUnitario = 50.0m });
-            _context.Pecas.Add(new Peca { Nome = "Peca 2", QuantidadeEstoque = 20, ValorUnitario = 150.0m });
-            await _context.SaveChangesAsync();
-            _context.ChangeTracker.Clear();
+            var pecas = new List<Peca>
+            {
+                new Peca { Id = 1, Nome = "Peça 1" },
+                new Peca { Id = 2, Nome = "Peça 2" }
+            };
+            _mockEngine.Setup(e => e.ObterTodasAsync()).ReturnsAsync(pecas);
 
             // Act
             var result = await _controller.Index();
 
             // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
-            var model = viewResult.Model.Should().BeAssignableTo<System.Collections.Generic.IEnumerable<Peca>>().Subject;
-            model.Should().HaveCount(2);
+            viewResult.Model.Should().BeEquivalentTo(pecas);
         }
 
         [Fact]
-        public async Task Create_Post_ValidModel_ShouldAddPecaAndRedirectToIndex()
-        {
-            // Arrange
-            var novaPeca = new PecaCreateDto
-            {
-                Nome = "Placa Mãe",
-                QuantidadeEstoque = 10,
-                ValorUnitario = 450.50m
-            };
-
-            // Act
-            var result = await _controller.Create(novaPeca);
-
-            // Assert
-            var redirectToActionResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
-            redirectToActionResult.ActionName.Should().Be("Index");
-
-            var pecaInDb = await _context.Pecas.FirstOrDefaultAsync(p => p.Nome == "Placa Mãe");
-            pecaInDb.Should().NotBeNull();
-            pecaInDb.QuantidadeEstoque.Should().Be(10);
-            pecaInDb.ValorUnitario.Should().Be(450.50m);
-        }
-
-        [Fact]
-        public async Task Create_Post_InvalidModel_ShouldReturnViewWithModel_AndNotSaveToDb()
-        {
-            // Arrange
-            var pecaInvalida = new PecaCreateDto
-            {
-                // Nome is required, leaving it empty or default
-                QuantidadeEstoque = 10,
-                ValorUnitario = 450.50m
-            };
-
-            _controller.ModelState.AddModelError("Nome", "O nome da peça é obrigatório.");
-
-            // Act
-            var result = await _controller.Create(pecaInvalida);
-
-            // Assert
-            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
-            viewResult.Model.Should().BeEquivalentTo(pecaInvalida);
-
-            var pecasInDb = await _context.Pecas.ToListAsync();
-            pecasInDb.Should().BeEmpty(); // Nothing should have been saved
-        }
-
-        [Fact]
-        public void Create_Get_ShouldReturnView()
+        public void Create_GET_DeveRetornarView()
         {
             // Act
             var result = _controller.Create();
@@ -105,202 +57,155 @@ namespace AssistenciaTech.Application.Tests.Controllers
             result.Should().BeOfType<ViewResult>();
         }
 
-
         [Fact]
-        public async Task DeleteConfirmed_ValidId_ShouldRemovePecaAndRedirectToIndex()
+        public async Task Create_POST_ComDadosValidosESucessoNoEngine_DeveRedirecionarParaIndex()
         {
             // Arrange
-            var peca = new Peca
-            {
-                Nome = "Memória RAM 8GB",
-                QuantidadeEstoque = 5,
-                ValorUnitario = 150.00m
-            };
-            _context.Pecas.Add(peca);
-            await _context.SaveChangesAsync();
-
-            // Clear tracker to ensure FindAsync fetches from "DB"
-            _context.ChangeTracker.Clear();
+            var dto = new PecaCreateDto { Nome = "Nova Peça", QuantidadeEstoque = 10, QuantidadeMinima = 2, ValorUnitario = 50 };
+            _mockEngine.Setup(e => e.CriarPecaAsync(dto))
+                .ReturnsAsync(EstoqueResult.Ok(new Peca { Id = 1, Nome = dto.Nome }, "Peça cadastrada com sucesso."));
 
             // Act
-            var result = await _controller.DeleteConfirmed(peca.Id);
+            var result = await _controller.Create(dto);
 
             // Assert
-            var redirectToActionResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
-            redirectToActionResult.ActionName.Should().Be("Index");
-
-            var pecaInDb = await _context.Pecas.FindAsync(peca.Id);
-            pecaInDb.Should().BeNull();
+            var redirect = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirect.ActionName.Should().Be(nameof(PecasController.Index));
+            _controller.TempData["MensagemSucesso"].Should().Be("Peça cadastrada com sucesso.");
         }
 
         [Fact]
-        public async Task DeleteConfirmed_InvalidId_ShouldNotRemoveAnythingAndRedirectToIndex()
+        public async Task Create_POST_ComFalhaNoEngine_DeveAdicionarErroNoModelStateERetornarView()
         {
             // Arrange
-            int invalidId = 999;
-            var peca = new Peca
-            {
-                Nome = "HD 1TB",
-                QuantidadeEstoque = 2,
-                ValorUnitario = 200.00m
-            };
-            _context.Pecas.Add(peca);
-            await _context.SaveChangesAsync();
-
-            var initialCount = await _context.Pecas.CountAsync();
-
-            _context.ChangeTracker.Clear();
+            var dto = new PecaCreateDto { Nome = "Nova Peça" };
+            _mockEngine.Setup(e => e.CriarPecaAsync(dto))
+                .ReturnsAsync(EstoqueResult.Falha("Erro ao cadastrar peça."));
 
             // Act
-            var result = await _controller.DeleteConfirmed(invalidId);
-
-            // Assert
-            var redirectToActionResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
-            redirectToActionResult.ActionName.Should().Be("Index");
-
-            var currentCount = await _context.Pecas.CountAsync();
-            currentCount.Should().Be(initialCount);
-        }
-
-        [Fact]
-        public async Task Edit_Post_IdMismatch_ShouldReturnNotFound()
-        {
-            // Arrange
-            int urlId = 1;
-            var peca = new PecaEditDto
-            {
-                Id = 2,
-                Nome = "Placa de Vídeo",
-                QuantidadeEstoque = 5,
-                ValorUnitario = 1500.00m
-            };
-
-            // Act
-            var result = await _controller.Edit(urlId, peca);
-
-            // Assert
-            result.Should().BeOfType<NotFoundResult>();
-        }
-
-        [Fact]
-        public async Task Edit_Post_ValidModel_ShouldUpdatePecaAndRedirectToIndex()
-        {
-            // Arrange
-            var peca = new Peca { Nome = "Processador Antigo", QuantidadeEstoque = 10, ValorUnitario = 500.00m };
-            _context.Pecas.Add(peca);
-            await _context.SaveChangesAsync();
-            _context.ChangeTracker.Clear();
-
-            var pecaAtualizada = new PecaEditDto
-            {
-                Id = peca.Id,
-                Nome = "Processador Novo",
-                QuantidadeEstoque = 15,
-                ValorUnitario = 600.00m
-            };
-
-            // Act
-            var result = await _controller.Edit(peca.Id, pecaAtualizada);
-
-            // Assert
-            var redirectToActionResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
-            redirectToActionResult.ActionName.Should().Be("Index");
-
-            var pecaInDb = await _context.Pecas.FindAsync(peca.Id);
-            pecaInDb.Should().NotBeNull();
-            pecaInDb.Nome.Should().Be("Processador Novo");
-            pecaInDb.QuantidadeEstoque.Should().Be(15);
-            pecaInDb.ValorUnitario.Should().Be(600.00m);
-        }
-
-        [Fact]
-        public async Task Edit_Post_InvalidModel_ShouldReturnViewWithModel()
-        {
-            // Arrange
-            var peca = new PecaEditDto { Id = 1, Nome = "Teclado", QuantidadeEstoque = 5, ValorUnitario = 100.00m };
-            _controller.ModelState.AddModelError("Nome", "O nome é obrigatório");
-
-            // Act
-            var result = await _controller.Edit(1, peca);
+            var result = await _controller.Create(dto);
 
             // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
-            viewResult.Model.Should().BeEquivalentTo(peca);
+            viewResult.Model.Should().Be(dto);
+            _controller.ModelState.IsValid.Should().BeFalse();
         }
 
         [Fact]
-        public async Task Edit_Post_PecaNotFound_ShouldReturnNotFound()
+        public async Task Edit_GET_ComIdNulo_DeveRetornarNotFound()
         {
-            // Arrange
-            var peca = new PecaEditDto { Id = 999, Nome = "Peça Inexistente" };
-
             // Act
-            var result = await _controller.Edit(999, peca);
+            var result = await _controller.Edit(null);
 
             // Assert
             result.Should().BeOfType<NotFoundResult>();
         }
 
         [Fact]
-        public async Task Edit_Post_ConcurrencyException_PecaDeleted_ShouldReturnNotFound()
+        public async Task Edit_GET_ComIdInexistente_DeveRetornarNotFound()
         {
             // Arrange
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlite("DataSource=:memory:;Foreign Keys=False")
-                .Options;
-
-            using var concurrencyContext = new ConcurrencyAppDbContext(options);
-            concurrencyContext.Database.OpenConnection();
-            concurrencyContext.Database.EnsureCreated();
-            using var controller = new PecasController(concurrencyContext);
-
-            var peca = new Peca { Nome = "Placa de Rede", QuantidadeEstoque = 5, ValorUnitario = 50.00m };
-            concurrencyContext.Pecas.Add(peca);
-            await concurrencyContext.SaveChangesAsync();
-            concurrencyContext.ChangeTracker.Clear();
-
-            var pecaAtualizada = new PecaEditDto { Id = peca.Id, Nome = "Placa Wi-Fi", QuantidadeEstoque = 5, ValorUnitario = 60.00m };
-            concurrencyContext.ThrowConcurrencyException = true;
-            concurrencyContext.RemoveEntityOnException = true;
+            _mockEngine.Setup(e => e.ObterPorIdAsync(999)).ReturnsAsync((Peca?)null);
 
             // Act
-            var result = await controller.Edit(peca.Id, pecaAtualizada);
+            var result = await _controller.Edit(999);
 
             // Assert
             result.Should().BeOfType<NotFoundResult>();
         }
 
         [Fact]
-        public async Task Edit_Post_ConcurrencyException_PecaExists_ShouldThrow()
+        public async Task Edit_GET_ComIdExistente_DeveRetornarViewComDto()
         {
             // Arrange
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlite("DataSource=:memory:;Foreign Keys=False")
-                .Options;
+            var peca = new Peca { Id = 1, Nome = "Peça 1", QuantidadeEstoque = 5, QuantidadeMinima = 1, ValorUnitario = 100 };
+            _mockEngine.Setup(e => e.ObterPorIdAsync(1)).ReturnsAsync(peca);
 
-            using var concurrencyContext = new ConcurrencyAppDbContext(options);
-            concurrencyContext.Database.OpenConnection();
-            concurrencyContext.Database.EnsureCreated();
-            using var controller = new PecasController(concurrencyContext);
+            // Act
+            var result = await _controller.Edit(1);
 
-            var peca = new Peca { Nome = "Fonte 500W", QuantidadeEstoque = 2, ValorUnitario = 200.00m };
-            concurrencyContext.Pecas.Add(peca);
-            await concurrencyContext.SaveChangesAsync();
-            concurrencyContext.ChangeTracker.Clear();
-
-            var pecaAtualizada = new PecaEditDto { Id = peca.Id, Nome = "Fonte 600W", QuantidadeEstoque = 2, ValorUnitario = 250.00m };
-            concurrencyContext.ThrowConcurrencyException = true;
-            concurrencyContext.RemoveEntityOnException = false; // Entity still exists
-
-            // Act & Assert
-            await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => controller.Edit(peca.Id, pecaAtualizada));
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            var dto = viewResult.Model.Should().BeOfType<PecaEditDto>().Subject;
+            dto.Id.Should().Be(1);
+            dto.Nome.Should().Be("Peça 1");
         }
 
-        public void Dispose()
+        [Fact]
+        public async Task Edit_POST_ComIdIncompativel_DeveRetornarNotFound()
         {
-            _context.Database.EnsureDeleted();
-            _context.Dispose();
-            _controller.Dispose();
+            // Arrange
+            var dto = new PecaEditDto { Id = 2 };
+
+            // Act
+            var result = await _controller.Edit(1, dto);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Fact]
+        public async Task Edit_POST_ComSucessoNoEngine_DeveRedirecionarParaIndex()
+        {
+            // Arrange
+            var dto = new PecaEditDto { Id = 1, Nome = "Peça Atualizada" };
+            _mockEngine.Setup(e => e.AtualizarPecaAsync(dto))
+                .ReturnsAsync(EstoqueResult.Ok(null, "Peça atualizada com sucesso."));
+
+            // Act
+            var result = await _controller.Edit(1, dto);
+
+            // Assert
+            var redirect = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirect.ActionName.Should().Be(nameof(PecasController.Index));
+            _controller.TempData["MensagemSucesso"].Should().Be("Peça atualizada com sucesso.");
+        }
+
+        [Fact]
+        public async Task Edit_POST_QuandoNaoEncontradaNoEngine_DeveRetornarNotFound()
+        {
+            // Arrange
+            var dto = new PecaEditDto { Id = 1, Nome = "Peça" };
+            _mockEngine.Setup(e => e.AtualizarPecaAsync(dto))
+                .ReturnsAsync(EstoqueResult.Falha("Peça não encontrada."));
+
+            // Act
+            var result = await _controller.Edit(1, dto);
+
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Fact]
+        public async Task DeleteConfirmed_POST_ComSucesso_DeveDefinirMensagemSucessoERedirecionar()
+        {
+            // Arrange
+            _mockEngine.Setup(e => e.ExcluirPecaAsync(1))
+                .ReturnsAsync(EstoqueResult.Ok(null, "Peça excluída com sucesso."));
+
+            // Act
+            var result = await _controller.DeleteConfirmed(1);
+
+            // Assert
+            var redirect = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirect.ActionName.Should().Be(nameof(PecasController.Index));
+            _controller.TempData["MensagemSucesso"].Should().Be("Peça excluída com sucesso.");
+        }
+
+        [Fact]
+        public async Task DeleteConfirmed_POST_ComFalhaDeIntegridade_DeveDefinirMensagemErroERedirecionar()
+        {
+            // Arrange
+            _mockEngine.Setup(e => e.ExcluirPecaAsync(1))
+                .ReturnsAsync(EstoqueResult.Falha("Não é possível excluir a peça vinculada a ordens de serviço."));
+
+            // Act
+            var result = await _controller.DeleteConfirmed(1);
+
+            // Assert
+            var redirect = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirect.ActionName.Should().Be(nameof(PecasController.Index));
+            _controller.TempData["MensagemErro"].Should().Be("Não é possível excluir a peça vinculada a ordens de serviço.");
         }
     }
 }

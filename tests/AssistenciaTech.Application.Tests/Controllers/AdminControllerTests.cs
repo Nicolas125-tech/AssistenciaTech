@@ -28,7 +28,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
     public class AdminControllerTests : IDisposable
     {
         private readonly AppDbContext _context;
-        private readonly Mock<IEstoqueService> _mockEstoqueService;
+        private readonly Mock<IEstoqueEngine> _mockEstoqueEngine;
         private readonly Mock<IWebHostEnvironment> _mockEnv;
         private readonly Mock<IPdfGeneratorService> _mockPdfGeneratorService;
         private readonly Mock<IAdminDashboardService> _mockDashboardService;
@@ -45,7 +45,9 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 .Options;
 
             _context = new AppDbContext(options);
-            _mockEstoqueService = new Mock<IEstoqueService>();
+            _mockEstoqueEngine = new Mock<IEstoqueEngine>();
+            _mockEstoqueEngine.Setup(e => e.DeduzirEstoqueAsync(It.IsAny<int>())).ReturnsAsync(EstoqueResult.Ok());
+            _mockEstoqueEngine.Setup(e => e.RestaurarEstoqueAsync(It.IsAny<int>())).ReturnsAsync(EstoqueResult.Ok());
             _mockEnv = new Mock<IWebHostEnvironment>();
             _mockEnv.Setup(m => m.ContentRootPath).Returns(Path.Combine(Path.GetTempPath(), "AssistenciaTechTests_" + Guid.NewGuid().ToString()));
             _mockPdfGeneratorService = new Mock<IPdfGeneratorService>();
@@ -78,7 +80,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             var osLifecycle = lifecycle ?? (ctx != null
                 ? new OrdemServicoLifecycle(
                     ctx,
-                    _mockEstoqueService.Object,
+                    _mockEstoqueEngine.Object,
                     _mockNotificationService.Object,
                     _mockEnv.Object,
                     new Mock<ILogger<OrdemServicoLifecycle>>().Object)

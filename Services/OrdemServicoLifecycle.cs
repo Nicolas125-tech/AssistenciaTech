@@ -17,7 +17,7 @@ namespace AssistenciaTech.Services
     public class OrdemServicoLifecycle : IOrdemServicoLifecycle
     {
         private readonly AppDbContext _context;
-        private readonly IEstoqueService _estoqueService;
+        private readonly IEstoqueEngine _estoqueEngine;
         private readonly INotificationService _notificationService;
         private readonly IWebHostEnvironment _env;
         private readonly ILogger<OrdemServicoLifecycle> _logger;
@@ -38,13 +38,13 @@ namespace AssistenciaTech.Services
 
         public OrdemServicoLifecycle(
             AppDbContext context,
-            IEstoqueService estoqueService,
+            IEstoqueEngine estoqueEngine,
             INotificationService notificationService,
             IWebHostEnvironment env,
             ILogger<OrdemServicoLifecycle> logger)
         {
             _context = context;
-            _estoqueService = estoqueService;
+            _estoqueEngine = estoqueEngine;
             _notificationService = notificationService;
             _env = env;
             _logger = logger;
@@ -231,13 +231,23 @@ namespace AssistenciaTech.Services
             if (ordem.Status == WorkflowStatus.Concluido && OrdemServicoStateMachine.ExigeBaixaDeEstoque(statusAnterior, ordem.Status, ordem.DataConclusao))
             {
                 ordem.DataConclusao = DateTime.UtcNow;
-                await _estoqueService.DeduzirEstoque(ordem.Id);
+                var deducaoResult = await _estoqueEngine.DeduzirEstoqueAsync(ordem.Id);
+                if (!deducaoResult.Sucesso)
+                {
+                    ordem.Status = statusAnterior;
+                    return (false, deducaoResult.Mensagem);
+                }
             }
             // 2. Estorno de Conclusão -> Devolve estoque
             else if (OrdemServicoStateMachine.ExigeEstornoDeEstoque(statusAnterior, ordem.Status))
             {
                 ordem.DataConclusao = null;
-                await _estoqueService.RestaurarEstoque(ordem.Id);
+                var estornoResult = await _estoqueEngine.RestaurarEstoqueAsync(ordem.Id);
+                if (!estornoResult.Sucesso)
+                {
+                    ordem.Status = statusAnterior;
+                    return (false, estornoResult.Mensagem);
+                }
             }
 
             // 3. Entrega ao cliente -> Valida devolução do backup
@@ -259,7 +269,12 @@ namespace AssistenciaTech.Services
                 if (ordem.DataConclusao == null)
                 {
                     ordem.DataConclusao = DateTime.UtcNow;
-                    await _estoqueService.DeduzirEstoque(ordem.Id);
+                    var deducaoResult = await _estoqueEngine.DeduzirEstoqueAsync(ordem.Id);
+                    if (!deducaoResult.Sucesso)
+                    {
+                        ordem.Status = statusAnterior;
+                        return (false, deducaoResult.Mensagem);
+                    }
                 }
             }
             else if (ordem.Status != WorkflowStatus.Entregue)

@@ -43,12 +43,12 @@ namespace AssistenciaTech.Services
         private const string CacheKeyStatusGroup = "AdminDashboard_StatusGroup";
         private const string CacheKeyTotalOrdens = "AdminDashboard_TotalOrdens";
 
-        private readonly IEstoqueService _estoqueService;
+        private readonly IEstoqueEngine _estoqueEngine;
 
-        public AdminDashboardService(AppDbContext context, IEstoqueService estoqueService, IResilientCacheService cache)
+        public AdminDashboardService(AppDbContext context, IEstoqueEngine estoqueEngine, IResilientCacheService cache)
         {
             _context = context;
-            _estoqueService = estoqueService;
+            _estoqueEngine = estoqueEngine;
             _cache = cache;
         }
 
@@ -66,7 +66,7 @@ namespace AssistenciaTech.Services
 
             var metrics = CalculateMetrics(statusGroupDb);
 
-            var alertasEstoque = await _estoqueService.ObterAlertasDeEstoqueAsync();
+            var alertasEstoque = await _estoqueEngine.ObterAlertasDeEstoqueAsync();
 
             return new DashboardDto
             {

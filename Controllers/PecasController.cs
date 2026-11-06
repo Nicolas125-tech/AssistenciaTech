@@ -1,10 +1,8 @@
-using System.Linq;
+using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using AssistenciaTech.Data;
-using AssistenciaTech.Models;
 using AssistenciaTech.DTOs;
+using AssistenciaTech.Services;
 using Microsoft.AspNetCore.Authorization;
 
 namespace AssistenciaTech.Controllers
@@ -12,17 +10,18 @@ namespace AssistenciaTech.Controllers
     [Authorize(Roles = "Administrador")]
     public class PecasController : Controller
     {
-        private readonly AppDbContext _context;
+        private readonly IEstoqueEngine _estoqueEngine;
 
-        public PecasController(AppDbContext context)
+        public PecasController(IEstoqueEngine estoqueEngine)
         {
-            _context = context;
+            _estoqueEngine = estoqueEngine;
         }
 
         // GET: Pecas
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Pecas.AsNoTracking().ToListAsync());
+            var pecas = await _estoqueEngine.ObterTodasAsync();
+            return View(pecas);
         }
 
         // GET: Pecas/Create
@@ -38,16 +37,14 @@ namespace AssistenciaTech.Controllers
         {
             if (ModelState.IsValid)
             {
-                var peca = new Peca
+                var result = await _estoqueEngine.CriarPecaAsync(dto);
+                if (result.Sucesso)
                 {
-                    Nome = dto.Nome,
-                    QuantidadeEstoque = dto.QuantidadeEstoque,
-                    QuantidadeMinima = dto.QuantidadeMinima,
-                    ValorUnitario = dto.ValorUnitario
-                };
-                _context.Add(peca);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                    TempData["MensagemSucesso"] = result.Mensagem;
+                    return RedirectToAction(nameof(Index));
+                }
+
+                ModelState.AddModelError(string.Empty, result.Mensagem);
             }
             return View(dto);
         }
@@ -57,7 +54,7 @@ namespace AssistenciaTech.Controllers
         {
             if (id == null) return NotFound();
 
-            var peca = await _context.Pecas.FindAsync(id);
+            var peca = await _estoqueEngine.ObterPorIdAsync(id.Value);
             if (peca == null) return NotFound();
 
             var dto = new PecaEditDto
@@ -81,24 +78,19 @@ namespace AssistenciaTech.Controllers
 
             if (ModelState.IsValid)
             {
-                try
+                var result = await _estoqueEngine.AtualizarPecaAsync(dto);
+                if (result.Sucesso)
                 {
-                    var pecaExistente = await _context.Pecas.FindAsync(id);
-                    if (pecaExistente == null) return NotFound();
-
-                    pecaExistente.Nome = dto.Nome;
-                    pecaExistente.QuantidadeEstoque = dto.QuantidadeEstoque;
-                    pecaExistente.QuantidadeMinima = dto.QuantidadeMinima;
-                    pecaExistente.ValorUnitario = dto.ValorUnitario;
-
-                    await _context.SaveChangesAsync();
+                    TempData["MensagemSucesso"] = result.Mensagem;
+                    return RedirectToAction(nameof(Index));
                 }
-                catch (DbUpdateConcurrencyException)
+
+                if (result.Mensagem.Contains("não encontrada", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (!PecaExists(dto.Id)) return NotFound();
-                    else throw;
+                    return NotFound();
                 }
-                return RedirectToAction(nameof(Index));
+
+                ModelState.AddModelError(string.Empty, result.Mensagem);
             }
             return View(dto);
         }
@@ -108,13 +100,17 @@ namespace AssistenciaTech.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            await _context.Pecas.Where(p => p.Id == id).ExecuteDeleteAsync();
-            return RedirectToAction(nameof(Index));
-        }
+            var result = await _estoqueEngine.ExcluirPecaAsync(id);
+            if (!result.Sucesso)
+            {
+                TempData["MensagemErro"] = result.Mensagem;
+            }
+            else
+            {
+                TempData["MensagemSucesso"] = result.Mensagem;
+            }
 
-        private bool PecaExists(int id)
-        {
-            return _context.Pecas.Any(e => e.Id == id);
+            return RedirectToAction(nameof(Index));
         }
     }
 }

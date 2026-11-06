@@ -16,7 +16,7 @@ namespace AssistenciaTech.Application.Tests.Services
     public class OrdemServicoLifecycleTests
     {
         private readonly AppDbContext _context;
-        private readonly Mock<IEstoqueService> _estoqueMock;
+        private readonly Mock<IEstoqueEngine> _estoqueMock;
         private readonly Mock<INotificationService> _notificationMock;
         private readonly Mock<IWebHostEnvironment> _envMock;
         private readonly Mock<ILogger<OrdemServicoLifecycle>> _loggerMock;
@@ -29,7 +29,9 @@ namespace AssistenciaTech.Application.Tests.Services
                 .Options;
 
             _context = new AppDbContext(options);
-            _estoqueMock = new Mock<IEstoqueService>();
+            _estoqueMock = new Mock<IEstoqueEngine>();
+            _estoqueMock.Setup(e => e.DeduzirEstoqueAsync(It.IsAny<int>())).ReturnsAsync(EstoqueResult.Ok());
+            _estoqueMock.Setup(e => e.RestaurarEstoqueAsync(It.IsAny<int>())).ReturnsAsync(EstoqueResult.Ok());
             _notificationMock = new Mock<INotificationService>();
             _envMock = new Mock<IWebHostEnvironment>();
             _envMock.Setup(e => e.ContentRootPath).Returns(AppDomain.CurrentDomain.BaseDirectory);
@@ -106,7 +108,7 @@ namespace AssistenciaTech.Application.Tests.Services
             os.Status.Should().Be(WorkflowStatus.Concluido);
             os.DataConclusao.Should().NotBeNull();
 
-            _estoqueMock.Verify(e => e.DeduzirEstoque(101), Times.Once);
+            _estoqueMock.Verify(e => e.DeduzirEstoqueAsync(101), Times.Once);
             _notificationMock.Verify(n => n.EnviarNotificacaoStatusAsync(cliente, os, WorkflowStatus.EmReparo), Times.Once);
         }
 
@@ -144,7 +146,7 @@ namespace AssistenciaTech.Application.Tests.Services
             os.Status.Should().Be(WorkflowStatus.EmReparo);
             os.DataConclusao.Should().BeNull();
 
-            _estoqueMock.Verify(e => e.RestaurarEstoque(102), Times.Once);
+            _estoqueMock.Verify(e => e.RestaurarEstoqueAsync(102), Times.Once);
         }
 
         [Fact]
@@ -246,7 +248,7 @@ namespace AssistenciaTech.Application.Tests.Services
             result.Sucesso.Should().BeTrue();
             os.Status.Should().Be(WorkflowStatus.Concluido);
             os.LaudoTecnico.Should().Be("Mecanismo tracionador limpo");
-            _estoqueMock.Verify(e => e.DeduzirEstoque(105), Times.Once);
+            _estoqueMock.Verify(e => e.DeduzirEstoqueAsync(105), Times.Once);
             _notificationMock.Verify(n => n.EnviarNotificacaoStatusAsync(cliente, os, WorkflowStatus.EmReparo), Times.Once);
         }
 

@@ -19,7 +19,7 @@ builder.Services.AddControllersWithViews(options =>
     options.Filters.Add<AssistenciaTech.Filters.DemoModeFilter>();
 });
 builder.Services.AddProblemDetails();
-builder.Services.AddScoped<IEstoqueService, EstoqueService>();
+builder.Services.AddScoped<IEstoqueEngine, EstoqueEngine>();
 builder.Services.AddScoped<IPdfGeneratorService, PdfGeneratorService>();
 builder.Services.AddScoped<IOrdemServicoLifecycle, OrdemServicoLifecycle>();
 builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();

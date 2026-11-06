@@ -21,3 +21,5 @@ Este documento define os termos de domínio e a linguagem ubíqua utilizada no T
 - **Laudo Técnico**: Parecer conclusivo emitido pelo técnico sobre o defeito encontrado, intervenções realizadas e peças substituídas.
 - **Visita em Campo**: Atendimento presencial realizado por técnico externo via aplicativo mobile com registro de coordenadas GPS (check-in/check-out) e coleta de assinatura digital do cliente.
 - **Faturamento & Pix**: Registro financeiro de cobrança vinculado a uma OS concluída, contendo cálculo de tributos (ISS e ICMS), chave Pix estática/dinâmica e controle de webhook de pagamento.
+- **FaturamentoEngine**: Módulo profundo responsável por governar o cálculo tributário (ISS/ICMS), geração de payload NFS-e e persistência transacional de faturamentos de Ordens de Serviço.
+- **EstoqueEngine**: Módulo profundo responsável por governar o ciclo de vida do inventário e catálogo de peças da oficina. Centraliza movimentações de saldo, deduções e estornos por OS, alertas de estoque crítico com invalidação atômica de cache, proteção de integridade referencial e controle de concorrência otimista.
