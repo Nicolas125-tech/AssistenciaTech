@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AssistenciaTech.Controllers;
 using AssistenciaTech.Data;
 using AssistenciaTech.Models;
+using AssistenciaTech.Services;
 using FluentAssertions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -25,6 +26,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
     {
         private readonly AppDbContext _context;
         private readonly Mock<IConfiguration> _mockConfig;
+        private readonly Mock<IAreaClienteEngine> _mockAreaClienteEngine;
         private readonly AccountController _controller;
         private readonly Mock<IAuthenticationService> _mockAuthService;
 
@@ -36,6 +38,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
 
             _context = new AppDbContext(options);
             _mockConfig = new Mock<IConfiguration>();
+            _mockAreaClienteEngine = new Mock<IAreaClienteEngine>();
 
             var mockHttpContext = new Mock<HttpContext>();
             _mockAuthService = new Mock<IAuthenticationService>();
@@ -55,7 +58,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             var mockUrlHelper = new Mock<IUrlHelper>();
             mockUrlHelper.Setup(x => x.IsLocalUrl(It.IsAny<string>())).Returns(false);
 
-            _controller = new AccountController(_mockConfig.Object, _context)
+            _controller = new AccountController(_mockConfig.Object, _context, _mockAreaClienteEngine.Object)
             {
                 ControllerContext = new ControllerContext
                 {
@@ -271,7 +274,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             var mockHttpContext = new Mock<HttpContext>();
             mockHttpContext.Setup(c => c.User).Returns(principal);
 
-            var controller = new AccountController(_mockConfig.Object, _context)
+            var controller = new AccountController(_mockConfig.Object, _context, _mockAreaClienteEngine.Object)
             {
                 ControllerContext = new ControllerContext { HttpContext = mockHttpContext.Object }
             };
@@ -288,6 +291,10 @@ namespace AssistenciaTech.Application.Tests.Controllers
         [Fact]
         public async Task LoginCliente_Post_WhenEmailIsEmpty_ReturnsViewResultWithModelError()
         {
+            // Arrange
+            _mockAreaClienteEngine.Setup(x => x.AutenticarClientePorEmailAsync(""))
+                .ReturnsAsync(ClienteAuthResult.Falha("Informe seu e-mail cadastrado."));
+
             // Act
             var result = await _controller.LoginClientePost("");
 
@@ -299,6 +306,10 @@ namespace AssistenciaTech.Application.Tests.Controllers
         [Fact]
         public async Task LoginCliente_Post_WhenClienteNotFound_ReturnsViewResultWithModelError()
         {
+            // Arrange
+            _mockAreaClienteEngine.Setup(x => x.AutenticarClientePorEmailAsync("naoexiste@email.com"))
+                .ReturnsAsync(ClienteAuthResult.Falha("Nenhum cliente cadastrado com este e-mail."));
+
             // Act
             var result = await _controller.LoginClientePost("naoexiste@email.com");
 
@@ -318,9 +329,17 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 Telefone = "43999999999",
                 Email = "carlos@email.com"
             };
-            _context.Clientes.Add(cliente);
-            await _context.SaveChangesAsync();
-            _context.ChangeTracker.Clear();
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, cliente.Nome),
+                new Claim(ClaimTypes.Email, cliente.Email),
+                new Claim(ClaimTypes.Role, "Cliente")
+            };
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var principal = new ClaimsPrincipal(identity);
+
+            _mockAreaClienteEngine.Setup(x => x.AutenticarClientePorEmailAsync("carlos@email.com"))
+                .ReturnsAsync(ClienteAuthResult.Ok(cliente, principal));
 
             // Act
             var result = await _controller.LoginClientePost("carlos@email.com");

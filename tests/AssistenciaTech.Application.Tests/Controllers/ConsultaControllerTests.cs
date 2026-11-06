@@ -4,46 +4,51 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using AssistenciaTech.Controllers;
-using AssistenciaTech.Data;
 using AssistenciaTech.Models;
+using AssistenciaTech.Services;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace AssistenciaTech.Application.Tests.Controllers
 {
-    public class ConsultaControllerTests : IDisposable
+    public class ConsultaControllerTests
     {
-        private readonly AppDbContext _context;
-        private readonly ConsultaController _controller;
+        private readonly Mock<IAreaClienteEngine> _areaClienteEngineMock;
         private readonly Mock<ILogger<ConsultaController>> _loggerMock;
+        private readonly ConsultaController _controller;
 
         public ConsultaControllerTests()
         {
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-                .Options;
-
-            _context = new AppDbContext(options);
+            _areaClienteEngineMock = new Mock<IAreaClienteEngine>();
             _loggerMock = new Mock<ILogger<ConsultaController>>();
-            _controller = new ConsultaController(_context, _loggerMock.Object);
+            _controller = new ConsultaController(_areaClienteEngineMock.Object, _loggerMock.Object);
         }
 
         [Fact]
         public void Index_DeveRetornarViewResult()
         {
-            // Arrange
-
             // Act
             var result = _controller.Index(null);
 
             // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Which;
-            viewResult.ViewName.Should().BeNull(); // Returns default view
+            viewResult.ViewName.Should().BeNull();
+        }
+
+        [Fact]
+        public void Index_ComNumeroOS_DeveDefinirViewBag()
+        {
+            // Act
+            var result = _controller.Index(42);
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Which;
+            viewResult.ViewName.Should().BeNull();
+            ((int)_controller.ViewBag.NumeroOS).Should().Be(42);
         }
 
         [Fact]
@@ -51,8 +56,9 @@ namespace AssistenciaTech.Application.Tests.Controllers
         {
             // Arrange
             int numeroOS = 1;
-            // Cria um CPF intencionalmente longo para testar a validação de limite de tamanho
             string cpfLongo = new string('9', 100);
+            _areaClienteEngineMock.Setup(x => x.ConsultarStatusPublicoAsync(numeroOS, cpfLongo))
+                .ReturnsAsync(ConsultaPublicaResult.Falha("Por favor, preencha o número da OS e o CPF."));
 
             // Act
             var result = await _controller.Status(numeroOS, cpfLongo);
@@ -71,6 +77,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
             // Arrange
             int numeroOS = 999;
             string cpf = "12345678901";
+            _areaClienteEngineMock.Setup(x => x.ConsultarStatusPublicoAsync(numeroOS, cpf))
+                .ReturnsAsync(ConsultaPublicaResult.Falha("Ordem de Serviço não encontrada ou CPF inválido."));
 
             // Act
             var result = await _controller.Status(numeroOS, cpf);
@@ -83,13 +91,14 @@ namespace AssistenciaTech.Application.Tests.Controllers
             erro.Should().Be("Ordem de Serviço não encontrada ou CPF inválido.");
         }
 
-
         [Fact]
         public async Task Status_ComNumeroOSInvalido_DeveRetornarErroDeValidacao()
         {
             // Arrange
             int numeroOS = 0;
             string cpf = "12345678901";
+            _areaClienteEngineMock.Setup(x => x.ConsultarStatusPublicoAsync(numeroOS, cpf))
+                .ReturnsAsync(ConsultaPublicaResult.Falha("Por favor, preencha o número da OS e o CPF."));
 
             // Act
             var result = await _controller.Status(numeroOS, cpf);
@@ -102,6 +111,40 @@ namespace AssistenciaTech.Application.Tests.Controllers
             erro.Should().Be("Por favor, preencha o número da OS e o CPF.");
         }
 
+        [Fact]
+        public async Task Status_ComDadosValidos_DeveRetornarViewDetalhesComOrdem()
+        {
+            // Arrange
+            var os = new OrdemServico { Id = 10, Equipamento = "MacBook Pro", Status = "Em Andamento" };
+            _areaClienteEngineMock.Setup(x => x.ConsultarStatusPublicoAsync(10, "12345678901"))
+                .ReturnsAsync(ConsultaPublicaResult.Ok(os));
+
+            // Act
+            var result = await _controller.Status(10, "12345678901");
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            viewResult.ViewName.Should().Be("Detalhes");
+            viewResult.Model.Should().Be(os);
+        }
+
+        [Fact]
+        public async Task Status_QuandoExcecaoLancada_DeveRetornarViewIndexComErro()
+        {
+            // Arrange
+            _areaClienteEngineMock.Setup(x => x.ConsultarStatusPublicoAsync(It.IsAny<int>(), It.IsAny<string>()))
+                .ThrowsAsync(new InvalidOperationException("Erro de conexão simulado"));
+
+            // Act
+            var result = await _controller.Status(1, "12345678901");
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            viewResult.ViewName.Should().Be("Index");
+            _controller.ModelState.IsValid.Should().BeFalse();
+            var erro = _controller.ModelState[string.Empty]?.Errors.FirstOrDefault()?.ErrorMessage;
+            erro.Should().Be("Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente mais tarde.");
+        }
 
         [Fact]
         public async Task MeusEquipamentos_SemEmail_DeveRedirecionarParaIndex()
@@ -128,7 +171,6 @@ namespace AssistenciaTech.Application.Tests.Controllers
         {
             // Arrange
             var userEmail = "cliente@teste.com";
-
             _controller.ControllerContext = new ControllerContext
             {
                 HttpContext = new DefaultHttpContext
@@ -140,31 +182,12 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 }
             };
 
-            var clienteLogado = new Cliente
-            {
-                Nome = "Cliente Logado",
-                Cpf = "11111111111",
-                Telefone = "11999999999",
-                Email = userEmail
-            };
+            var os1 = new OrdemServico { Id = 2, Equipamento = "Note", DataEntrada = DateTime.UtcNow };
+            var os2 = new OrdemServico { Id = 1, Equipamento = "PC", DataEntrada = DateTime.UtcNow.AddDays(-1) };
+            var lista = new List<OrdemServico> { os1, os2 };
 
-            var outroCliente = new Cliente
-            {
-                Nome = "Outro Cliente",
-                Cpf = "22222222222",
-                Telefone = "11888888888",
-                Email = "outro@teste.com"
-            };
-
-            _context.Clientes.AddRange(clienteLogado, outroCliente);
-            await _context.SaveChangesAsync();
-
-            var os1 = new OrdemServico { ClienteId = clienteLogado.Id, Equipamento = "PC", ProblemaRelatado = "P1", DataEntrada = System.DateTime.UtcNow.AddDays(-2), Status = "Recebido" };
-            var os2 = new OrdemServico { ClienteId = clienteLogado.Id, Equipamento = "Note", ProblemaRelatado = "P2", DataEntrada = System.DateTime.UtcNow.AddDays(-1), Status = "Recebido" };
-            var os3 = new OrdemServico { ClienteId = outroCliente.Id, Equipamento = "Tablet", ProblemaRelatado = "P3", DataEntrada = System.DateTime.UtcNow, Status = "Recebido" };
-
-            _context.OrdensServico.AddRange(os1, os2, os3);
-            await _context.SaveChangesAsync();
+            _areaClienteEngineMock.Setup(x => x.ObterEquipamentosPorEmailAsync(userEmail))
+                .ReturnsAsync(lista);
 
             // Act
             var result = await _controller.MeusEquipamentos();
@@ -174,14 +197,9 @@ namespace AssistenciaTech.Application.Tests.Controllers
             var ordens = viewResult.Model.Should().BeAssignableTo<IEnumerable<OrdemServico>>().Subject.ToList();
 
             ordens.Should().HaveCount(2);
-            ordens.Should().Contain(o => o.Id == os1.Id);
-            ordens.Should().Contain(o => o.Id == os2.Id);
-
-            // Verifica a ordenação (o mais recente primeiro)
-            ordens[0].Id.Should().Be(os2.Id);
-            ordens[1].Id.Should().Be(os1.Id);
+            ordens[0].Id.Should().Be(2);
+            ordens[1].Id.Should().Be(1);
         }
-
 
         [Fact]
         public async Task VisualizarOS_SemEmail_DeveRedirecionarParaIndex()
@@ -219,6 +237,9 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 }
             };
 
+            _areaClienteEngineMock.Setup(x => x.ObterDetalhesSegurosAsync(999, userEmail))
+                .ReturnsAsync(VisualizacaoOSResult.NaoEncontrado());
+
             // Act
             var result = await _controller.VisualizarOS(999);
 
@@ -243,22 +264,11 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 }
             };
 
-            var outroCliente = new Cliente
-            {
-                Nome = "Outro",
-                Cpf = "22222222222",
-                Telefone = "11888888888",
-                Email = "outro@teste.com"
-            };
-            _context.Clientes.Add(outroCliente);
-            await _context.SaveChangesAsync();
-
-            var os = new OrdemServico { ClienteId = outroCliente.Id, Equipamento = "PC", ProblemaRelatado = "P1", DataEntrada = System.DateTime.UtcNow };
-            _context.OrdensServico.Add(os);
-            await _context.SaveChangesAsync();
+            _areaClienteEngineMock.Setup(x => x.ObterDetalhesSegurosAsync(50, userEmail))
+                .ReturnsAsync(VisualizacaoOSResult.NaoEncontrado());
 
             // Act
-            var result = await _controller.VisualizarOS(os.Id);
+            var result = await _controller.VisualizarOS(50);
 
             // Assert
             var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
@@ -281,81 +291,26 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 }
             };
 
-            var clienteLogado = new Cliente
-            {
-                Nome = "Logado",
-                Cpf = "11111111111",
-                Telefone = "11999999999",
-                Email = userEmail
-            };
-            _context.Clientes.Add(clienteLogado);
-            await _context.SaveChangesAsync();
-
-            var os = new OrdemServico { ClienteId = clienteLogado.Id, Equipamento = "PC", ProblemaRelatado = "P1", DataEntrada = System.DateTime.UtcNow };
-            _context.OrdensServico.Add(os);
-            await _context.SaveChangesAsync();
+            var os = new OrdemServico { Id = 1, Equipamento = "PC" };
+            _areaClienteEngineMock.Setup(x => x.ObterDetalhesSegurosAsync(1, userEmail))
+                .ReturnsAsync(VisualizacaoOSResult.Ok(os));
 
             // Act
-            var result = await _controller.VisualizarOS(os.Id);
+            var result = await _controller.VisualizarOS(1);
 
             // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
             viewResult.ViewName.Should().Be("Detalhes");
             var ordemRetornada = viewResult.Model.Should().BeAssignableTo<OrdemServico>().Subject;
-            ordemRetornada.Id.Should().Be(os.Id);
+            ordemRetornada.Id.Should().Be(1);
         }
-
-        [Fact]
-        public async Task Status_QuandoExcecaoLancada_DeveRetornarViewIndexComErro()
-        {
-            // Arrange
-            int numeroOS = 1;
-            string cpf = "12345678901";
-
-            var mockConnection = new Mock<System.Data.Common.DbConnection>();
-            mockConnection.Setup(m => m.OpenAsync(It.IsAny<System.Threading.CancellationToken>()))
-                          .ThrowsAsync(new TestDbException("Simulated exception"));
-            mockConnection.Setup(m => m.Open())
-                          .Throws(new TestDbException("Simulated exception"));
-
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlite(mockConnection.Object)
-                .Options;
-
-            using var errorContext = new AppDbContext(options);
-            using var errorController = new ConsultaController(errorContext, _loggerMock.Object);
-
-            // Act
-            var result = await errorController.Status(numeroOS, cpf);
-
-            // Assert
-            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
-            viewResult.ViewName.Should().Be("Index");
-            errorController.ModelState.IsValid.Should().BeFalse();
-            var erro = errorController.ModelState[string.Empty]?.Errors.FirstOrDefault()?.ErrorMessage;
-            erro.Should().Be("Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente mais tarde.");
-        }
-
 
         [Fact]
         public async Task VisualizarOS_QuandoExcecaoLancada_DeveRetornarViewIndexComErro()
         {
             // Arrange
             var userEmail = "cliente@teste.com";
-
-            var mockConnection = new Mock<System.Data.Common.DbConnection>();
-            mockConnection.Setup(m => m.OpenAsync(It.IsAny<System.Threading.CancellationToken>()))
-                          .ThrowsAsync(new TestDbException("Simulated exception"));
-            mockConnection.Setup(m => m.Open())
-                          .Throws(new TestDbException("Simulated exception"));
-
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlite(mockConnection.Object)
-                .Options;
-
-            using var errorContext = new AppDbContext(options);
-            using var errorController = new ConsultaController(errorContext, _loggerMock.Object);
-            errorController.ControllerContext = new ControllerContext
+            _controller.ControllerContext = new ControllerContext
             {
                 HttpContext = new DefaultHttpContext
                 {
@@ -366,27 +321,18 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 }
             };
 
+            _areaClienteEngineMock.Setup(x => x.ObterDetalhesSegurosAsync(1, userEmail))
+                .ThrowsAsync(new InvalidOperationException("Falha simulada"));
+
             // Act
-            var result = await errorController.VisualizarOS(1);
+            var result = await _controller.VisualizarOS(1);
 
             // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
             viewResult.ViewName.Should().Be("Index");
-            errorController.ModelState.IsValid.Should().BeFalse();
-            var erro = errorController.ModelState[string.Empty]?.Errors.FirstOrDefault()?.ErrorMessage;
+            _controller.ModelState.IsValid.Should().BeFalse();
+            var erro = _controller.ModelState[string.Empty]?.Errors.FirstOrDefault()?.ErrorMessage;
             erro.Should().Be("Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente mais tarde.");
-        }
-
-        private class TestDbException : System.Data.Common.DbException
-        {
-            public TestDbException(string message) : base(message) { }
-        }
-
-        public void Dispose()
-        {
-            _context.Database.EnsureDeleted();
-            _context.Dispose();
-            _controller.Dispose();
         }
     }
 }

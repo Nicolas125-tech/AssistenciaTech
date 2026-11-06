@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using System;
 using System.Linq;
+using AssistenciaTech.Services;
 
 namespace AssistenciaTech.Controllers
 {
@@ -17,11 +18,16 @@ namespace AssistenciaTech.Controllers
     {
         private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration;
         private readonly AppDbContext _context;
+        private readonly IAreaClienteEngine _areaClienteEngine;
 
-        public AccountController(Microsoft.Extensions.Configuration.IConfiguration configuration, AppDbContext context)
+        public AccountController(
+            Microsoft.Extensions.Configuration.IConfiguration configuration,
+            AppDbContext context,
+            IAreaClienteEngine areaClienteEngine)
         {
             _configuration = configuration;
             _context = context;
+            _areaClienteEngine = areaClienteEngine;
         }
 
         // GET: /Account/Login
@@ -118,33 +124,13 @@ namespace AssistenciaTech.Controllers
         {
             ViewData["ReturnUrl"] = returnUrl;
 
-            if (string.IsNullOrWhiteSpace(email))
+            var authResult = await _areaClienteEngine.AutenticarClientePorEmailAsync(email);
+            if (!authResult.Sucesso || authResult.Principal == null)
             {
-                ModelState.AddModelError(string.Empty, "Informe seu e-mail cadastrado.");
+                ModelState.AddModelError(string.Empty, authResult.Mensagem ?? "Erro ao realizar login.");
                 return View("LoginCliente");
             }
 
-            string emailNormalizado = email.Trim().ToLowerInvariant();
-
-            var cliente = await _context.Clientes
-                .AsNoTracking()
-                .Include(c => c.OrdensServico)
-                .FirstOrDefaultAsync(c => c.Email != null && c.Email.ToLower() == emailNormalizado);
-
-            if (cliente == null)
-            {
-                ModelState.AddModelError(string.Empty, "Nenhum cliente cadastrado com este e-mail.");
-                return View("LoginCliente");
-            }
-
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, cliente.Nome),
-                new Claim(ClaimTypes.Email, cliente.Email ?? emailNormalizado),
-                new Claim(ClaimTypes.Role, "Cliente")
-            };
-
-            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             var authProperties = new AuthenticationProperties
             {
                 IsPersistent = true
@@ -152,7 +138,7 @@ namespace AssistenciaTech.Controllers
 
             await HttpContext.SignInAsync(
                 CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(claimsIdentity),
+                authResult.Principal,
                 authProperties);
 
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
