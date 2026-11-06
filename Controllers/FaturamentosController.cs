@@ -1,15 +1,11 @@
-using System;
-using System.Security.Cryptography;
-using System.Linq;
-using System.Text.Json;
+using System.IO;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
 using AssistenciaTech.Data;
-using AssistenciaTech.Models;
+using AssistenciaTech.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace AssistenciaTech.Controllers
 {
@@ -17,28 +13,23 @@ namespace AssistenciaTech.Controllers
     public class FaturamentosController : Controller
     {
         private readonly AppDbContext _context;
-        private readonly IConfiguration _configuration;
-        private readonly AssistenciaTech.Services.ITributacaoService _tributacaoService;
-        private readonly AssistenciaTech.Services.INfseXmlGeneratorService _xmlGenerator;
-        private readonly AssistenciaTech.Services.IPdfGeneratorService _pdfGenerator;
+        private readonly IFaturamentoEngine _engine;
 
         public FaturamentosController(
             AppDbContext context,
-            IConfiguration configuration,
-            AssistenciaTech.Services.ITributacaoService tributacaoService,
-            AssistenciaTech.Services.INfseXmlGeneratorService xmlGenerator,
-            AssistenciaTech.Services.IPdfGeneratorService pdfGenerator)
+            IFaturamentoEngine engine)
         {
             _context = context;
-            _configuration = configuration;
-            _tributacaoService = tributacaoService;
-            _xmlGenerator = xmlGenerator;
-            _pdfGenerator = pdfGenerator;
+            _engine = engine;
         }
 
         public async Task<IActionResult> Index()
         {
-            var faturamentos = await _context.Faturamentos.AsNoTracking().Include(f => f.OrdemServico).ToListAsync();
+            var faturamentos = await _context.Faturamentos
+                .AsNoTracking()
+                .Include(f => f.OrdemServico)
+                .ToListAsync();
+
             return View(faturamentos);
         }
 
@@ -47,38 +38,16 @@ namespace AssistenciaTech.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> GerarDaOS(int osId)
         {
-            var os = await _context.OrdensServico.FindAsync(osId);
-            if (os == null) return NotFound();
-
-            decimal total = (os.CustoPecas + os.CustoMaoDeObra) - os.DescontoAplicado;
-
-            // Calcular Tributos via Domain Service
-            var tributos = _tributacaoService.CalcularTributos(os);
-
-            // Simulação de geração de Payload PIX Dinâmico (BR Code)
-            string txId = Guid.NewGuid().ToString("N").Substring(0, 25);
-            string qrcodeBase = $"00020101021226580014br.gov.bcb.pix0136{Guid.NewGuid()}5204000053039865405{total.ToString("0.00").Replace(",", ".")}5802BR5915AssistenciaTech6009Sao Paulo62290525{txId}6304ABCD";
-
-            var faturamento = new Faturamento
+            var result = await _engine.FaturarOrdemAsync(osId);
+            if (!result.Sucesso)
             {
-                OrdemServicoId = osId,
-                ValorTotal = total,
-                DataVencimento = DateTime.UtcNow.AddDays(3),
-                StatusPagamento = PagamentoStatus.Pendente,
-                TxIdPix = txId,
-                QrCodePayload = qrcodeBase,
+                if (result.Mensagem?.Contains("não encontrada") == true)
+                {
+                    return NotFound();
+                }
 
-                BaseCalculoISS = tributos.BaseCalculoISS,
-                AliquotaISS = tributos.AliquotaISS,
-                ValorISS = tributos.ValorISS,
-
-                BaseCalculoICMS = tributos.BaseCalculoICMS,
-                AliquotaICMS = tributos.AliquotaICMS,
-                ValorICMS = tributos.ValorICMS
-            };
-
-            _context.Faturamentos.Add(faturamento);
-            await _context.SaveChangesAsync();
+                TempData["MensagemErro"] = result.Mensagem;
+            }
 
             return RedirectToAction(nameof(Index));
         }
@@ -88,140 +57,44 @@ namespace AssistenciaTech.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> WebhookPix()
         {
-            var webhookSecret = _configuration["WebhookSecret"];
-            if (string.IsNullOrEmpty(webhookSecret) || webhookSecret.Length < 32)
-            {
-                // To prevent potential brute-force attacks on HMAC signatures,
-                // enforce a minimum secret length (e.g., 32 characters/256 bits).
-                return StatusCode(500, "Internal server error: WebhookSecret is missing or too short.");
-            }
-
-            if (!Request.Headers.TryGetValue("X-Webhook-Signature", out var providedSignature))
-            {
-                return Unauthorized("Invalid or missing webhook signature.");
-            }
-
             Request.EnableBuffering();
             Request.Body.Position = 0;
-            using var reader = new System.IO.StreamReader(Request.Body);
+            using var reader = new StreamReader(Request.Body);
             var payload = await reader.ReadToEndAsync();
             Request.Body.Position = 0;
 
-            if (!VerifySignature(webhookSecret, providedSignature, payload))
+            string? signatureHeader = null;
+            if (Request.Headers.TryGetValue("X-Webhook-Signature", out var headerVal))
             {
-                return Unauthorized("Invalid or missing webhook signature.");
+                signatureHeader = headerVal.ToString();
             }
 
-            try
+            var result = await _engine.ProcessarWebhookPixAsync(payload, signatureHeader);
+            if (!result.Sucesso)
             {
-                var txIds = ExtractTxIdsFromJson(payload);
-
-                if (txIds.Count > 0)
+                if (result.HttpStatusCode == StatusCodes.Status401Unauthorized)
                 {
-                    await ProcessPaymentsAsync(txIds);
+                    return Unauthorized(result.MensagemErro);
                 }
-
-                return Ok();
-            }
-            catch (JsonException)
-            {
-                return BadRequest("Invalid JSON payload.");
-            }
-        }
-
-        private bool VerifySignature(string webhookSecret, string providedSignature, string payload)
-        {
-            byte[] secretBytes = System.Text.Encoding.UTF8.GetBytes(webhookSecret);
-            byte[] payloadBytes = System.Text.Encoding.UTF8.GetBytes(payload);
-            using var hmac = new HMACSHA256(secretBytes);
-            byte[] computedHashBytes = hmac.ComputeHash(payloadBytes);
-            byte[] providedSignatureBytes;
-            try
-            {
-                providedSignatureBytes = Convert.FromHexString(providedSignature);
-            }
-            catch (FormatException)
-            {
-                return false;
-            }
-
-            if (providedSignatureBytes.Length != computedHashBytes.Length)
-            {
-                return false;
-            }
-
-            return CryptographicOperations.FixedTimeEquals(providedSignatureBytes, computedHashBytes);
-        }
-
-        private System.Collections.Generic.List<string> ExtractTxIdsFromJson(string payload)
-        {
-            using var jsonDoc = JsonDocument.Parse(payload);
-
-            if (jsonDoc.RootElement.TryGetProperty("pix", out var pixElement) && pixElement.ValueKind == JsonValueKind.Array)
-            {
-                var txIds = new System.Collections.Generic.List<string>(pixElement.GetArrayLength());
-                foreach (var pix in pixElement.EnumerateArray())
+                if (result.HttpStatusCode == StatusCodes.Status400BadRequest)
                 {
-                    if (pix.TryGetProperty("txid", out var txidElement))
-                    {
-                        string txId = txidElement.GetString();
-                        if (!string.IsNullOrEmpty(txId))
-                        {
-                            txIds.Add(txId);
-                        }
-                    }
+                    return BadRequest(result.MensagemErro);
                 }
-                return txIds;
+                return StatusCode(result.HttpStatusCode, result.MensagemErro);
             }
-            else if (jsonDoc.RootElement.TryGetProperty("txid", out var txidElement))
-            {
-                var txIds = new System.Collections.Generic.List<string>(1);
-                string txId = txidElement.GetString();
-                if (!string.IsNullOrEmpty(txId))
-                {
-                    txIds.Add(txId);
-                }
-                return txIds;
-            }
-            return new System.Collections.Generic.List<string>(0);
-        }
 
-        private async Task ProcessPaymentsAsync(System.Collections.Generic.List<string> txIds)
-        {
-            if (txIds == null || txIds.Count == 0) return;
-
-            if (_context.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
-            {
-                var faturamentosToUpdate = await _context.Faturamentos
-                    .Where(f => txIds.Contains(f.TxIdPix) && f.StatusPagamento != PagamentoStatus.Pago_Total)
-                    .ToListAsync();
-
-                if (faturamentosToUpdate.Count > 0)
-                {
-                    for (int i = 0; i < faturamentosToUpdate.Count; i++)
-                    {
-                        faturamentosToUpdate[i].StatusPagamento = PagamentoStatus.Pago_Total;
-                    }
-
-                    // Entities are already tracked, no need for _context.UpdateRange which forces all fields to modified
-                    await _context.SaveChangesAsync();
-                }
-            }
-            else
-            {
-                await _context.Faturamentos
-                    .Where(f => txIds.Contains(f.TxIdPix) && f.StatusPagamento != PagamentoStatus.Pago_Total)
-                    .ExecuteUpdateAsync(s => s.SetProperty(f => f.StatusPagamento, PagamentoStatus.Pago_Total));
-            }
+            return Ok();
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> MarcarPago(int id)
         {
-            var affected = await _context.Faturamentos
-                .Where(f => f.Id == id)
-                .ExecuteUpdateAsync(s => s.SetProperty(f => f.StatusPagamento, PagamentoStatus.Pago_Total));
+            var result = await _engine.LiquidarFaturaManualmenteAsync(id);
+            if (!result.Sucesso)
+            {
+                TempData["MensagemErro"] = result.Mensagem;
+            }
 
             return RedirectToAction(nameof(Index));
         }
@@ -229,36 +102,33 @@ namespace AssistenciaTech.Controllers
         [HttpGet("Faturamentos/GerarXmlNfse/{id}")]
         public async Task<IActionResult> GerarXmlNfse(int id)
         {
-            var faturamento = await _context.Faturamentos
-                .AsNoTracking()
-                .Include(f => f.OrdemServico)
-                    .ThenInclude(os => os.Cliente)
-                .FirstOrDefaultAsync(f => f.Id == id);
+            var result = await _engine.GerarXmlNfseAsync(id);
+            if (!result.Sucesso)
+            {
+                if (result.StatusCode == StatusCodes.Status404NotFound)
+                {
+                    return NotFound(result.MensagemErro);
+                }
+                return BadRequest(result.MensagemErro);
+            }
 
-            if (faturamento == null) return NotFound("Faturamento não encontrado.");
-            if (faturamento.OrdemServico == null || faturamento.OrdemServico.Cliente == null)
-                return BadRequest("Dados da OS ou Cliente estão incompletos.");
-
-            var xmlBytes = _xmlGenerator.GerarXml(faturamento);
-
-            return File(xmlBytes, "application/xml", $"Nfse_Fatura_{id}.xml");
+            return File(result.ConteudoBytes!, result.ContentType!, result.NomeArquivo);
         }
 
         [HttpGet("Faturamentos/GerarReciboPagamento/{id}")]
         public async Task<IActionResult> GerarReciboPagamento(int id)
         {
-            var faturamento = await _context.Faturamentos
-                .AsNoTracking()
-                .Include(f => f.OrdemServico)
-                    .ThenInclude(os => os.Cliente)
-                .FirstOrDefaultAsync(f => f.Id == id);
+            var result = await _engine.GerarReciboPagamentoPdfAsync(id);
+            if (!result.Sucesso)
+            {
+                if (result.StatusCode == StatusCodes.Status404NotFound)
+                {
+                    return NotFound(result.MensagemErro);
+                }
+                return BadRequest(result.MensagemErro);
+            }
 
-            if (faturamento == null) return NotFound("Faturamento não encontrado.");
-            if (faturamento.StatusPagamento != PagamentoStatus.Pago_Total) return BadRequest("Este faturamento ainda não foi pago.");
-            if (faturamento.OrdemServico == null || faturamento.OrdemServico.Cliente == null) return BadRequest("Dados da OS ou Cliente incompletos.");
-
-            var pdf = _pdfGenerator.GenerateReciboPagamentoPdf(faturamento);
-            return File(pdf, "application/pdf", $"Recibo_Fatura_{id}.pdf");
+            return File(result.ConteudoBytes!, result.ContentType!, result.NomeArquivo);
         }
     }
 }

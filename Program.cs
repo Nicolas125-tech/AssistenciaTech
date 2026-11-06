@@ -67,8 +67,7 @@ else
 // Registra o serviço de cache resiliente com circuit breaker
 builder.Services.AddSingleton<AssistenciaTech.Extensions.IResilientCacheService, AssistenciaTech.Extensions.ResilientCacheService>();
 
-builder.Services.AddScoped<AssistenciaTech.Services.ITributacaoService, AssistenciaTech.Services.TributacaoService>();
-builder.Services.AddScoped<AssistenciaTech.Services.INfseXmlGeneratorService, AssistenciaTech.Services.NfseXmlGeneratorService>();
+builder.Services.AddScoped<AssistenciaTech.Services.IFaturamentoEngine, AssistenciaTech.Services.FaturamentoEngine>();
 
 
 // Registrando o contexto do banco de dados PostgreSQL

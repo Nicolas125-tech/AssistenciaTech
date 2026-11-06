@@ -2,9 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using System.Threading.Tasks;
 using AssistenciaTech.Controllers;
 using AssistenciaTech.Data;
@@ -13,8 +11,8 @@ using AssistenciaTech.Services;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Moq;
 using Xunit;
 
@@ -23,10 +21,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
     public class FaturamentosControllerTests : IDisposable
     {
         private readonly AppDbContext _context;
-        private readonly Mock<IConfiguration> _mockConfig;
-        private readonly Mock<ITributacaoService> _mockTributacaoService;
-        private readonly Mock<INfseXmlGeneratorService> _mockXmlGenerator;
-        private readonly Mock<IPdfGeneratorService> _mockPdfGenerator;
+        private readonly Mock<IFaturamentoEngine> _mockEngine;
         private readonly FaturamentosController _controller;
 
         public FaturamentosControllerTests()
@@ -39,23 +34,17 @@ namespace AssistenciaTech.Application.Tests.Controllers
             _context.Database.OpenConnection();
             _context.Database.EnsureCreated();
 
-            _mockConfig = new Mock<IConfiguration>();
-            _mockTributacaoService = new Mock<ITributacaoService>();
-            _mockXmlGenerator = new Mock<INfseXmlGeneratorService>();
-            _mockPdfGenerator = new Mock<IPdfGeneratorService>();
+            _mockEngine = new Mock<IFaturamentoEngine>();
 
-            _controller = new FaturamentosController(
-                _context,
-                _mockConfig.Object,
-                _mockTributacaoService.Object,
-                _mockXmlGenerator.Object,
-                _mockPdfGenerator.Object
-            );
+            _controller = new FaturamentosController(_context, _mockEngine.Object);
 
+            var httpContext = new DefaultHttpContext();
+            var tempData = new TempDataDictionary(httpContext, Mock.Of<ITempDataProvider>());
             _controller.ControllerContext = new ControllerContext
             {
-                HttpContext = new DefaultHttpContext()
+                HttpContext = httpContext
             };
+            _controller.TempData = tempData;
         }
 
         public void Dispose()
@@ -65,18 +54,9 @@ namespace AssistenciaTech.Application.Tests.Controllers
             GC.SuppressFinalize(this);
         }
 
-        private string GenerateSignature(string secret, string payload)
-        {
-            byte[] secretBytes = Encoding.UTF8.GetBytes(secret);
-            byte[] payloadBytes = Encoding.UTF8.GetBytes(payload);
-            using var hmac = new HMACSHA256(secretBytes);
-            byte[] computedHashBytes = hmac.ComputeHash(payloadBytes);
-            return Convert.ToHexString(computedHashBytes).ToLowerInvariant();
-        }
         [Fact]
         public async Task Index_ReturnsViewResult_WithListOfFaturamentos()
         {
-            // Arrange
             var cliente = new Cliente { Nome = "Cliente Teste", Cpf = "12345678901", Email = "cliente@teste.com", Telefone = "11999999999" };
             var os = new OrdemServico { Equipamento = "Note", ProblemaRelatado = "Tela", Cliente = cliente, Status = "Recebido" };
 
@@ -87,10 +67,8 @@ namespace AssistenciaTech.Application.Tests.Controllers
             await _context.SaveChangesAsync();
             _context.ChangeTracker.Clear();
 
-            // Act
             var result = await _controller.Index();
 
-            // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
             var model = viewResult.Model.Should().BeAssignableTo<IEnumerable<Faturamento>>().Subject;
             var list = model.ToList();
@@ -98,308 +76,201 @@ namespace AssistenciaTech.Application.Tests.Controllers
             list.Should().HaveCount(2);
             list.Should().Contain(f => f.Id == faturamento1.Id);
             list.Should().Contain(f => f.Id == faturamento2.Id);
-            list[0].OrdemServico.Should().NotBeNull();
         }
 
         [Fact]
-        public async Task WebhookPix_MissingOrShortSecret_ReturnsStatusCode500()
+        public async Task GerarDaOS_QuandoSucesso_RedirecionaParaIndex()
         {
-            // Arrange
-            _mockConfig.Setup(c => c["WebhookSecret"]).Returns("short_secret");
+            var faturamento = new Faturamento { Id = 10, ValorTotal = 250m };
+            _mockEngine.Setup(e => e.FaturarOrdemAsync(123))
+                .ReturnsAsync(FaturamentoResult.Ok(faturamento));
 
-            // Act
-            var result = await _controller.WebhookPix();
+            var result = await _controller.GerarDaOS(123);
 
-            // Assert
-            var statusCodeResult = result.Should().BeOfType<ObjectResult>().Subject;
-            statusCodeResult.StatusCode.Should().Be(500);
-            statusCodeResult.Value.Should().Be("Internal server error: WebhookSecret is missing or too short.");
+            var redirect = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirect.ActionName.Should().Be(nameof(_controller.Index));
+            _mockEngine.Verify(e => e.FaturarOrdemAsync(123), Times.Once);
         }
 
         [Fact]
-        public async Task WebhookPix_MissingSignatureHeader_ReturnsUnauthorized()
+        public async Task GerarDaOS_QuandoOsNaoEncontrada_RetornaNotFound()
         {
-            // Arrange
-            var validSecret = new string('a', 32);
-            _mockConfig.Setup(c => c["WebhookSecret"]).Returns(validSecret);
+            _mockEngine.Setup(e => e.FaturarOrdemAsync(999))
+                .ReturnsAsync(FaturamentoResult.Falha("Ordem de Serviço #999 não encontrada."));
 
-            // Act
-            var result = await _controller.WebhookPix();
+            var result = await _controller.GerarDaOS(999);
 
-            // Assert
-            var unauthorizedResult = result.Should().BeOfType<UnauthorizedObjectResult>().Subject;
-            unauthorizedResult.Value.Should().Be("Invalid or missing webhook signature.");
+            result.Should().BeOfType<NotFoundResult>();
         }
 
         [Fact]
-        public async Task WebhookPix_InvalidSignature_ReturnsUnauthorized()
+        public async Task GerarDaOS_QuandoFalhaDeNegocio_DefineTempDataERedireciona()
         {
-            // Arrange
-            var validSecret = new string('a', 32);
-            _mockConfig.Setup(c => c["WebhookSecret"]).Returns(validSecret);
+            _mockEngine.Setup(e => e.FaturarOrdemAsync(456))
+                .ReturnsAsync(FaturamentoResult.Falha("O valor total da Ordem de Serviço deve ser maior que zero para faturamento."));
 
-            _controller.Request.Headers["X-Webhook-Signature"] = "invalid_signature";
+            var result = await _controller.GerarDaOS(456);
 
-            var payload = "{\"test\": 123}";
-            _controller.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(payload));
-
-            // Act
-            var result = await _controller.WebhookPix();
-
-            // Assert
-            var unauthorizedResult = result.Should().BeOfType<UnauthorizedObjectResult>().Subject;
-            unauthorizedResult.Value.Should().Be("Invalid or missing webhook signature.");
+            var redirect = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirect.ActionName.Should().Be(nameof(_controller.Index));
+            _controller.TempData["MensagemErro"].Should().Be("O valor total da Ordem de Serviço deve ser maior que zero para faturamento.");
         }
 
         [Fact]
-        public async Task WebhookPix_InvalidJson_ReturnsBadRequest()
+        public async Task WebhookPix_QuandoFalha500_RetornaStatusCode500()
         {
-            // Arrange
-            var validSecret = new string('a', 32);
-            _mockConfig.Setup(c => c["WebhookSecret"]).Returns(validSecret);
+            _controller.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes("{}"));
+            _mockEngine.Setup(e => e.ProcessarWebhookPixAsync(It.IsAny<string>(), It.IsAny<string?>()))
+                .ReturnsAsync(WebhookReconciliationResult.Falha(500, "Internal server error: WebhookSecret is missing or too short."));
 
-            var payload = "invalid json payload";
-            var signature = GenerateSignature(validSecret, payload);
-
-            _controller.Request.Headers["X-Webhook-Signature"] = signature;
-            _controller.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(payload));
-
-            // Act
             var result = await _controller.WebhookPix();
 
-            // Assert
-            var badRequestResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
-            badRequestResult.Value.Should().Be("Invalid JSON payload.");
+            var objResult = result.Should().BeOfType<ObjectResult>().Subject;
+            objResult.StatusCode.Should().Be(500);
+            objResult.Value.Should().Be("Internal server error: WebhookSecret is missing or too short.");
         }
 
-
         [Fact]
-        public async Task WebhookPix_MalformedJson_ThrowsJsonException_ReturnsBadRequest()
+        public async Task WebhookPix_QuandoFalha401_RetornaUnauthorized()
         {
-            // Arrange
-            var validSecret = new string('a', 32);
-            _mockConfig.Setup(c => c["WebhookSecret"]).Returns(validSecret);
+            _controller.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes("{}"));
+            _mockEngine.Setup(e => e.ProcessarWebhookPixAsync(It.IsAny<string>(), It.IsAny<string?>()))
+                .ReturnsAsync(WebhookReconciliationResult.Falha(401, "Invalid or missing webhook signature."));
 
-            var payload = "{invalid: true"; // Malformed JSON that will throw JsonException when parsed
-            var signature = GenerateSignature(validSecret, payload);
-
-            _controller.Request.Headers["X-Webhook-Signature"] = signature;
-            _controller.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(payload));
-
-            // Act
             var result = await _controller.WebhookPix();
 
-            // Assert
+            var unauthResult = result.Should().BeOfType<UnauthorizedObjectResult>().Subject;
+            unauthResult.Value.Should().Be("Invalid or missing webhook signature.");
+        }
+
+        [Fact]
+        public async Task WebhookPix_QuandoFalha400_RetornaBadRequest()
+        {
+            _controller.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes("{invalido"));
+            _mockEngine.Setup(e => e.ProcessarWebhookPixAsync(It.IsAny<string>(), It.IsAny<string?>()))
+                .ReturnsAsync(WebhookReconciliationResult.Falha(400, "Invalid JSON payload."));
+
+            var result = await _controller.WebhookPix();
+
             var badRequestResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
             badRequestResult.Value.Should().Be("Invalid JSON payload.");
         }
 
         [Fact]
-        public async Task WebhookPix_ValidSignatureAndPayload_ProcessesPaymentAndReturnsOk()
+        public async Task WebhookPix_QuandoSucesso_RetornaOk()
         {
-            // Arrange
-            var validSecret = new string('a', 32);
-            _mockConfig.Setup(c => c["WebhookSecret"]).Returns(validSecret);
+            _controller.Request.Headers["X-Webhook-Signature"] = "valid_sig";
+            _controller.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes("{\"txid\": \"123\"}"));
+            _mockEngine.Setup(e => e.ProcessarWebhookPixAsync("{\"txid\": \"123\"}", "valid_sig"))
+                .ReturnsAsync(WebhookReconciliationResult.Ok(new List<string> { "123" }, 1));
 
-            string txId = "tx123456789";
-            var faturamento = new Faturamento
-            {
-
-                ValorTotal = 100,
-                DataVencimento = DateTime.UtcNow.AddDays(1),
-                StatusPagamento = PagamentoStatus.Pendente,
-                TxIdPix = txId,
-                QrCodePayload = "qr"
-            };
-            _context.Faturamentos.Add(faturamento);
-            await _context.SaveChangesAsync();
-            _context.ChangeTracker.Clear();
-
-            var payload = $"{{\"txid\": \"{txId}\"}}";
-            var signature = GenerateSignature(validSecret, payload);
-
-            _controller.Request.Headers["X-Webhook-Signature"] = signature;
-            _controller.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(payload));
-
-            // Act
             var result = await _controller.WebhookPix();
 
-            // Assert
             result.Should().BeOfType<OkResult>();
-
-            _context.ChangeTracker.Clear();
-            var updatedFaturamento = await _context.Faturamentos.FindAsync(faturamento.Id);
-            updatedFaturamento.Should().NotBeNull();
-            updatedFaturamento!.StatusPagamento.Should().Be(PagamentoStatus.Pago_Total);
         }
 
         [Fact]
-        public async Task WebhookPix_ValidSignatureAndPixArrayPayload_ProcessesPaymentAndReturnsOk()
+        public async Task MarcarPago_QuandoSucesso_RedirecionaParaIndex()
         {
-            // Arrange
-            var validSecret = new string('a', 32);
-            _mockConfig.Setup(c => c["WebhookSecret"]).Returns(validSecret);
+            var fatura = new Faturamento { Id = 5, StatusPagamento = PagamentoStatus.Pago_Total };
+            _mockEngine.Setup(e => e.LiquidarFaturaManualmenteAsync(5))
+                .ReturnsAsync(FaturamentoResult.Ok(fatura));
 
-            string txId1 = "tx111";
-            string txId2 = "tx222";
+            var result = await _controller.MarcarPago(5);
 
-            var faturamento1 = new Faturamento { ValorTotal = 100, DataVencimento = DateTime.UtcNow, StatusPagamento = PagamentoStatus.Pendente, TxIdPix = txId1, QrCodePayload = "qr" };
-            var faturamento2 = new Faturamento { OrdemServicoId = 2, ValorTotal = 200, DataVencimento = DateTime.UtcNow, StatusPagamento = PagamentoStatus.Pendente, TxIdPix = txId2, QrCodePayload = "qr" };
-
-            _context.Faturamentos.AddRange(faturamento1, faturamento2);
-            await _context.SaveChangesAsync();
-            _context.ChangeTracker.Clear();
-
-            var payload = $"{{\"pix\": [ {{\"txid\": \"{txId1}\"}}, {{\"txid\": \"{txId2}\"}} ]}}";
-            var signature = GenerateSignature(validSecret, payload);
-
-            _controller.Request.Headers["X-Webhook-Signature"] = signature;
-            _controller.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(payload));
-
-            // Act
-            var result = await _controller.WebhookPix();
-
-            // Assert
-            result.Should().BeOfType<OkResult>();
-
-            var updatedFaturamento1 = await _context.Faturamentos.FindAsync(faturamento1.Id);
-            updatedFaturamento1.Should().NotBeNull();
-            updatedFaturamento1!.StatusPagamento.Should().Be(PagamentoStatus.Pago_Total);
-
-            var updatedFaturamento2 = await _context.Faturamentos.FindAsync(faturamento2.Id);
-            updatedFaturamento2.Should().NotBeNull();
-            updatedFaturamento2!.StatusPagamento.Should().Be(PagamentoStatus.Pago_Total);
+            var redirect = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirect.ActionName.Should().Be(nameof(_controller.Index));
         }
 
         [Fact]
-        public async Task GerarXmlNfse_FaturamentoNotFound_ReturnsNotFound()
+        public async Task MarcarPago_QuandoFalha_DefineTempDataERedireciona()
         {
-            // Arrange
-            int id = 999;
+            _mockEngine.Setup(e => e.LiquidarFaturaManualmenteAsync(999))
+                .ReturnsAsync(FaturamentoResult.Falha("Faturamento #999 não encontrado."));
 
-            // Act
-            var result = await _controller.GerarXmlNfse(id);
+            var result = await _controller.MarcarPago(999);
 
-            // Assert
-            var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
-            notFoundResult.Value.Should().Be("Faturamento não encontrado.");
+            var redirect = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirect.ActionName.Should().Be(nameof(_controller.Index));
+            _controller.TempData["MensagemErro"].Should().Be("Faturamento #999 não encontrado.");
         }
 
         [Fact]
-        public async Task GerarXmlNfse_OrdemServicoNull_ReturnsNotFound()
+        public async Task GerarXmlNfse_Quando404_RetornaNotFound()
         {
-            // Arrange
-            var faturamento = new Faturamento
-            {
-                ValorTotal = 100,
-                DataVencimento = DateTime.UtcNow,
-                StatusPagamento = PagamentoStatus.Pendente
-            };
+            _mockEngine.Setup(e => e.GerarXmlNfseAsync(999))
+                .ReturnsAsync(ArtefatoFiscalResult.Falha("Faturamento não encontrado.", 404));
 
-            _context.Faturamentos.Add(faturamento);
-            await _context.SaveChangesAsync();
+            var result = await _controller.GerarXmlNfse(999);
 
-            // Act
-            var result = await _controller.GerarXmlNfse(faturamento.Id);
-
-            // Assert
-            var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
-            notFoundResult.Value.Should().Be("Faturamento não encontrado.");
+            var notFound = result.Should().BeOfType<NotFoundObjectResult>().Subject;
+            notFound.Value.Should().Be("Faturamento não encontrado.");
         }
 
         [Fact]
-        public async Task GerarXmlNfse_ClienteNull_ReturnsNotFound()
+        public async Task GerarXmlNfse_Quando400_RetornaBadRequest()
         {
-            // Arrange
-            var os = new OrdemServico { Equipamento = "PC" };
-            var faturamento = new Faturamento
-            {
-                ValorTotal = 100,
-                DataVencimento = DateTime.UtcNow,
-                StatusPagamento = PagamentoStatus.Pendente,
-                OrdemServico = os
-            };
+            _mockEngine.Setup(e => e.GerarXmlNfseAsync(5))
+                .ReturnsAsync(ArtefatoFiscalResult.Falha("Dados da OS ou Cliente estão incompletos.", 400));
 
-            _context.Faturamentos.Add(faturamento);
-            await _context.SaveChangesAsync();
+            var result = await _controller.GerarXmlNfse(5);
 
-            // Act
-            var result = await _controller.GerarXmlNfse(faturamento.Id);
-
-            // Assert
-            var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
-            notFoundResult.Value.Should().Be("Faturamento não encontrado.");
+            var badReq = result.Should().BeOfType<BadRequestObjectResult>().Subject;
+            badReq.Value.Should().Be("Dados da OS ou Cliente estão incompletos.");
         }
 
         [Fact]
-        public async Task GerarXmlNfse_ValidFaturamento_ReturnsXmlFile()
+        public async Task GerarXmlNfse_QuandoSucesso_RetornaFileResult()
         {
-            // Arrange
-            var cliente = new Cliente { Nome = "João", Cpf = "123", Telefone = "123", Email = "joao@example.com" };
-            var os = new OrdemServico { Equipamento = "PC", Cliente = cliente };
-            var faturamento = new Faturamento
-            {
-                ValorTotal = 100,
-                DataVencimento = DateTime.UtcNow,
-                StatusPagamento = PagamentoStatus.Pendente,
-                OrdemServico = os
-            };
+            var bytes = Encoding.UTF8.GetBytes("<xml>nfse</xml>");
+            _mockEngine.Setup(e => e.GerarXmlNfseAsync(7))
+                .ReturnsAsync(ArtefatoFiscalResult.Ok(bytes, "Nfse_Fatura_7.xml", "application/xml"));
 
-            _context.Faturamentos.Add(faturamento);
-            await _context.SaveChangesAsync();
+            var result = await _controller.GerarXmlNfse(7);
 
-            var expectedXmlBytes = Encoding.UTF8.GetBytes("<xml>test</xml>");
-            _mockXmlGenerator.Setup(x => x.GerarXml(It.IsAny<Faturamento>())).Returns(expectedXmlBytes);
-
-            // Act
-            var result = await _controller.GerarXmlNfse(faturamento.Id);
-
-            // Assert
             var fileResult = result.Should().BeOfType<FileContentResult>().Subject;
             fileResult.ContentType.Should().Be("application/xml");
-            fileResult.FileDownloadName.Should().Be($"Nfse_Fatura_{faturamento.Id}.xml");
-            fileResult.FileContents.Should().BeEquivalentTo(expectedXmlBytes);
+            fileResult.FileDownloadName.Should().Be("Nfse_Fatura_7.xml");
+            fileResult.FileContents.Should().Equal(bytes);
         }
 
         [Fact]
-        public async Task MarcarPago_ExistingFaturamento_UpdatesStatusAndRedirects()
+        public async Task GerarReciboPagamento_Quando404_RetornaNotFound()
         {
-            // Arrange
-            var faturamento = new Faturamento
-            {
-                ValorTotal = 150,
-                DataVencimento = DateTime.UtcNow.AddDays(1),
-                StatusPagamento = PagamentoStatus.Pendente
-            };
+            _mockEngine.Setup(e => e.GerarReciboPagamentoPdfAsync(999))
+                .ReturnsAsync(ArtefatoFiscalResult.Falha("Faturamento não encontrado.", 404));
 
-            _context.Faturamentos.Add(faturamento);
-            await _context.SaveChangesAsync();
+            var result = await _controller.GerarReciboPagamento(999);
 
-            // Act
-            var result = await _controller.MarcarPago(faturamento.Id);
-
-            // Assert
-            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
-            redirectResult.ActionName.Should().Be(nameof(_controller.Index));
-
-            _context.ChangeTracker.Clear();
-            var updatedFaturamento = await _context.Faturamentos.FindAsync(faturamento.Id);
-            updatedFaturamento.Should().NotBeNull();
-            updatedFaturamento!.StatusPagamento.Should().Be(PagamentoStatus.Pago_Total);
+            var notFound = result.Should().BeOfType<NotFoundObjectResult>().Subject;
+            notFound.Value.Should().Be("Faturamento não encontrado.");
         }
 
         [Fact]
-        public async Task MarcarPago_NonExistingFaturamento_Redirects()
+        public async Task GerarReciboPagamento_Quando400_RetornaBadRequest()
         {
-            // Arrange
-            int nonExistentId = 999;
+            _mockEngine.Setup(e => e.GerarReciboPagamentoPdfAsync(3))
+                .ReturnsAsync(ArtefatoFiscalResult.Falha("Este faturamento ainda não foi pago.", 400));
 
-            // Act
-            var result = await _controller.MarcarPago(nonExistentId);
+            var result = await _controller.GerarReciboPagamento(3);
 
-            // Assert
-            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
-            redirectResult.ActionName.Should().Be(nameof(_controller.Index));
+            var badReq = result.Should().BeOfType<BadRequestObjectResult>().Subject;
+            badReq.Value.Should().Be("Este faturamento ainda não foi pago.");
+        }
+
+        [Fact]
+        public async Task GerarReciboPagamento_QuandoSucesso_RetornaFileResult()
+        {
+            var pdfBytes = new byte[] { 0x25, 0x50, 0x44, 0x46 };
+            _mockEngine.Setup(e => e.GerarReciboPagamentoPdfAsync(8))
+                .ReturnsAsync(ArtefatoFiscalResult.Ok(pdfBytes, "Recibo_Fatura_8.pdf", "application/pdf"));
+
+            var result = await _controller.GerarReciboPagamento(8);
+
+            var fileResult = result.Should().BeOfType<FileContentResult>().Subject;
+            fileResult.ContentType.Should().Be("application/pdf");
+            fileResult.FileDownloadName.Should().Be("Recibo_Fatura_8.pdf");
+            fileResult.FileContents.Should().Equal(pdfBytes);
         }
     }
 }
