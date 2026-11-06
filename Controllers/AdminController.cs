@@ -37,7 +37,6 @@ namespace AssistenciaTech.Controllers
         private readonly IOrdemServicoLifecycle _lifecycle;
         private readonly IAdminDashboardService _dashboard;
         private readonly IPdfGeneratorService _pdfGenerator;
-        private readonly IClienteService _clienteService;
         private readonly AssistenciaTech.Extensions.IResilientCacheService _cache;
         private readonly IWebHostEnvironment _env;
 
@@ -47,7 +46,6 @@ namespace AssistenciaTech.Controllers
             IOrdemServicoLifecycle lifecycle,
             IAdminDashboardService dashboard,
             IPdfGeneratorService pdfGenerator,
-            IClienteService clienteService,
             AssistenciaTech.Extensions.IResilientCacheService cache,
             IWebHostEnvironment env)
         {
@@ -56,7 +54,6 @@ namespace AssistenciaTech.Controllers
             _lifecycle = lifecycle;
             _dashboard = dashboard;
             _pdfGenerator = pdfGenerator;
-            _clienteService = clienteService;
             _cache = cache;
             _env = env;
         }
@@ -405,8 +402,16 @@ namespace AssistenciaTech.Controllers
 
         private async Task PopulateClientesViewBagAsync(int? selectedId = null)
         {
-            var selectListItems = await _clienteService.GetClientesSelectListAsync(selectedId);
-            ViewBag.Clientes = new SelectList(selectListItems, "Value", "Text", selectedId?.ToString());
+            var clientes = await _context.Clientes
+                .AsNoTracking()
+                .Select(c => new
+                {
+                    c.Id,
+                    Descricao = $"{c.Nome} - CPF: {c.Cpf} - Tel: {c.Telefone}"
+                })
+                .ToListAsync();
+
+            ViewBag.Clientes = new SelectList(clientes, "Id", "Descricao", selectedId?.ToString());
         }
     }
 }

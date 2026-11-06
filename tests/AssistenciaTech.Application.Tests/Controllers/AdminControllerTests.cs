@@ -34,9 +34,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
         private readonly Mock<IAdminDashboardService> _mockDashboardService;
         private readonly Mock<ILogger<AdminController>> _mockLogger;
         private readonly Mock<IServiceScopeFactory> _mockScopeFactory;
-        private readonly Mock<IEquipamentoBackupService> _mockEquipamentoBackupService;
         private readonly Mock<INotificationService> _mockNotificationService;
-        private readonly Mock<IClienteService> _mockClienteService;
         private readonly Mock<AssistenciaTech.Extensions.IResilientCacheService> _mockCacheService;
         private readonly AdminController _controller;
 
@@ -54,11 +52,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
             _mockDashboardService = new Mock<IAdminDashboardService>();
             _mockLogger = new Mock<ILogger<AdminController>>();
             _mockScopeFactory = new Mock<IServiceScopeFactory>();
-            _mockEquipamentoBackupService = new Mock<IEquipamentoBackupService>();
             _mockNotificationService = new Mock<INotificationService>();
-            _mockClienteService = new Mock<IClienteService>();
-            _mockClienteService.Setup(s => s.GetClientesSelectListAsync(It.IsAny<int?>()))
-                .ReturnsAsync(new List<SelectListItem>());
             _mockCacheService = new Mock<AssistenciaTech.Extensions.IResilientCacheService>();
 
             // Setup ScopeFactory to return a scope containing the DbContext
@@ -77,7 +71,6 @@ namespace AssistenciaTech.Application.Tests.Controllers
             IOrdemServicoLifecycle? lifecycle = null,
             IAdminDashboardService? dashboard = null,
             IPdfGeneratorService? pdfGenerator = null,
-            IClienteService? clienteService = null,
             AssistenciaTech.Extensions.IResilientCacheService? cache = null,
             IWebHostEnvironment? env = null)
         {
@@ -97,7 +90,6 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 osLifecycle,
                 dashboard ?? _mockDashboardService.Object,
                 pdfGenerator ?? _mockPdfGeneratorService.Object,
-                clienteService ?? _mockClienteService.Object,
                 cache ?? _mockCacheService.Object,
                 env ?? _mockEnv.Object);
         }
@@ -602,11 +594,7 @@ namespace AssistenciaTech.Application.Tests.Controllers
         public async Task Create_Get_ReturnsRedirectToActionResult_WhenDatabaseFails()
         {
             // Arrange
-            var mockClienteServiceFailing = new Mock<IClienteService>();
-            mockClienteServiceFailing.Setup(s => s.GetClientesSelectListAsync(It.IsAny<int?>()))
-                .ThrowsAsync(new System.Exception("Simulated DB failure"));
-
-            var localController = CreateAdminController(null!, clienteService: mockClienteServiceFailing.Object);
+            var localController = CreateAdminController(null!);
 
             var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
             var tempData = new Microsoft.AspNetCore.Mvc.ViewFeatures.TempDataDictionary(httpContext, Mock.Of<Microsoft.AspNetCore.Mvc.ViewFeatures.ITempDataProvider>());
@@ -631,6 +619,25 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 Times.Once);
 
             localController.Dispose();
+        }
+
+        [Fact]
+        public async Task Create_Get_PopulatesViewBagClientes_DirectlyFromContext()
+        {
+            // Arrange
+            var cliente = new Cliente { Id = 88, Nome = "Joao Silva", Cpf = "12345678900", Telefone = "11988887777" };
+            _context.Clientes.Add(cliente);
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _controller.Create();
+
+            // Assert
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            var selectList = _controller.ViewBag.Clientes as Microsoft.AspNetCore.Mvc.Rendering.SelectList;
+            selectList.Should().NotBeNull();
+            var items = selectList!.ToList();
+            items.Should().Contain(item => item.Value == "88" && item.Text.Contains("Joao Silva"));
         }
 
 
@@ -979,8 +986,6 @@ namespace AssistenciaTech.Application.Tests.Controllers
             }
 
             var exceptionContext = new TestExceptionDbContext(options);
-            var mockEquipamentoBackupService = new Mock<IEquipamentoBackupService>();
-
             var localController = CreateAdminController(exceptionContext);
 
             var osAlterada = new OrdemServico { Id = 102, Equipamento = "PC Atualizado", Status = "Orçamento", ClienteId = 1 };
@@ -1288,9 +1293,6 @@ namespace AssistenciaTech.Application.Tests.Controllers
 
             // Create context that will throw exception
             var exceptionContext = new TestExceptionDbContext(options);
-
-            var _mockEquipamentoBackupService = new Mock<IEquipamentoBackupService>();
-            var _mockNotificationService = new Mock<AssistenciaTech.Services.INotificationService>();
             var localController = CreateAdminController(exceptionContext);
 
             // Act
@@ -1397,7 +1399,6 @@ namespace AssistenciaTech.Application.Tests.Controllers
             var mockContext = new Mock<AppDbContext>(options);
             mockContext.Setup(c => c.OrdensServico).Throws(new Exception("Simulated DB connection error"));
 
-            var _mockEquipamentoBackupService = new Mock<IEquipamentoBackupService>();
             var _mockNotificationService = new Mock<AssistenciaTech.Services.INotificationService>();
             var localController = CreateAdminController(mockContext.Object);
 

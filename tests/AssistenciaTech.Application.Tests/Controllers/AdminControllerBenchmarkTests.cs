@@ -45,15 +45,9 @@ namespace AssistenciaTech.Application.Tests.Controllers
             context.Clientes.Add(new Cliente { Id = 1, Nome = "Cliente 1" });
             await context.SaveChangesAsync();
 
-            var mockEstoqueService = new Mock<IEstoqueService>();
             var mockEnv = new Mock<IWebHostEnvironment>();
             var mockPdfGeneratorService = new Mock<IPdfGeneratorService>();
             var mockDashboardService = new Mock<IAdminDashboardService>();
-            var mockEquipamentoBackupService = new Mock<IEquipamentoBackupService>();
-            var mockScopeFactory = new Mock<IServiceScopeFactory>();
-            var mockNotificationService = new Mock<INotificationService>();
-            var mockClienteService = new Mock<IClienteService>();
-
 
             var cacheMock = new Mock<AssistenciaTech.Extensions.IResilientCacheService>();
             var cachedData = context.EquipamentosBackup.ToList();
@@ -67,7 +61,6 @@ namespace AssistenciaTech.Application.Tests.Controllers
                 mockLifecycle.Object,
                 mockDashboardService.Object,
                 mockPdfGeneratorService.Object,
-                mockClienteService.Object,
                 cacheMock.Object,
                 mockEnv.Object);
 
