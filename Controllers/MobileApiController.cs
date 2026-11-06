@@ -1,18 +1,11 @@
-using Microsoft.AspNetCore.Authorization;
-using System;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using AssistenciaTech.Data;
-using AssistenciaTech.Models;
+using System.Collections.Generic;
 using System.Security.Claims;
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Text;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
+using System.Threading.Tasks;
+using AssistenciaTech.DTOs;
 using AssistenciaTech.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace AssistenciaTech.Controllers
 {
@@ -21,15 +14,11 @@ namespace AssistenciaTech.Controllers
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class MobileApiController : ControllerBase
     {
-        private readonly AppDbContext _context;
-        private readonly IConfiguration _configuration;
-        private readonly IOrdemServicoLifecycle _lifecycle;
+        private readonly IVisitaCampoEngine _campoEngine;
 
-        public MobileApiController(AppDbContext context, IConfiguration configuration, IOrdemServicoLifecycle lifecycle)
+        public MobileApiController(IVisitaCampoEngine campoEngine)
         {
-            _context = context;
-            _configuration = configuration;
-            _lifecycle = lifecycle;
+            _campoEngine = campoEngine;
         }
 
         public class MobileLoginRequest
@@ -43,53 +32,23 @@ namespace AssistenciaTech.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login([FromBody] MobileLoginRequest request)
         {
-            var user = await _context.Usuarios.FirstOrDefaultAsync(u => u.Username == request.Username);
-            bool isAuthenticated = false;
-
-            if (user != null && !string.IsNullOrEmpty(user.PasswordHash))
+            if (request == null)
             {
-                var hasher = new PasswordHasher<Usuario>();
-                var result = hasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
-
-                if (result == PasswordVerificationResult.Success || result == PasswordVerificationResult.SuccessRehashNeeded)
-                {
-                    isAuthenticated = true;
-                }
+                return BadRequest(new { error = "Requisição inválida." });
             }
 
-            if (isAuthenticated)
+            var authResult = await _campoEngine.AutenticarTecnicoAsync(request.Username, request.Password);
+            if (!authResult.Sucesso)
             {
-                var tecnico = await _context.Tecnicos.FirstOrDefaultAsync(t => t.Nome == user!.Username);
-                var tecnicoId = tecnico?.Id ?? 1;
-                var tecnicoNome = tecnico?.Nome ?? user!.Username;
-
-                var claims = new[]
-                {
-                    new Claim(ClaimTypes.NameIdentifier, tecnicoId.ToString()),
-                    new Claim(ClaimTypes.Name, user!.Username)
-                };
-
-                var keyStr = _configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key is not configured. Please set the 'Jwt:Key' configuration value.");
-                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyStr));
-                var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-                var token = new JwtSecurityToken(
-                    issuer: _configuration["Jwt:Issuer"] ?? "AssistenciaTech",
-                    audience: _configuration["Jwt:Audience"] ?? "AssistenciaTechMobile",
-                    claims: claims,
-                    expires: DateTime.UtcNow.AddDays(7),
-                    signingCredentials: creds
-                );
-
-                return Ok(new
-                {
-                    token = new JwtSecurityTokenHandler().WriteToken(token),
-                    tecnicoId = tecnicoId,
-                    nome = tecnicoNome
-                });
+                return Unauthorized(new { error = authResult.Mensagem });
             }
 
-            return Unauthorized(new { error = "Usuário ou senha inválidos." });
+            return Ok(new
+            {
+                token = authResult.Token,
+                tecnicoId = authResult.TecnicoId,
+                nome = authResult.NomeTecnico
+            });
         }
 
         public class CheckInRequest
@@ -107,27 +66,20 @@ namespace AssistenciaTech.Controllers
                 return Unauthorized(new { error = "Técnico não autenticado." });
             }
 
-            var os = await _context.OrdensServico.FindAsync(id);
-            if (os == null) return NotFound(new { error = "OS não encontrada" });
-
-            if (os.TecnicoId != tecnicoId)
+            if (request == null)
             {
-                return Forbid();
+                return BadRequest(new { error = "Coordenadas não fornecidas." });
             }
 
-            var visita = new VisitaCampo
+            var result = await _campoEngine.RegistrarCheckInAsync(id, tecnicoId, request.Latitude, request.Longitude);
+
+            return result.StatusCode switch
             {
-                OrdemServicoId = id,
-                TecnicoId = tecnicoId,
-                CheckIn = DateTime.UtcNow,
-                Latitude = request.Latitude,
-                Longitude = request.Longitude
+                200 => Ok(new { status = "success", message = result.Mensagem, visitaId = result.VisitaId }),
+                404 => NotFound(new { error = result.Mensagem }),
+                403 => Forbid(),
+                _ => BadRequest(new { error = result.Mensagem, erros = result.Erros })
             };
-
-            _context.VisitasCampo.Add(visita);
-            await _context.SaveChangesAsync();
-
-            return Ok(new { status = "success", message = "Check-in realizado com sucesso", visitaId = visita.Id });
         }
 
         public class FinalizarRequest
@@ -146,45 +98,21 @@ namespace AssistenciaTech.Controllers
                 return Unauthorized(new { error = "Técnico não autenticado." });
             }
 
-            var visita = await _context.VisitasCampo.FindAsync(request.VisitaId);
-            if (visita == null || visita.OrdemServicoId != id)
-                return NotFound(new { error = "Visita não encontrada ou não pertence a esta OS" });
-
-            if (visita.CheckOut.HasValue)
-                return BadRequest(new { error = "Visita já finalizada" });
-
-            var os = await _context.OrdensServico.FindAsync(id);
-            if (os == null) return NotFound();
-
-            if (visita.TecnicoId != tecnicoId)
-                return Forbid();
-
-            // Avança o status da OS pelo ciclo de vida formal (valida transição, baixa estoque, notifica cliente e audita)
-            var tecnicoNome = User.FindFirst(ClaimTypes.Name)?.Value ?? $"Tecnico#{tecnicoId}";
-            var lifecycleResult = await _lifecycle.AvancarStatusAsync(id, WorkflowStatus.Concluido, request.LaudoFinal, tecnicoNome);
-            if (!lifecycleResult.Sucesso)
+            if (request == null)
             {
-                return BadRequest(new { error = lifecycleResult.Mensagem, erros = lifecycleResult.Erros });
+                return BadRequest(new { error = "Dados de finalização não fornecidos." });
             }
 
-            // Atualiza a Visita
-            visita.CheckOut = DateTime.UtcNow;
-            visita.AssinaturaClienteBase64 = request.AssinaturaBase64;
+            var tecnicoNome = User.FindFirst(ClaimTypes.Name)?.Value;
+            var result = await _campoEngine.FinalizarVisitaAsync(id, request.VisitaId, tecnicoId, request.AssinaturaBase64, request.LaudoFinal, tecnicoNome);
 
-            _context.VisitasCampo.Update(visita);
-            await _context.SaveChangesAsync();
-
-            return Ok(new { status = "success", message = "Visita finalizada e OS atualizada." });
-        }
-        public class VisitaCampoSyncDto
-        {
-            public string? OfflineId { get; set; } // ID no app local
-            public int OrdemServicoId { get; set; }
-            public DateTime CheckIn { get; set; }
-            public DateTime? CheckOut { get; set; }
-            public decimal? Latitude { get; set; }
-            public decimal? Longitude { get; set; }
-            public string? AssinaturaClienteBase64 { get; set; }
+            return result.StatusCode switch
+            {
+                200 => Ok(new { status = "success", message = result.Mensagem }),
+                404 => NotFound(new { error = result.Mensagem }),
+                403 => Forbid(),
+                _ => BadRequest(new { error = result.Mensagem, erros = result.Erros })
+            };
         }
 
         [HttpPost("sync/visitas")]
@@ -196,24 +124,13 @@ namespace AssistenciaTech.Controllers
                 return Unauthorized(new { error = "Técnico não autenticado." });
             }
 
-            if (visitasDto == null || !visitasDto.Any())
-                return BadRequest(new { error = "Nenhum dado para sincronizar." });
-
-            var novasVisitas = visitasDto.Select(dto => new VisitaCampo
+            var result = await _campoEngine.SincronizarVisitasOfflineAsync(tecnicoId, visitasDto);
+            if (!result.Sucesso)
             {
-                OrdemServicoId = dto.OrdemServicoId,
-                TecnicoId = tecnicoId,
-                CheckIn = dto.CheckIn,
-                CheckOut = dto.CheckOut,
-                Latitude = dto.Latitude,
-                Longitude = dto.Longitude,
-                AssinaturaClienteBase64 = dto.AssinaturaClienteBase64
-            }).ToList();
+                return BadRequest(new { error = result.Mensagem, erros = result.Erros });
+            }
 
-            _context.VisitasCampo.AddRange(novasVisitas);
-            await _context.SaveChangesAsync();
-
-            return Ok(new { status = "success", message = $"{novasVisitas.Count} visitas sincronizadas com sucesso." });
+            return Ok(new { status = "success", message = result.Mensagem });
         }
     }
 }

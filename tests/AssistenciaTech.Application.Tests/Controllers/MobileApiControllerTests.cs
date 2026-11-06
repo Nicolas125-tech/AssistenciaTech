@@ -1,52 +1,35 @@
 using System;
+using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using AssistenciaTech.Controllers;
-using AssistenciaTech.Data;
-using AssistenciaTech.Models;
+using AssistenciaTech.DTOs;
+using AssistenciaTech.Services;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Moq;
 using Xunit;
-using AssistenciaTech.Services;
 
 namespace AssistenciaTech.Application.Tests.Controllers
 {
-    public class MobileApiControllerTests : IDisposable
+    public class MobileApiControllerTests
     {
-        private readonly AppDbContext _context;
-        private readonly Moq.Mock<IOrdemServicoLifecycle> _mockLifecycle;
+        private readonly Mock<IVisitaCampoEngine> _mockEngine;
         private readonly MobileApiController _controller;
 
         public MobileApiControllerTests()
         {
-            var mockConfiguration = new Moq.Mock<Microsoft.Extensions.Configuration.IConfiguration>();
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-                .Options;
-
-            _context = new AppDbContext(options);
-            _mockLifecycle = new Moq.Mock<IOrdemServicoLifecycle>();
-            _mockLifecycle.Setup(l => l.AvancarStatusAsync(Moq.It.IsAny<int>(), Moq.It.IsAny<string>(), Moq.It.IsAny<string?>(), Moq.It.IsAny<string?>()))
-                .Returns<int, string, string?, string?>((osId, status, laudo, user) =>
-                {
-                    var os = _context.OrdensServico.Find(osId);
-                    if (os == null) return Task.FromResult(OrdemServicoResult.Falha($"OS #{osId} não encontrada."));
-                    os.Status = status;
-                    if (!string.IsNullOrWhiteSpace(laudo)) os.LaudoTecnico = laudo.Trim();
-                    _context.SaveChanges();
-                    return Task.FromResult(OrdemServicoResult.Ok(os));
-                });
-
-            _controller = new MobileApiController(_context, mockConfiguration.Object, _mockLifecycle.Object);
+            _mockEngine = new Mock<IVisitaCampoEngine>();
+            _controller = new MobileApiController(_mockEngine.Object);
         }
 
-        private void SetUserContext(int tecnicoId)
+        private void SetUserContext(int tecnicoId, string nome = "Tecnico")
         {
-            var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
+            var user = new ClaimsPrincipal(new ClaimsIdentity(new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, tecnicoId.ToString())
+                new Claim(ClaimTypes.NameIdentifier, tecnicoId.ToString()),
+                new Claim(ClaimTypes.Name, nome)
             }, "mock"));
 
             _controller.ControllerContext = new ControllerContext
@@ -55,440 +38,111 @@ namespace AssistenciaTech.Application.Tests.Controllers
             };
         }
 
-
         [Fact]
-        public async Task FinalizarVisita_ReturnsNotFound_WhenVisitaIsNotFound()
+        public async Task Login_ComCredenciaisValidas_DeveRetornarOkComToken()
         {
             // Arrange
-            // Empty database, no VisitaCampo exists
-
-            SetUserContext(10); // Any technician ID
-
-            var request = new MobileApiController.FinalizarRequest { VisitaId = 999 }; // Non-existent VisitaId
-
-            // Act
-            var result = await _controller.FinalizarVisita(1, request); // Any OS ID
-
-            // Assert
-            var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
-            notFoundResult.Value.Should().BeEquivalentTo(new { error = "Visita não encontrada ou não pertence a esta OS" });
-        }
-
-        [Fact]
-        public async Task FinalizarVisita_ReturnsNotFound_WhenOrdemServicoIsNotFound()
-        {
-            // Arrange
-            var visita = new VisitaCampo
+            var request = new MobileApiController.MobileLoginRequest
             {
-                Id = 1,
-                OrdemServicoId = 99, // Represents a non-existent OS
-                TecnicoId = 10,
-                CheckIn = DateTime.UtcNow
-            };
-            _context.VisitasCampo.Add(visita);
-            await _context.SaveChangesAsync();
-
-            SetUserContext(10);
-
-            var request = new MobileApiController.FinalizarRequest { VisitaId = 1 };
-
-            // Act
-            var result = await _controller.FinalizarVisita(99, request);
-
-            // Assert
-            result.Should().BeOfType<NotFoundResult>();
-        }
-
-        [Fact]
-        public async Task FinalizarVisita_ReturnsForbid_WhenVisitaTecnicoIdDoesNotMatchAuthenticatedUser()
-        {
-            // Arrange
-            var os = new OrdemServico { Id = 1, Equipamento = "PC", Status = WorkflowStatus.EmAnalise };
-            _context.OrdensServico.Add(os);
-
-            var visita = new VisitaCampo
-            {
-                Id = 1,
-                OrdemServicoId = 1,
-                TecnicoId = 10, // A different technician
-                CheckIn = DateTime.UtcNow
-            };
-            _context.VisitasCampo.Add(visita);
-            await _context.SaveChangesAsync();
-
-            // Authenticate as a different technician (ID = 20)
-            SetUserContext(20);
-
-            var request = new MobileApiController.FinalizarRequest { VisitaId = 1 };
-
-            // Act
-            var result = await _controller.FinalizarVisita(1, request);
-
-            // Assert
-            result.Should().BeOfType<ForbidResult>();
-        }
-
-        [Fact]
-        public async Task FinalizarVisita_ReturnsOk_WhenVisitaTecnicoIdMatchesAuthenticatedUser()
-        {
-            // Arrange
-            var os = new OrdemServico { Id = 1, Equipamento = "PC", Status = WorkflowStatus.EmAnalise };
-            _context.OrdensServico.Add(os);
-
-            var visita = new VisitaCampo
-            {
-                Id = 1,
-                OrdemServicoId = 1,
-                TecnicoId = 10, // The authenticated technician
-                CheckIn = DateTime.UtcNow
-            };
-            _context.VisitasCampo.Add(visita);
-            await _context.SaveChangesAsync();
-
-            // Authenticate as the correct technician (ID = 10)
-            SetUserContext(10);
-
-            var request = new MobileApiController.FinalizarRequest { VisitaId = 1 };
-
-            // Act
-            var result = await _controller.FinalizarVisita(1, request);
-
-            // Assert
-            var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
-
-            var resultObj = okResult.Value;
-            resultObj.Should().NotBeNull();
-
-            var osInDb = await _context.OrdensServico.FindAsync(1);
-            osInDb!.Status.Should().Be(WorkflowStatus.Concluido);
-
-            var visitaInDb = await _context.VisitasCampo.FindAsync(1);
-            visitaInDb!.CheckOut.Should().NotBeNull();
-        }
-
-        [Fact]
-        public async Task FinalizarVisita_ReturnsBadRequest_WhenVisitaAlreadyFinalized()
-        {
-            // Arrange
-            var os = new OrdemServico { Id = 1, Equipamento = "PC", Status = WorkflowStatus.EmAnalise };
-            _context.OrdensServico.Add(os);
-
-            var visita = new VisitaCampo
-            {
-                Id = 1,
-                OrdemServicoId = 1,
-                TecnicoId = 10, // The authenticated technician
-                CheckIn = DateTime.UtcNow.AddHours(-1),
-                CheckOut = DateTime.UtcNow // Already finalized
-            };
-            _context.VisitasCampo.Add(visita);
-            await _context.SaveChangesAsync();
-
-            // Authenticate as the correct technician (ID = 10)
-            SetUserContext(10);
-
-            var request = new MobileApiController.FinalizarRequest { VisitaId = 1 };
-
-            // Act
-            var result = await _controller.FinalizarVisita(1, request);
-
-            // Assert
-            var badRequestResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
-            badRequestResult.Value.Should().BeEquivalentTo(new { error = "Visita já finalizada" });
-        }
-
-        [Fact]
-        public async Task CheckIn_ReturnsUnauthorized_WhenClaimIdIsNotValidInteger()
-        {
-            // Arrange
-            var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
-            {
-                new Claim(ClaimTypes.NameIdentifier, "invalid_id")
-            }, "mock"));
-
-            _controller.ControllerContext = new ControllerContext
-            {
-                HttpContext = new DefaultHttpContext { User = user }
+                Username = "carlos",
+                Password = "123"
             };
 
-            var request = new MobileApiController.CheckInRequest { Latitude = 10m, Longitude = 20m };
+            _mockEngine.Setup(e => e.AutenticarTecnicoAsync("carlos", "123"))
+                .ReturnsAsync(MobileAuthResult.Ok("mock-jwt-token", 5, "carlos"));
 
             // Act
-            var result = await _controller.CheckIn(1, request);
-
-            // Assert
-            var unauthorizedResult = result.Should().BeOfType<UnauthorizedObjectResult>().Subject;
-            unauthorizedResult.Value.Should().BeEquivalentTo(new { error = "Técnico não autenticado." });
-        }
-
-        [Fact]
-        public async Task CheckIn_ReturnsUnauthorized_WhenUserIsNotAuthenticated()
-        {
-            // Arrange
-            // Do not set the user context, so User.FindFirst(ClaimTypes.NameIdentifier) returns null
-            _controller.ControllerContext = new ControllerContext
-            {
-                HttpContext = new DefaultHttpContext() // User is unauthenticated
-            };
-
-            var request = new MobileApiController.CheckInRequest { Latitude = 10m, Longitude = 20m };
-
-            // Act
-            var result = await _controller.CheckIn(1, request);
-
-            // Assert
-            var unauthorizedResult = result.Should().BeOfType<UnauthorizedObjectResult>().Subject;
-            unauthorizedResult.Value.Should().BeEquivalentTo(new { error = "Técnico não autenticado." });
-        }
-
-
-        [Fact]
-        public async Task FinalizarVisita_ReturnsUnauthorized_WhenClaimIdIsNotValidInteger()
-        {
-            // Arrange
-            var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
-            {
-                new Claim(ClaimTypes.NameIdentifier, "invalid_id")
-            }, "mock"));
-
-            _controller.ControllerContext = new ControllerContext
-            {
-                HttpContext = new DefaultHttpContext { User = user }
-            };
-
-            var request = new MobileApiController.FinalizarRequest { VisitaId = 1 };
-
-            // Act
-            var result = await _controller.FinalizarVisita(1, request);
-
-            // Assert
-            var unauthorizedResult = result.Should().BeOfType<UnauthorizedObjectResult>().Subject;
-            unauthorizedResult.Value.Should().BeEquivalentTo(new { error = "Técnico não autenticado." });
-        }
-
-        [Fact]
-        public async Task FinalizarVisita_ReturnsUnauthorized_WhenUserIsNotAuthenticated()
-        {
-            // Arrange
-            // Do not set the user context
-            _controller.ControllerContext = new ControllerContext
-            {
-                HttpContext = new DefaultHttpContext() // User is unauthenticated
-            };
-
-            var request = new MobileApiController.FinalizarRequest { VisitaId = 1 };
-
-            // Act
-            var result = await _controller.FinalizarVisita(1, request);
-
-            // Assert
-            var unauthorizedResult = result.Should().BeOfType<UnauthorizedObjectResult>().Subject;
-            unauthorizedResult.Value.Should().BeEquivalentTo(new { error = "Técnico não autenticado." });
-        }
-
-        [Fact]
-        public async Task CheckIn_ReturnsForbid_WhenOrdemServicoTecnicoIdDoesNotMatchAuthenticatedUser()
-        {
-            // Arrange
-            var os = new OrdemServico { Id = 2, Equipamento = "Notebook", Status = WorkflowStatus.Recebido, TecnicoId = 10 };
-            _context.OrdensServico.Add(os);
-            await _context.SaveChangesAsync();
-
-            // Authenticate as a different technician (ID = 20)
-            SetUserContext(20);
-
-            var request = new MobileApiController.CheckInRequest { Latitude = 10m, Longitude = 20m };
-
-            // Act
-            var result = await _controller.CheckIn(2, request);
-
-            // Assert
-            result.Should().BeOfType<ForbidResult>();
-        }
-
-        [Fact]
-        public async Task CheckIn_ReturnsOk_WhenOrdemServicoTecnicoIdMatchesAuthenticatedUser()
-        {
-            // Arrange
-            var os = new OrdemServico { Id = 2, Equipamento = "Notebook", Status = WorkflowStatus.Recebido, TecnicoId = 10 };
-            _context.OrdensServico.Add(os);
-            await _context.SaveChangesAsync();
-
-            // Authenticate as the correct technician (ID = 10)
-            SetUserContext(10);
-
-            var request = new MobileApiController.CheckInRequest { Latitude = 10m, Longitude = 20m };
-
-            // Act
-            var result = await _controller.CheckIn(2, request);
+            var result = await _controller.Login(request);
 
             // Assert
             var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
             okResult.Value.Should().NotBeNull();
-
-            var visita = await _context.VisitasCampo.FirstOrDefaultAsync(v => v.OrdemServicoId == 2);
-            visita.Should().NotBeNull();
-            visita!.TecnicoId.Should().Be(10);
-            visita.Latitude.Should().Be(10m);
-            visita.Longitude.Should().Be(20m);
         }
 
         [Fact]
-        public async Task CheckIn_ReturnsNotFound_WhenOrdemServicoDoesNotExist()
+        public async Task Login_ComCredenciaisInvalidas_DeveRetornarUnauthorized()
+        {
+            // Arrange
+            var request = new MobileApiController.MobileLoginRequest
+            {
+                Username = "carlos",
+                Password = "errada"
+            };
+
+            _mockEngine.Setup(e => e.AutenticarTecnicoAsync("carlos", "errada"))
+                .ReturnsAsync(MobileAuthResult.Falha("Usuário ou senha inválidos."));
+
+            // Act
+            var result = await _controller.Login(request);
+
+            // Assert
+            result.Should().BeOfType<UnauthorizedObjectResult>();
+        }
+
+        [Fact]
+        public async Task CheckIn_SemAutenticacao_DeveRetornarUnauthorized()
+        {
+            // Arrange - Sem Claims
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext()
+            };
+
+            var request = new MobileApiController.CheckInRequest { Latitude = -23, Longitude = -46 };
+
+            // Act
+            var result = await _controller.CheckIn(1, request);
+
+            // Assert
+            result.Should().BeOfType<UnauthorizedObjectResult>();
+        }
+
+        [Fact]
+        public async Task CheckIn_QuandoOsNaoEncontrada_DeveRetornarNotFound()
         {
             // Arrange
             SetUserContext(10);
-            var request = new MobileApiController.CheckInRequest { Latitude = 10m, Longitude = 20m };
+            var request = new MobileApiController.CheckInRequest { Latitude = -23, Longitude = -46 };
+
+            _mockEngine.Setup(e => e.RegistrarCheckInAsync(999, 10, -23, -46))
+                .ReturnsAsync(VisitaResult.NaoEncontrado("OS não encontrada."));
 
             // Act
             var result = await _controller.CheckIn(999, request);
 
             // Assert
-            var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
-            notFoundResult.Value.Should().BeEquivalentTo(new { error = "OS não encontrada" });
+            result.Should().BeOfType<NotFoundObjectResult>();
         }
 
         [Fact]
-        public async Task FinalizarVisita_ReturnsNotFound_WhenVisitaDoesNotBelongToOS()
+        public async Task CheckIn_QuandoTecnicoNaoAutorizado_DeveRetornarForbid()
         {
             // Arrange
-            var visita = new VisitaCampo
-            {
-                Id = 1,
-                OrdemServicoId = 2, // Different OS
-                TecnicoId = 10,
-                CheckIn = DateTime.UtcNow
-            };
-            _context.VisitasCampo.Add(visita);
-            await _context.SaveChangesAsync();
-
             SetUserContext(10);
+            var request = new MobileApiController.CheckInRequest { Latitude = -23, Longitude = -46 };
 
-            var request = new MobileApiController.FinalizarRequest { VisitaId = 1 };
+            _mockEngine.Setup(e => e.RegistrarCheckInAsync(100, 10, -23, -46))
+                .ReturnsAsync(VisitaResult.Proibido());
 
             // Act
-            var result = await _controller.FinalizarVisita(1, request); // Mismatched OS ID
+            var result = await _controller.CheckIn(100, request);
 
             // Assert
-            var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
-            notFoundResult.Value.Should().BeEquivalentTo(new { error = "Visita não encontrada ou não pertence a esta OS" });
+            result.Should().BeOfType<ForbidResult>();
         }
 
         [Fact]
-        public async Task FinalizarVisita_UpdatesLaudoAndAssinatura_WhenProvided()
+        public async Task CheckIn_ComSucesso_DeveRetornarOk()
         {
             // Arrange
-            var os = new OrdemServico { Id = 1, Equipamento = "PC", Status = WorkflowStatus.EmAnalise, LaudoTecnico = "Original" };
-            _context.OrdensServico.Add(os);
-
-            var visita = new VisitaCampo
-            {
-                Id = 1,
-                OrdemServicoId = 1,
-                TecnicoId = 10,
-                CheckIn = DateTime.UtcNow
-            };
-            _context.VisitasCampo.Add(visita);
-            await _context.SaveChangesAsync();
-
             SetUserContext(10);
+            var request = new MobileApiController.CheckInRequest { Latitude = -23, Longitude = -46 };
 
-            var request = new MobileApiController.FinalizarRequest
-            {
-                VisitaId = 1,
-                AssinaturaBase64 = "base64string",
-                LaudoFinal = "Novo Laudo"
-            };
+            _mockEngine.Setup(e => e.RegistrarCheckInAsync(100, 10, -23, -46))
+                .ReturnsAsync(VisitaResult.Ok("Check-in realizado com sucesso", 42));
 
             // Act
-            var result = await _controller.FinalizarVisita(1, request);
-
-            // Assert
-            result.Should().BeOfType<OkObjectResult>();
-
-            var osInDb = await _context.OrdensServico.FindAsync(1);
-            osInDb!.LaudoTecnico.Should().Be("Novo Laudo");
-            osInDb.Status.Should().Be(WorkflowStatus.Concluido);
-
-            var visitaInDb = await _context.VisitasCampo.FindAsync(1);
-            visitaInDb!.AssinaturaClienteBase64.Should().Be("base64string");
-        }
-
-        [Fact]
-        public async Task FinalizarVisita_DoesNotUpdateLaudo_WhenLaudoFinalIsEmpty()
-        {
-            // Arrange
-            var os = new OrdemServico { Id = 1, Equipamento = "PC", Status = WorkflowStatus.EmAnalise, LaudoTecnico = "Original" };
-            _context.OrdensServico.Add(os);
-
-            var visita = new VisitaCampo
-            {
-                Id = 1,
-                OrdemServicoId = 1,
-                TecnicoId = 10,
-                CheckIn = DateTime.UtcNow
-            };
-            _context.VisitasCampo.Add(visita);
-            await _context.SaveChangesAsync();
-
-            SetUserContext(10);
-
-            var request = new MobileApiController.FinalizarRequest
-            {
-                VisitaId = 1,
-                AssinaturaBase64 = "base64string",
-                LaudoFinal = "" // Empty
-            };
-
-            // Act
-            var result = await _controller.FinalizarVisita(1, request);
-
-            // Assert
-            result.Should().BeOfType<OkObjectResult>();
-
-            var osInDb = await _context.OrdensServico.FindAsync(1);
-            osInDb!.LaudoTecnico.Should().Be("Original"); // Should remain unchanged
-            osInDb.Status.Should().Be(WorkflowStatus.Concluido);
-
-            var visitaInDb = await _context.VisitasCampo.FindAsync(1);
-            visitaInDb!.AssinaturaClienteBase64.Should().Be("base64string");
-        }
-
-        [Fact]
-        public async Task Login_ReturnsOk_WhenCredentialsAreValid()
-        {
-            // Arrange
-            var user = new Usuario
-            {
-                Username = "admin",
-                PasswordHash = new Microsoft.AspNetCore.Identity.PasswordHasher<Usuario>().HashPassword(null, "Admin@123")
-            };
-            _context.Usuarios.Add(user);
-
-            var tecnico = new Tecnico
-            {
-                Nome = "admin",
-                PercentualComissao = 10,
-                Ativo = true
-            };
-            _context.Tecnicos.Add(tecnico);
-            await _context.SaveChangesAsync();
-
-            var mockConfiguration = new Moq.Mock<Microsoft.Extensions.Configuration.IConfiguration>();
-            mockConfiguration.Setup(x => x["Jwt:Key"]).Returns("UmaChaveSuperSecretaMuitoLongaParaOJWT123456789_AppMobile_AssistenciaTech_IsNowRequired_123456789_AppMobile_AssistenciaTech!");
-            mockConfiguration.Setup(x => x["Jwt:Issuer"]).Returns("AssistenciaTech");
-            mockConfiguration.Setup(x => x["Jwt:Audience"]).Returns("AssistenciaTechMobile");
-
-            var controller = new MobileApiController(_context, mockConfiguration.Object, _mockLifecycle.Object);
-
-            var request = new MobileApiController.MobileLoginRequest
-            {
-                Username = "admin",
-                Password = "Admin@123"
-            };
-
-            // Act
-            var result = await controller.Login(request);
+            var result = await _controller.CheckIn(100, request);
 
             // Assert
             var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
@@ -496,41 +150,147 @@ namespace AssistenciaTech.Application.Tests.Controllers
         }
 
         [Fact]
-        public async Task Login_ReturnsUnauthorized_WhenCredentialsAreInvalid()
+        public async Task FinalizarVisita_SemAutenticacao_DeveRetornarUnauthorized()
         {
             // Arrange
-            var user = new Usuario
+            _controller.ControllerContext = new ControllerContext
             {
-                Username = "admin",
-                PasswordHash = new Microsoft.AspNetCore.Identity.PasswordHasher<Usuario>().HashPassword(null, "Admin@123")
+                HttpContext = new DefaultHttpContext()
             };
-            _context.Usuarios.Add(user);
-            await _context.SaveChangesAsync();
 
-            var mockConfiguration = new Moq.Mock<Microsoft.Extensions.Configuration.IConfiguration>();
-            mockConfiguration.Setup(x => x["Jwt:Key"]).Returns("UmaChaveSuperSecretaMuitoLongaParaOJWT123456789_AppMobile_AssistenciaTech_IsNowRequired_123456789_AppMobile_AssistenciaTech!");
-            var controller = new MobileApiController(_context, mockConfiguration.Object, _mockLifecycle.Object);
+            var request = new MobileApiController.FinalizarRequest { VisitaId = 1 };
 
-            var request = new MobileApiController.MobileLoginRequest
+            // Act
+            var result = await _controller.FinalizarVisita(1, request);
+
+            // Assert
+            result.Should().BeOfType<UnauthorizedObjectResult>();
+        }
+
+        [Fact]
+        public async Task FinalizarVisita_QuandoVisitaNaoEncontrada_DeveRetornarNotFound()
+        {
+            // Arrange
+            SetUserContext(10, "Carlos");
+            var request = new MobileApiController.FinalizarRequest { VisitaId = 99 };
+
+            _mockEngine.Setup(e => e.FinalizarVisitaAsync(1, 99, 10, It.IsAny<string>(), It.IsAny<string>(), "Carlos"))
+                .ReturnsAsync(VisitaResult.NaoEncontrado("Visita não encontrada ou não pertence a esta OS"));
+
+            // Act
+            var result = await _controller.FinalizarVisita(1, request);
+
+            // Assert
+            result.Should().BeOfType<NotFoundObjectResult>();
+        }
+
+        [Fact]
+        public async Task FinalizarVisita_QuandoTecnicoNaoAutorizado_DeveRetornarForbid()
+        {
+            // Arrange
+            SetUserContext(10, "Carlos");
+            var request = new MobileApiController.FinalizarRequest { VisitaId = 1 };
+
+            _mockEngine.Setup(e => e.FinalizarVisitaAsync(1, 1, 10, It.IsAny<string>(), It.IsAny<string>(), "Carlos"))
+                .ReturnsAsync(VisitaResult.Proibido());
+
+            // Act
+            var result = await _controller.FinalizarVisita(1, request);
+
+            // Assert
+            result.Should().BeOfType<ForbidResult>();
+        }
+
+        [Fact]
+        public async Task FinalizarVisita_QuandoJaFinalizadaOuErroNoLifecycle_DeveRetornarBadRequest()
+        {
+            // Arrange
+            SetUserContext(10, "Carlos");
+            var request = new MobileApiController.FinalizarRequest { VisitaId = 1 };
+
+            _mockEngine.Setup(e => e.FinalizarVisitaAsync(1, 1, 10, It.IsAny<string>(), It.IsAny<string>(), "Carlos"))
+                .ReturnsAsync(VisitaResult.Invalido("Visita já finalizada."));
+
+            // Act
+            var result = await _controller.FinalizarVisita(1, request);
+
+            // Assert
+            result.Should().BeOfType<BadRequestObjectResult>();
+        }
+
+        [Fact]
+        public async Task FinalizarVisita_ComSucesso_DeveRetornarOk()
+        {
+            // Arrange
+            SetUserContext(10, "Carlos");
+            var request = new MobileApiController.FinalizarRequest
             {
-                Username = "admin",
-                Password = "wrongpassword"
+                VisitaId = 1,
+                AssinaturaBase64 = "base64",
+                LaudoFinal = "Reparo concluído"
+            };
+
+            _mockEngine.Setup(e => e.FinalizarVisitaAsync(1, 1, 10, "base64", "Reparo concluído", "Carlos"))
+                .ReturnsAsync(VisitaResult.Ok("Visita finalizada e OS atualizada."));
+
+            // Act
+            var result = await _controller.FinalizarVisita(1, request);
+
+            // Assert
+            result.Should().BeOfType<OkObjectResult>();
+        }
+
+        [Fact]
+        public async Task SyncVisitas_SemAutenticacao_DeveRetornarUnauthorized()
+        {
+            // Arrange
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext()
             };
 
             // Act
-            var result = await controller.Login(request);
+            var result = await _controller.SyncVisitas(new List<VisitaCampoSyncDto>());
 
             // Assert
-            var unauthorizedResult = result.Should().BeOfType<UnauthorizedObjectResult>().Subject;
-            unauthorizedResult.Value.Should().BeEquivalentTo(new { error = "Usuário ou senha inválidos." });
+            result.Should().BeOfType<UnauthorizedObjectResult>();
         }
 
-
-
-        public void Dispose()
+        [Fact]
+        public async Task SyncVisitas_QuandoEngineRetornarFalha_DeveRetornarBadRequest()
         {
-            _context.Database.EnsureDeleted();
-            _context.Dispose();
+            // Arrange
+            SetUserContext(10);
+            var dtos = new List<VisitaCampoSyncDto>();
+
+            _mockEngine.Setup(e => e.SincronizarVisitasOfflineAsync(10, dtos))
+                .ReturnsAsync(VisitaSyncResult.Falha("Nenhum dado para sincronizar."));
+
+            // Act
+            var result = await _controller.SyncVisitas(dtos);
+
+            // Assert
+            result.Should().BeOfType<BadRequestObjectResult>();
+        }
+
+        [Fact]
+        public async Task SyncVisitas_ComSucesso_DeveRetornarOk()
+        {
+            // Arrange
+            SetUserContext(10);
+            var dtos = new List<VisitaCampoSyncDto>
+            {
+                new VisitaCampoSyncDto { OrdemServicoId = 1, CheckIn = DateTime.UtcNow }
+            };
+
+            _mockEngine.Setup(e => e.SincronizarVisitasOfflineAsync(10, dtos))
+                .ReturnsAsync(VisitaSyncResult.Ok("1 visitas sincronizadas com sucesso.", 1, 1, 0));
+
+            // Act
+            var result = await _controller.SyncVisitas(dtos);
+
+            // Assert
+            result.Should().BeOfType<OkObjectResult>();
         }
     }
 }
