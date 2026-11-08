@@ -92,6 +92,32 @@ namespace AssistenciaTech.Application.Tests.Services
             cacheMock.Verify(c => c.RemoveAsync(It.IsAny<string>()), Times.Never);
         }
 
+
+        [Fact]
+        public async Task RestaurarEstoqueAsync_SemPecas_DeveRetornarSucessoEMensagem()
+        {
+            // Arrange
+            var dbName = Guid.NewGuid().ToString();
+            using var context = GetDbContext(dbName);
+
+            var ordem = new OrdemServico { Id = 103, ClienteId = 1, DataEntrada = DateTime.UtcNow };
+
+            context.OrdensServico.Add(ordem);
+            await context.SaveChangesAsync();
+
+            var cacheMock = new Mock<IResilientCacheService>();
+            var loggerMock = new Mock<ILogger<EstoqueEngine>>();
+            var engine = new EstoqueEngine(context, cacheMock.Object, loggerMock.Object);
+
+            // Act
+            var result = await engine.RestaurarEstoqueAsync(103);
+
+            // Assert
+            result.Sucesso.Should().BeTrue();
+            result.Mensagem.Should().Be("Nenhuma peça associada à Ordem de Serviço.");
+
+            cacheMock.Verify(c => c.RemoveAsync(It.IsAny<string>()), Times.Never);
+        }
         [Fact]
         public async Task RestaurarEstoqueAsync_ComPecas_DeveAumentarEstoqueERetornarSucessoEInvalidarCache()
         {
