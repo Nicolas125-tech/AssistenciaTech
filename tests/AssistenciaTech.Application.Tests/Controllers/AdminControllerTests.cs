@@ -1322,6 +1322,57 @@ namespace AssistenciaTech.Application.Tests.Controllers
 
 
 
+
+        [Fact]
+        public async Task Delete_GenericExceptionThrown_ReturnsRedirectWithErro()
+        {
+            // Arrange
+            var dbName = Guid.NewGuid().ToString();
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: dbName)
+                .Options;
+
+            // Seed normal context
+            using (var seedContext = new AppDbContext(options))
+            {
+                var os = new OrdemServico { Id = 9998, Equipamento = "Teste Generic Error", ProblemaRelatado = "Falha Gen", ClienteId = 1, Status = "Recebido" };
+                seedContext.OrdensServico.Add(os);
+                await seedContext.SaveChangesAsync();
+            }
+
+            // Create context that will throw generic Exception
+            var exceptionContext = new TestGenericExceptionDbContext(options);
+            var localController = CreateAdminController(exceptionContext);
+
+            // Setup TempData
+            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+            var tempData = new Microsoft.AspNetCore.Mvc.ViewFeatures.TempDataDictionary(httpContext, Mock.Of<Microsoft.AspNetCore.Mvc.ViewFeatures.ITempDataProvider>());
+            localController.TempData = tempData;
+
+            // Act
+            var result = await localController.Delete(9998);
+
+            // Assert
+            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Which;
+            redirectResult.ActionName.Should().Be("Index");
+
+            // Verify TempData ErrorMessage
+            localController.TempData["ErrorMessage"].Should().NotBeNull();
+            localController.TempData["ErrorMessage"].ToString().Should().Be("Ocorreu um erro ao tentar excluir a Ordem de Serviço.");
+
+            // Verify logger was called
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Erro ao excluir a OS 9998.")),
+                    It.IsAny<Exception>(),
+                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
+                Times.Once);
+
+            localController.Dispose();
+            exceptionContext.Dispose();
+        }
         [Fact]
         public void GetEvidencia_NullFileName_NoArg_ReturnsBadRequest()
         {
@@ -1468,6 +1519,16 @@ namespace AssistenciaTech.Application.Tests.Controllers
             public TestDbException(string message) : base(message) { }
         }
 
+
+        private class TestGenericExceptionDbContext : AppDbContext
+        {
+            public TestGenericExceptionDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+            public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+            {
+                throw new Exception("Simulated generic error");
+            }
+        }
         public void Dispose()
         {
             // We might have disposed the context in the test above, so we handle it gracefully

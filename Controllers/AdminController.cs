@@ -313,6 +313,13 @@ namespace AssistenciaTech.Controllers
                 _logger.LogError(ex, "DB_DELETE_ERROR");
                 return RedirectToAction(nameof(Index), new { erro = "Não foi possível excluir a OS." });
             }
+
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao excluir a OS {Id}.", id);
+                TempData["ErrorMessage"] = "Ocorreu um erro ao tentar excluir a Ordem de Serviço.";
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         // GET: Admin/ImprimirOs/5
