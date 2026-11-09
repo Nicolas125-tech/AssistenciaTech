@@ -1,0 +1,11 @@
+🎯 **What:**
+Added a missing test case `SetAsync_WhenExceptionThrown_ShouldOpenCircuitAndNotThrow` for `ResilientCacheService.SetAsync` to explicitly verify that exceptions originating from the `IDistributedCache` dependency are caught internally, the circuit breaker is triggered, and the exception is not surfaced back to the caller.
+
+📊 **Coverage:**
+- Added 1 new unit test targeting the exception handling branch of `ResilientCacheService.SetAsync`.
+- Verifies that `NotThrowAsync()` passes, confirming caller safety.
+- Verifies the state of `_service.IsAvailable` becomes `false` (Circuit Opened).
+- Verifies that `ILogger` captures an `Error` level log with the caught exception.
+
+✨ **Result:**
+The test suite now properly guarantees that `ResilientCacheService.SetAsync` correctly suppresses underlying cache exceptions, ensuring that transient caching failures do not propagate up and break application flows, aligning with the expected circuit breaker behavior. Test coverage for this specific exception block has improved.
