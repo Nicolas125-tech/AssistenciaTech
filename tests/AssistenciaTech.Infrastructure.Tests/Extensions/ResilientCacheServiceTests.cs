@@ -301,6 +301,35 @@ namespace AssistenciaTech.Infrastructure.Tests.Extensions
                 Times.Once);
         }
 
+
+        [Fact]
+        public async Task SetAsync_WhenExceptionThrown_ShouldOpenCircuitAndNotThrow()
+        {
+            // Arrange
+            var key = "test-key";
+            var data = new TestModel { Id = 1, Name = "Test" };
+            var exception = new Exception("Redis connection failed");
+
+            _cacheMock.Setup(c => c.SetAsync(key, It.IsAny<byte[]>(), It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(exception);
+
+            // Act
+            Func<Task> act = async () => await _service.SetAsync(key, data);
+
+            // Assert
+            await act.Should().NotThrowAsync();
+            _service.IsAvailable.Should().BeFalse();
+
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Erro ao escrever no cache")),
+                    exception,
+                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
+                Times.Once);
+        }
+
         private class TestModel
         {
             public int Id { get; set; }
