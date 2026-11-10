@@ -144,5 +144,44 @@ namespace AssistenciaTech.Application.Tests.Controllers
             // Assert
             result.Should().BeOfType<UnauthorizedResult>();
         }
+
+        [Fact]
+        public async Task Webhook_MissingMessageProperty_DoesNotCallHandlerAndReturnsOk()
+        {
+            var jsonStr = "{}";
+            using var doc = JsonDocument.Parse(jsonStr);
+            var json = doc.RootElement.Clone();
+
+            var result = await _controller.Webhook(json, "secret-token-123");
+
+            result.Should().BeOfType<OkResult>();
+            _mockCommandHandler.Verify(h => h.HandleCommandAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task Webhook_MissingTextProperty_DoesNotCallHandlerAndReturnsOk()
+        {
+            var jsonStr = @"{ ""message"": { ""chat"": { ""id"": 123456 } } }";
+            using var doc = JsonDocument.Parse(jsonStr);
+            var json = doc.RootElement.Clone();
+
+            var result = await _controller.Webhook(json, "secret-token-123");
+
+            result.Should().BeOfType<OkResult>();
+            _mockCommandHandler.Verify(h => h.HandleCommandAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task Webhook_MissingChatIdProperty_DoesNotCallHandlerAndReturnsOk()
+        {
+            var jsonStr = @"{ ""message"": { ""text"": ""/start"" } }";
+            using var doc = JsonDocument.Parse(jsonStr);
+            var json = doc.RootElement.Clone();
+
+            var result = await _controller.Webhook(json, "secret-token-123");
+
+            result.Should().BeOfType<OkResult>();
+            _mockCommandHandler.Verify(h => h.HandleCommandAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        }
     }
 }
