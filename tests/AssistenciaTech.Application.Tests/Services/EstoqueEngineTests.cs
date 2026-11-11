@@ -151,6 +151,36 @@ namespace AssistenciaTech.Application.Tests.Services
         }
 
         [Fact]
+        public async Task ObterAlertasDeEstoqueAsync_ComCache_NaoDeveAcessarBanco()
+        {
+            // Arrange
+            var dbName = Guid.NewGuid().ToString();
+            using var context = GetDbContext(dbName);
+
+            // To ensure the DB is not queried, we mock the cache to return a value
+            var pecasEmCache = new List<Peca>
+            {
+                new Peca { Id = 1, Nome = "Peca 1", QuantidadeEstoque = 5, QuantidadeMinima = 10 }
+            };
+
+            var cacheMock = new Mock<IResilientCacheService>();
+            cacheMock.Setup(c => c.GetAsync<List<Peca>>("Estoque_AlertasEstoque"))
+                .ReturnsAsync(pecasEmCache);
+
+            var loggerMock = new Mock<ILogger<EstoqueEngine>>();
+            var engine = new EstoqueEngine(context, cacheMock.Object, loggerMock.Object);
+
+            // Act
+            var result = await engine.ObterAlertasDeEstoqueAsync();
+
+            // Assert
+            result.Should().BeEquivalentTo(pecasEmCache);
+            cacheMock.Verify(c => c.GetAsync<List<Peca>>("Estoque_AlertasEstoque"), Times.Once);
+
+            // Verifies SetAsync was not called.
+            cacheMock.Verify(c => c.SetAsync(It.IsAny<string>(), It.IsAny<List<Peca>>(), It.IsAny<TimeSpan>()), Times.Never);
+        }
+        [Fact]
         public async Task ObterAlertasDeEstoqueAsync_SemCache_DeveBuscarDoBancoEPreencherCache()
         {
             // Arrange
