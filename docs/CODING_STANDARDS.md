@@ -41,11 +41,9 @@ Este documento estabelece as regras de arquitetura, padrões visuais de interfac
 
 ## 3. Ambiente e Comandos de Terminal no Windows
 
-- **Incompatibilidade do operador `&&` no PowerShell**:
-  - O PowerShell 5.1 não suporta o operador `&&`. Comandos encadeados com `&&` causam erro de sintaxe imediato.
+- **Sintaxe do Terminal PowerShell 5.1**:
+  - O PowerShell 5.1 não suporta o operador `&&`. Comandos encadeados com `&&` causam erro imediato de sintaxe.
   - Utilize sempre ponto e vírgula (`;`) ou execute comandos em etapas individuais.
-- **Modo Sandbox e Acesso ao Sistema**:
-  - Comandos do compilador .NET (`dotnet build`, `dotnet test`, `dotnet publish`) e comandos de controle de versão (`git`) exigem `BypassSandbox: true` neste ambiente para evitar erros de inicialização de drives no sandbox do Windows.
 - **Scripts Utilitários Homologados**:
   - Testes rápidos: `powershell -File scripts/test-fast.ps1`
   - Suíte completa: `powershell -File scripts/test-fast.ps1 -All`
