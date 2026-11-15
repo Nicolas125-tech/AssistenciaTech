@@ -1,1547 +1,422 @@
 using System;
-using System.IO;
 using System.Collections.Generic;
+using System.Data.Common;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using AssistenciaTech.Controllers;
-using AssistenciaTech.ViewModels;
-using AssistenciaTech.Data;
-using AssistenciaTech.Models;
 using AssistenciaTech.DTOs;
+using AssistenciaTech.Models;
 using AssistenciaTech.Services;
-
+using AssistenciaTech.ViewModels;
 using FluentAssertions;
-using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
-using Microsoft.EntityFrameworkCore;
-using Moq;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using Xunit;
 
 namespace AssistenciaTech.Application.Tests.Controllers
 {
-
-    public class AdminControllerTests : IDisposable
+    public class AdminControllerTests
     {
-        private readonly AppDbContext _context;
-        private readonly Mock<IEstoqueEngine> _mockEstoqueEngine;
-        private readonly Mock<IWebHostEnvironment> _mockEnv;
-        private readonly Mock<IPdfGeneratorService> _mockPdfGeneratorService;
-        private readonly Mock<IAdminDashboardService> _mockDashboardService;
         private readonly Mock<ILogger<AdminController>> _mockLogger;
-        private readonly Mock<IServiceScopeFactory> _mockScopeFactory;
-        private readonly Mock<INotificationService> _mockNotificationService;
-        private readonly Mock<AssistenciaTech.Extensions.IResilientCacheService> _mockCacheService;
+        private readonly Mock<IOrdemServicoLifecycle> _mockLifecycle;
+        private readonly Mock<IAdminDashboardService> _mockDashboardService;
+        private readonly Mock<IPdfGeneratorService> _mockPdfGeneratorService;
+        private readonly Mock<IEvidenciaStorage> _mockEvidenciaStorage;
         private readonly AdminController _controller;
 
         public AdminControllerTests()
         {
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-                .Options;
-
-            _context = new AppDbContext(options);
-            _mockEstoqueEngine = new Mock<IEstoqueEngine>();
-            _mockEstoqueEngine.Setup(e => e.DeduzirEstoqueAsync(It.IsAny<int>())).ReturnsAsync(EstoqueResult.Ok());
-            _mockEstoqueEngine.Setup(e => e.RestaurarEstoqueAsync(It.IsAny<int>())).ReturnsAsync(EstoqueResult.Ok());
-            _mockEnv = new Mock<IWebHostEnvironment>();
-            _mockEnv.Setup(m => m.ContentRootPath).Returns(Path.Combine(Path.GetTempPath(), "AssistenciaTechTests_" + Guid.NewGuid().ToString()));
-            _mockPdfGeneratorService = new Mock<IPdfGeneratorService>();
-            _mockDashboardService = new Mock<IAdminDashboardService>();
             _mockLogger = new Mock<ILogger<AdminController>>();
-            _mockScopeFactory = new Mock<IServiceScopeFactory>();
-            _mockNotificationService = new Mock<INotificationService>();
-            _mockCacheService = new Mock<AssistenciaTech.Extensions.IResilientCacheService>();
+            _mockLifecycle = new Mock<IOrdemServicoLifecycle>();
+            _mockDashboardService = new Mock<IAdminDashboardService>();
+            _mockPdfGeneratorService = new Mock<IPdfGeneratorService>();
+            _mockEvidenciaStorage = new Mock<IEvidenciaStorage>();
 
-            // Setup ScopeFactory to return a scope containing the DbContext
-            var mockScope = new Mock<IServiceScope>();
-            var mockServiceProvider = new Mock<IServiceProvider>();
-            mockServiceProvider.Setup(sp => sp.GetService(typeof(AppDbContext))).Returns(_context);
-            mockScope.Setup(s => s.ServiceProvider).Returns(mockServiceProvider.Object);
-            _mockScopeFactory.Setup(s => s.CreateScope()).Returns(mockScope.Object);
-
-            _controller = CreateAdminController(_context);
+            _controller = CreateController();
         }
 
-        private AdminController CreateAdminController(
-            AppDbContext context,
-            ILogger<AdminController>? logger = null,
-            IOrdemServicoLifecycle? lifecycle = null,
-            IAdminDashboardService? dashboard = null,
-            IPdfGeneratorService? pdfGenerator = null,
-            AssistenciaTech.Extensions.IResilientCacheService? cache = null,
-            IWebHostEnvironment? env = null)
+        private AdminController CreateController()
         {
-            var ctx = context;
-            var osLifecycle = lifecycle ?? (ctx != null
-                ? new OrdemServicoLifecycle(
-                    ctx,
-                    _mockEstoqueEngine.Object,
-                    _mockNotificationService.Object,
-                    _mockEnv.Object,
-                    new Mock<ILogger<OrdemServicoLifecycle>>().Object)
-                : new Mock<IOrdemServicoLifecycle>().Object);
-
+            var httpContext = new DefaultHttpContext();
             return new AdminController(
-                ctx!,
-                logger ?? _mockLogger.Object,
-                osLifecycle,
-                dashboard ?? _mockDashboardService.Object,
-                pdfGenerator ?? _mockPdfGeneratorService.Object,
-                cache ?? _mockCacheService.Object,
-                env ?? _mockEnv.Object);
-        }
-
-
-
-        [Fact]
-        public async Task ExportarCsv_ComOrdensServico_DeveRetornarCsv()
-        {
-            // Arrange
-            var cliente = new Cliente { Nome = "João Silva", Email = "joao@example.com", Telefone = "11999999999" };
-            _context.Clientes.Add(cliente);
-            await _context.SaveChangesAsync();
-
-            var os1 = new OrdemServico { ClienteId = cliente.Id, Equipamento = "Notebook Dell", Status = "Recebido", DataEntrada = new DateTime(2023, 1, 15, 0, 0, 0, DateTimeKind.Utc), ValorOrcamento = 1500m };
-            var os2 = new OrdemServico { ClienteId = cliente.Id, Equipamento = "PC Gamer", Status = "Concluído", DataEntrada = new DateTime(2023, 1, 20, 0, 0, 0, DateTimeKind.Utc), ValorOrcamento = 3000m };
-
-            _context.OrdensServico.AddRange(os1, os2);
-            await _context.SaveChangesAsync();
-
-            // Set up Controller Context with a MemoryStream for Response Body
-            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
-            var responseStream = new NonDisposableMemoryStream();
-            httpContext.Response.Body = responseStream;
-            _controller.ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
+                _mockLogger.Object,
+                _mockLifecycle.Object,
+                _mockDashboardService.Object,
+                _mockPdfGeneratorService.Object,
+                _mockEvidenciaStorage.Object)
             {
-                HttpContext = httpContext
+                ControllerContext = new ControllerContext { HttpContext = httpContext },
+                TempData = new TempDataDictionary(httpContext, Mock.Of<ITempDataProvider>())
             };
-
-            // Act
-            await _controller.ExportarCsv();
-
-            // Assert
-            _controller.Response.ContentType.Should().Be("text/csv");
-            _controller.Response.Headers["Content-Disposition"].ToString().Should().Be("attachment; filename=\"OrdensDeServico.csv\"");
-
-            // Read the written stream
-            responseStream.Position = 0;
-            using var reader = new StreamReader(responseStream);
-            var csvContent = await reader.ReadToEndAsync();
-            var lines = csvContent.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
-
-            lines[0].Should().Be("Id,Cliente,Equipamento,Data Entrada,Status,Valor Orçamento");
-
-            // Ordens are ordered by Id descending
-            lines[1].Should().Be($"{os2.Id},\"João Silva\",\"PC Gamer\",20/01/2023,Concluído,3000");
-            lines[2].Should().Be($"{os1.Id},\"João Silva\",\"Notebook Dell\",15/01/2023,Recebido,1500");
-        }
-
-
-        [Fact]
-        public async Task ExportarCsv_ComMaisDe100Registros_DeveProcessarEmLotes()
-        {
-            // Arrange
-            var cliente = new Cliente { Nome = "Maria Souza", Email = "maria@example.com", Telefone = "11888888888" };
-            _context.Clientes.Add(cliente);
-            await _context.SaveChangesAsync();
-
-            var ordens = Enumerable.Range(1, 150).Select(i => new OrdemServico
-            {
-                ClienteId = cliente.Id,
-                Equipamento = $"Equipamento {i}",
-                Status = "Recebido",
-                DataEntrada = new DateTime(2023, 2, 1, 0, 0, 0, DateTimeKind.Utc),
-                ValorOrcamento = 100m * i
-            }).ToList();
-
-            _context.OrdensServico.AddRange(ordens);
-            await _context.SaveChangesAsync();
-
-            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
-            var responseStream = new NonDisposableMemoryStream();
-            httpContext.Response.Body = responseStream;
-            _controller.ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
-            {
-                HttpContext = httpContext
-            };
-
-            // Act
-            await _controller.ExportarCsv();
-
-            // Assert
-            responseStream.Position = 0;
-            using var reader = new StreamReader(responseStream);
-            var csvContent = await reader.ReadToEndAsync();
-            var lines = csvContent.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-
-            // 1 header + 150 records = 151 lines
-            lines.Length.Should().Be(151);
-            lines[0].Should().Be("Id,Cliente,Equipamento,Data Entrada,Status,Valor Orçamento");
-
-            // Check some records to ensure they are present and properly formatted
-            var savedOrdens = await _context.OrdensServico.OrderByDescending(o => o.Id).ToListAsync();
-
-            for (int i = 0; i < savedOrdens.Count; i++)
-            {
-                var os = savedOrdens[i];
-                // In culture, it might have commas or dots depending on culture. But since test environment usually uses invariant or similar for numbers, we will check if it contains the ID and Equipment
-                lines[i + 1].Should().StartWith($"{os.Id},\"Maria Souza\",\"Equipamento");
-            }
         }
 
         [Fact]
         public async Task Index_Get_ReturnsViewWithDashboardData_WhenSuccessful()
         {
-            // Arrange
-            var searchString = "test";
-            var statusFilter = "Aberto";
-            var page = 2;
-
-            var ordens = new List<OrdemServico>
+            var expectedData = new DashboardDto
             {
-                new OrdemServico { Id = 1, ClienteId = 1, Equipamento = "PC", ProblemaRelatado = "Broken", Status = "Aberto" }
-            };
-
-            var dashboardData = new AssistenciaTech.Services.DashboardDto
-            {
-                Ordens = ordens,
                 TotalAbertas = 5,
-                EquipamentosProntos = 3,
+                EquipamentosProntos = 2,
                 FaturamentoPrevisto = 1500.50m,
-                CurrentPage = page,
+                CurrentPage = 2,
                 TotalPages = 3,
                 TotalOrdens = 25,
-                ChartLabels = new List<string> { "Jan", "Feb" },
-                ChartData = new List<int> { 10, 15 }
+                Ordens = new List<OrdemServico> { new() { Id = 1, Equipamento = "PC Gamer" } }
             };
 
             _mockDashboardService
-                .Setup(s => s.GetDashboardDataAsync(searchString, statusFilter, page, 50))
-                .ReturnsAsync(dashboardData);
+                .Setup(s => s.GetDashboardDataAsync("test", "Aberto", 2, It.IsAny<int>()))
+                .ReturnsAsync(expectedData);
 
-            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
-            var tempData = new TempDataDictionary(httpContext, Mock.Of<ITempDataProvider>());
-            tempData["ErroBanco"] = "Test error message";
-            _controller.TempData = tempData;
+            var result = await _controller.Index("test", "Aberto", 2);
 
-            // Act
-            var result = await _controller.Index(searchString, statusFilter, page) as ViewResult;
-
-            // Assert
-            result.Should().NotBeNull();
-            var model = result.Model.Should().BeAssignableTo<AdminDashboardViewModel>().Subject;
-            model.DashboardData.Ordens.Should().BeEquivalentTo(ordens);
-
-            model.ErroBanco.Should().Be("Test error message");
-            model.SearchString.Should().Be(searchString);
-            model.StatusFilter.Should().Be(statusFilter);
-            model.DashboardData.ChartLabels.Should().BeEquivalentTo(dashboardData.ChartLabels);
-            model.DashboardData.ChartData.Should().BeEquivalentTo(dashboardData.ChartData);
-
-            model.DashboardData.TotalAbertas.Should().Be(5);
-            model.DashboardData.EquipamentosProntos.Should().Be(3);
-            model.DashboardData.FaturamentoPrevisto.Should().Be(1500.50m);
-            model.DashboardData.CurrentPage.Should().Be(2);
-            model.DashboardData.TotalPages.Should().Be(3);
-            model.DashboardData.TotalOrdens.Should().Be(25);
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            var model = viewResult.Model.Should().BeOfType<AdminDashboardViewModel>().Subject;
+            model.SearchString.Should().Be("test");
+            model.StatusFilter.Should().Be("Aberto");
+            model.DashboardData.Should().BeSameAs(expectedData);
         }
 
         [Fact]
         public async Task Index_Get_ReturnsEmptyList_WhenDatabaseFails()
         {
-            // Arrange
-
-            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
-            var tempData = new TempDataDictionary(httpContext, Mock.Of<ITempDataProvider>());
-            _controller.TempData = tempData;
             _mockDashboardService
                 .Setup(s => s.GetDashboardDataAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()))
-                .ThrowsAsync(new TestDbException("Simulated DB connection error"));
+                .ThrowsAsync(new SimulatedDbException("Simulated DB connection error"));
 
-            // Act
-            var result = await _controller.Index(null, null, 1) as ViewResult;
+            var result = await _controller.Index(null, null, 1);
 
-            // Assert
-            result.Should().NotBeNull();
-            var model = result.Model.Should().BeAssignableTo<AdminDashboardViewModel>().Subject;
-            model.DashboardData.Ordens.Should().BeEquivalentTo(new List<OrdemServico>());
-
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            var model = viewResult.Model.Should().BeOfType<AdminDashboardViewModel>().Subject;
+            model.DashboardData.Ordens.Should().BeEmpty();
             model.ErroBanco.Should().Be("Erro ao conectar ao banco de dados. Por favor, tente novamente mais tarde.");
-            model.DashboardData.TotalAbertas.Should().Be(0);
-            model.DashboardData.EquipamentosProntos.Should().Be(0);
-            model.DashboardData.FaturamentoPrevisto.Should().Be(0m);
         }
 
         [Fact]
-        public async Task ExportarCsv_DeveEscreverNoResponseBodyOArquivoCsvComDadosDasOrdensDeServico()
+        public async Task ExportarCsv_ConfiguraHeadersEDelegaParaLifecycle()
         {
-            // Arrange
-            var cliente = new Cliente { Id = 1, Nome = "Cliente Teste", Email = "teste@teste.com", Telefone = "12345678" };
-            _context.Clientes.Add(cliente);
+            var responseStream = new MemoryStream();
+            _controller.ControllerContext.HttpContext.Response.Body = responseStream;
 
-            var os1 = new OrdemServico
-            {
-                Id = 1,
-                ClienteId = 1,
-                Cliente = cliente,
-                Equipamento = "PC Gamer",
-                DataEntrada = new DateTime(2023, 10, 01),
-                Status = "Orçamento",
-                CustoPecas = 100,
-                CustoMaoDeObra = 50,
-                DescontoAplicado = 10,
-                ValorOrcamento = 140
-            };
-            var os2 = new OrdemServico
-            {
-                Id = 2,
-                ClienteId = 1,
-                Cliente = cliente,
-                Equipamento = "Notebook",
-                DataEntrada = new DateTime(2023, 10, 05),
-                Status = "Concluído",
-                CustoPecas = 0,
-                CustoMaoDeObra = 200,
-                DescontoAplicado = 0,
-                ValorOrcamento = 200
-            };
-
-            _context.OrdensServico.AddRange(os1, os2);
-            await _context.SaveChangesAsync();
-
-            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
-            var responseBody = new System.IO.MemoryStream();
-            httpContext.Response.Body = responseBody;
-
-            _controller.ControllerContext = new ControllerContext
-            {
-                HttpContext = httpContext
-            };
-
-            // Act
-            await _controller.ExportarCsv();
-
-            // Assert
-            httpContext.Response.ContentType.Should().Be("text/csv");
-            httpContext.Response.Headers["Content-Disposition"].ToString().Should().Be("attachment; filename=\"OrdensDeServico.csv\"");
-
-            var csvString = System.Text.Encoding.UTF8.GetString(responseBody.ToArray());
-            var linhas = csvString.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-
-            linhas.Should().HaveCount(3); // Cabecalho + 2 OS
-            linhas[0].Should().Be("Id,Cliente,Equipamento,Data Entrada,Status,Valor Orçamento");
-
-            // Ordem decrescente por ID
-            linhas[1].Should().Contain("2,\"Cliente Teste\",\"Notebook\",05/10/2023,Concluído,200");
-            linhas[2].Should().Contain("1,\"Cliente Teste\",\"PC Gamer\",01/10/2023,Orçamento,140");
-        }
-
-        [Fact]
-        public async Task ExportarCsv_DeveFazerFlushEmLotes_QuandoMuitasOrdensServicoExistem()
-        {
-            // Arrange
-            var cliente = new Cliente { Id = 1, Nome = "Cliente Teste", Email = "teste@teste.com", Telefone = "12345678" };
-            _context.Clientes.Add(cliente);
-
-            var ordens = new List<OrdemServico>();
-            for (int i = 1; i <= 105; i++)
-            {
-                ordens.Add(new OrdemServico
+            _mockLifecycle
+                .Setup(l => l.ExportarOrdensCsvAsync(responseStream, It.IsAny<CancellationToken>()))
+                .Callback<Stream, CancellationToken>((destino, _) =>
                 {
-                    Id = i,
-                    ClienteId = 1,
-                    Cliente = cliente,
-                    Equipamento = $"Equipamento {i}",
-                    DataEntrada = new DateTime(2023, 10, 01),
-                    Status = "Orçamento",
-                    ValorOrcamento = 100 + i
-                });
-            }
+                    var bytes = Encoding.UTF8.GetBytes("Id,Cliente,Equipamento\n1,\"Maria\",\"PC\"\n");
+                    destino.Write(bytes, 0, bytes.Length);
+                })
+                .Returns(Task.CompletedTask);
 
-            _context.OrdensServico.AddRange(ordens);
-            await _context.SaveChangesAsync();
+            var result = await _controller.ExportarCsv();
 
-            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
-            var responseBody = new System.IO.MemoryStream();
-            httpContext.Response.Body = responseBody;
-
-            _controller.ControllerContext = new ControllerContext
-            {
-                HttpContext = httpContext
-            };
-
-            // Act
-            await _controller.ExportarCsv();
-
-            // Assert
-            var csvString = System.Text.Encoding.UTF8.GetString(responseBody.ToArray());
-            var linhas = csvString.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-
-            linhas.Should().HaveCount(106); // Cabecalho + 105 OS
-            linhas[0].Should().Be("Id,Cliente,Equipamento,Data Entrada,Status,Valor Orçamento");
-
-            // A ordem é decrescente, então a primeira linha de dados é a do ID 105
-            linhas[1].Should().Contain("105,\"Cliente Teste\",\"Equipamento 105\",01/10/2023,Orçamento,205");
-            // E a última linha de dados é a do ID 1
-            linhas[105].Should().Contain("1,\"Cliente Teste\",\"Equipamento 1\",01/10/2023,Orçamento,101");
+            result.Should().BeOfType<EmptyResult>();
+            _controller.Response.ContentType.Should().Be("text/csv");
+            _controller.Response.Headers["Content-Disposition"].ToString().Should().Be("attachment; filename=\"OrdensDeServico.csv\"");
+            Encoding.UTF8.GetString(responseStream.ToArray()).Should().Contain("\"Maria\",\"PC\"");
         }
 
         [Fact]
-        public async Task ExportarCsv_DeveRetornarApenasCabecalho_QuandoNaoExistemOrdensServico()
+        public async Task ExportarCsv_DbExceptionThrown_ReturnsRedirectWithErroBanco()
         {
-            // Arrange
-            _context.ChangeTracker.Clear();
-            _context.OrdensServico.RemoveRange(_context.OrdensServico);
-            await _context.SaveChangesAsync();
+            _mockLifecycle
+                .Setup(l => l.ExportarOrdensCsvAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new SimulatedDbException("DB failure"));
 
-            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
-            var responseBody = new System.IO.MemoryStream();
-            httpContext.Response.Body = responseBody;
+            var result = await _controller.ExportarCsv();
 
-            _controller.ControllerContext = new ControllerContext
-            {
-                HttpContext = httpContext
-            };
-
-            // Act
-            await _controller.ExportarCsv();
-
-            // Assert
-            httpContext.Response.ContentType.Should().Be("text/csv");
-            httpContext.Response.Headers["Content-Disposition"].ToString().Should().Be("attachment; filename=\"OrdensDeServico.csv\"");
-
-            var csvString = System.Text.Encoding.UTF8.GetString(responseBody.ToArray());
-            var linhas = csvString.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-
-            linhas.Should().HaveCount(1);
-            linhas[0].Should().Be("Id,Cliente,Equipamento,Data Entrada,Status,Valor Orçamento");
+            var redirect = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirect.ActionName.Should().Be("Index");
+            _controller.TempData["ErroBanco"].Should().Be("Erro ao exportar os dados. O banco de dados está inacessível.");
         }
 
         [Fact]
-        public async Task ExportarCsv_NaoDeveFalharSeClienteForNulo()
+        public async Task Create_Get_ReturnsViewResult_WithClientesSelectList()
         {
-            // Arrange
-            _context.ChangeTracker.Clear();
-            _context.OrdensServico.RemoveRange(_context.OrdensServico);
+            _mockLifecycle
+                .Setup(l => l.ObterClientesParaSelecaoAsync())
+                .ReturnsAsync(new List<SelecaoItemDto> { new(1, "Cliente Teste - CPF: 123 - Tel: 999") });
 
-            var cliente = new Cliente { Id = 99, Nome = "", Email = "teste@teste.com", Telefone = "12345678" };
-            _context.Clientes.Add(cliente);
-
-            var osSemCliente = new OrdemServico
-            {
-                Id = 99,
-                ClienteId = 99,
-                Cliente = cliente,
-                Equipamento = "PC Sem Cliente",
-                DataEntrada = new DateTime(2023, 10, 01),
-                Status = "Orçamento",
-                CustoPecas = 100,
-                CustoMaoDeObra = 50,
-                DescontoAplicado = 10,
-                ValorOrcamento = 140
-            };
-
-            _context.OrdensServico.Add(osSemCliente);
-            await _context.SaveChangesAsync();
-
-            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
-            var responseBody = new System.IO.MemoryStream();
-            httpContext.Response.Body = responseBody;
-
-            _controller.ControllerContext = new ControllerContext
-            {
-                HttpContext = httpContext
-            };
-
-            // Act
-            await _controller.ExportarCsv();
-
-            // Assert
-            var csvString = System.Text.Encoding.UTF8.GetString(responseBody.ToArray());
-            var linhas = csvString.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-
-            linhas.Should().HaveCount(2);
-            linhas[1].Should().Be("99,\"\",\"PC Sem Cliente\",01/10/2023,Orçamento,140");
-        }
-
-
-        [Fact]
-        public async Task Create_Get_ReturnsViewResult()
-        {
-            // Arrange
-            _context.Clientes.Add(new Cliente { Id = 1, Nome = "Cliente Teste", Cpf = "12345678901", Telefone = "123456789" });
-            _context.SaveChanges();
-
-            // Act
             var result = await _controller.Create();
 
-            // Assert
-            var viewResult = result.Should().BeOfType<ViewResult>().Which;
-            var viewBag = _controller.ViewBag;
-            ((object)viewBag.Clientes).Should().NotBeNull();
-            ((object)viewBag.Clientes).Should().BeOfType<Microsoft.AspNetCore.Mvc.Rendering.SelectList>();
+            result.Should().BeOfType<ViewResult>();
+            ((object)_controller.ViewBag.Clientes).Should().BeOfType<SelectList>();
         }
+
         [Fact]
-        public async Task Create_Post_ReturnsRedirectToActionResult_WhenModelStateIsValid()
+        public async Task Create_Get_ReturnsRedirectToIndex_WhenLifecycleThrows()
         {
-            // Arrange
-            var cliente = new Cliente { Id = 1, Nome = "Cliente Teste", Cpf = "12345678901", Telefone = "123456789" };
-            _context.Clientes.Add(cliente);
-            await _context.SaveChangesAsync();
+            _mockLifecycle
+                .Setup(l => l.ObterClientesParaSelecaoAsync())
+                .ThrowsAsync(new InvalidOperationException("DB offline"));
 
-            var dto = new OrdemServicoCreateDto
-            {
-                ClienteId = cliente.Id,
-                Equipamento = "PC Teste",
-                NumeroSerie = "123456",
-                ProblemaRelatado = "Não liga",
-                Prioridade = 1,
-                CustoPecas = 100,
-                CustoMaoDeObra = 50,
-                DescontoAplicado = 10
-            };
+            var result = await _controller.Create();
 
-            // Act
+            var redirect = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirect.ActionName.Should().Be("Index");
+            _controller.TempData["ErroBanco"].Should().Be("Não foi possível carregar a tela de criação. O banco de dados está inacessível.");
+        }
+
+        [Fact]
+        public async Task Create_Post_ReturnsRedirectToIndexAndSetsWarrantyAlert_WhenValid()
+        {
+            var dto = new OrdemServicoCreateDto { ClienteId = 1, Equipamento = "PC Teste", NumeroSerie = "SN123" };
+            _mockLifecycle
+                .Setup(l => l.RegistrarEntradaAsync(dto, It.IsAny<string?>()))
+                .ReturnsAsync(OrdemServicoResult.Ok(new OrdemServico { Id = 10 }, "ATENÇÃO: retorno em garantia!"));
+
             var result = await _controller.Create(dto);
 
-            // Assert
-            var redirectToActionResult = result.Should().BeOfType<RedirectToActionResult>().Which;
-            redirectToActionResult.ActionName.Should().Be("Index");
+            var redirect = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirect.ActionName.Should().Be("Index");
+            _controller.TempData["AlertaGarantia"]?.ToString().Should().Contain("garantia");
+        }
 
-            var osSaved = await _context.OrdensServico.FirstOrDefaultAsync(o => o.NumeroSerie == "123456");
-            osSaved.Should().NotBeNull();
-            osSaved.Equipamento.Should().Be("PC Teste");
-            osSaved.ValorOrcamento.Should().Be(140); // (100 + 50) - 10
-            osSaved.Status.Should().Be(WorkflowStatus.Recebido);
+        [Fact]
+        public async Task Create_Post_ReturnsViewWithClientesAndErrors_WhenLifecycleFailsOrThrows()
+        {
+            var dto = new OrdemServicoCreateDto { ClienteId = 1, Equipamento = "PC Teste" };
+            _mockLifecycle
+                .Setup(l => l.ObterClientesParaSelecaoAsync())
+                .ReturnsAsync(new List<SelecaoItemDto>());
+            _mockLifecycle
+                .Setup(l => l.RegistrarEntradaAsync(dto, It.IsAny<string?>()))
+                .ThrowsAsync(new InvalidOperationException("Outer", new Exception("Inner")));
+
+            var result = await _controller.Create(dto);
+
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            viewResult.Model.Should().BeSameAs(dto);
+            _controller.ModelState.Values.SelectMany(v => v.Errors)
+                .Any(e => e.ErrorMessage.Contains("Outer | Inner: Inner"))
+                .Should().BeTrue();
         }
 
         [Fact]
         public async Task Create_Post_ReturnsViewResult_WhenModelStateIsInvalid()
         {
-            // Arrange
             _controller.ModelState.AddModelError("Equipamento", "Required");
+            _mockLifecycle
+                .Setup(l => l.ObterClientesParaSelecaoAsync())
+                .ReturnsAsync(new List<SelecaoItemDto> { new(1, "Cliente 1") });
 
-            _context.Clientes.Add(new Cliente { Id = 1, Nome = "Cliente Teste", Cpf = "12345678901", Telefone = "123456789" });
-            await _context.SaveChangesAsync();
-
-            var dto = new OrdemServicoCreateDto
-            {
-                ClienteId = 1
-            };
-
-            // Act
+            var dto = new OrdemServicoCreateDto { ClienteId = 1 };
             var result = await _controller.Create(dto);
 
-            // Assert
-            var viewResult = result.Should().BeOfType<ViewResult>().Which;
-            viewResult.Model.Should().BeEquivalentTo(dto);
-
-            var viewBag = _controller.ViewBag;
-            ((object)viewBag.Clientes).Should().NotBeNull();
-            ((object)viewBag.Clientes).Should().BeOfType<Microsoft.AspNetCore.Mvc.Rendering.SelectList>();
-        }
-
-        [Fact]
-        public async Task Create_Post_ReturnsViewResult_WhenDatabaseFails()
-        {
-            // Arrange
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseInMemoryDatabase(databaseName: "CreatePostDbErrorTest")
-                .Options;
-
-            using (var seedContext = new AppDbContext(options))
-            {
-                var cliente = new Cliente { Id = 1, Nome = "Cliente Teste", Cpf = "12345678901", Telefone = "123456789" };
-                seedContext.Clientes.Add(cliente);
-                await seedContext.SaveChangesAsync();
-            }
-
-            var exceptionContext = new TestExceptionDbContext(options);
-
-            var localController = CreateAdminController(exceptionContext);
-
-            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
-            var tempData = new Microsoft.AspNetCore.Mvc.ViewFeatures.TempDataDictionary(httpContext, Mock.Of<Microsoft.AspNetCore.Mvc.ViewFeatures.ITempDataProvider>());
-            localController.TempData = tempData;
-
-            var os = new OrdemServicoCreateDto { Equipamento = "PC Teste", ClienteId = 1 };
-
-            // Act
-            var result = await localController.Create(new OrdemServicoCreateDto { ClienteId = os.ClienteId, Equipamento = os.Equipamento, ProblemaRelatado = os.ProblemaRelatado });
-
-            // Assert
-            var viewResult = result.Should().BeOfType<ViewResult>().Which;
-            viewResult.ViewData.ModelState.ErrorCount.Should().BeGreaterThan(0);
-            localController.ModelState.Values.SelectMany(v => v.Errors).Any(e => e.ErrorMessage.Contains("Erro ao salvar a Ordem de Serviço")).Should().BeTrue();
-
-            _mockLogger.Verify(
-                x => x.Log(
-                    LogLevel.Error,
-                    It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Erro ao salvar a Ordem de Serviço")),
-                    It.IsAny<Exception>(),
-                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
-                Times.Once);
-
-            localController.Dispose();
-            exceptionContext.Dispose();
-        }
-
-        [Fact]
-        public async Task Create_Get_ReturnsRedirectToActionResult_WhenDatabaseFails()
-        {
-            // Arrange
-            var localController = CreateAdminController(null!);
-
-            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
-            var tempData = new Microsoft.AspNetCore.Mvc.ViewFeatures.TempDataDictionary(httpContext, Mock.Of<Microsoft.AspNetCore.Mvc.ViewFeatures.ITempDataProvider>());
-            localController.TempData = tempData;
-
-            // Act
-            var result = await localController.Create();
-
-            // Assert
-            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Which;
-            redirectResult.ActionName.Should().Be("Index");
-            localController.TempData["ErroBanco"].Should().NotBeNull();
-            localController.TempData["ErroBanco"].ToString().Should().Be("Não foi possível carregar a tela de criação. O banco de dados está inacessível.");
-
-            _mockLogger.Verify(
-                x => x.Log(
-                    LogLevel.Error,
-                    It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("DB_CONNECTION_ERROR_CREATE")),
-                    It.IsAny<Exception>(),
-                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
-                Times.Once);
-
-            localController.Dispose();
-        }
-
-        [Fact]
-        public async Task Create_Get_PopulatesViewBagClientes_DirectlyFromContext()
-        {
-            // Arrange
-            var cliente = new Cliente { Id = 88, Nome = "Joao Silva", Cpf = "12345678900", Telefone = "11988887777" };
-            _context.Clientes.Add(cliente);
-            await _context.SaveChangesAsync();
-
-            // Act
-            var result = await _controller.Create();
-
-            // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
-            var selectList = _controller.ViewBag.Clientes as Microsoft.AspNetCore.Mvc.Rendering.SelectList;
-            selectList.Should().NotBeNull();
-            var items = selectList!.ToList();
-            items.Should().Contain(item => item.Value == "88" && item.Text.Contains("Joao Silva"));
-        }
-
-
-
-
-
-        [Fact]
-        public async Task Create_Post_ReturnsViewResult_WhenDatabaseFails_WithInnerException()
-        {
-            // Arrange
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseInMemoryDatabase(databaseName: "CreatePostDbErrorInnerTest")
-                .Options;
-
-            using (var seedContext = new AppDbContext(options))
-            {
-                var cliente = new Cliente { Id = 1, Nome = "Cliente Teste", Cpf = "12345678901", Telefone = "123456789" };
-                seedContext.Clientes.Add(cliente);
-                await seedContext.SaveChangesAsync();
-            }
-
-            var exceptionContext = new TestInnerExceptionDbContext(options);
-
-            var localController = CreateAdminController(exceptionContext);
-
-            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
-            var tempData = new Microsoft.AspNetCore.Mvc.ViewFeatures.TempDataDictionary(httpContext, Mock.Of<Microsoft.AspNetCore.Mvc.ViewFeatures.ITempDataProvider>());
-            localController.TempData = tempData;
-
-            var os = new OrdemServicoCreateDto { Equipamento = "PC Teste", ClienteId = 1 };
-
-            // Act
-            var result = await localController.Create(new OrdemServicoCreateDto { ClienteId = os.ClienteId, Equipamento = os.Equipamento, ProblemaRelatado = os.ProblemaRelatado });
-
-            // Assert
-            var viewResult = result.Should().BeOfType<ViewResult>().Which;
-            viewResult.ViewData.ModelState.ErrorCount.Should().BeGreaterThan(0);
-            localController.ModelState.Values.SelectMany(v => v.Errors).Any(e => e.ErrorMessage.Contains("Outer exception message | Inner: Inner exception message")).Should().BeTrue();
-
-
-            _mockLogger.Verify(
-                x => x.Log(
-                    LogLevel.Error,
-                    It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Erro ao salvar a Ordem de Serviço")),
-                    It.IsAny<Exception>(),
-                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
-                Times.Once);
-
-            localController.Dispose();
-            exceptionContext.Dispose();
+            viewResult.Model.Should().BeSameAs(dto);
+            ((object)_controller.ViewBag.Clientes).Should().BeOfType<SelectList>();
+            _mockLifecycle.Verify(l => l.RegistrarEntradaAsync(It.IsAny<OrdemServicoCreateDto>(), It.IsAny<string?>()), Times.Never);
         }
 
         [Fact]
-        public async Task Create_DeveConfigurarTempDataAlertaGarantia_QuandoOrdemComMesmoNumeroSerieExisteHaMenosDe30Dias()
+        public async Task Edit_Get_ReturnsNotFound_WhenIdIsNullOrOrdemMissing()
         {
-            // Arrange
-            var cliente = new Cliente { Id = 1, Nome = "Cliente Teste", Email = "teste@teste.com", Telefone = "12345678", Cpf = "12345678901" };
-            _context.Clientes.Add(cliente);
+            var nullResult = await _controller.Edit((int?)null);
+            nullResult.Should().BeOfType<NotFoundResult>();
 
-            var osExistente = new OrdemServico
+            _mockLifecycle.Setup(l => l.ObterDadosEdicaoAsync(999)).ReturnsAsync((OrdemEdicaoDto?)null);
+            var missingResult = await _controller.Edit(999);
+            missingResult.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Fact]
+        public async Task Edit_Get_ReturnsViewWithOrdemAndLookups_WhenIdExists()
+        {
+            var dto = new OrdemEdicaoDto
             {
-                Id = 1,
-                ClienteId = 1,
-                Equipamento = "PC Gamer Antigo",
-                NumeroSerie = "SN123456",
-                DataEntrada = DateTime.UtcNow.AddDays(-10), // Menos de 30 dias
-                Status = WorkflowStatus.Concluido,
-                ValorOrcamento = 100
+                Ordem = new OrdemServico { Id = 5, ClienteId = 1, TecnicoId = 2, EquipamentoBackupId = 3, ContratoId = 4 },
+                Lookups = new OrdemEdicaoLookupsDto
+                {
+                    Tecnicos = new List<SelecaoItemDto> { new(2, "Carlos") },
+                    EquipamentosBackup = new List<SelecaoItemDto> { new(3, "Notebook Reserva") },
+                    Contratos = new List<SelecaoItemDto> { new(4, "Contrato: SLA 8h") }
+                }
             };
-            _context.OrdensServico.Add(osExistente);
-            await _context.SaveChangesAsync();
+            _mockLifecycle.Setup(l => l.ObterDadosEdicaoAsync(5)).ReturnsAsync(dto);
 
-            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
-            var tempData = new TempDataDictionary(httpContext, Mock.Of<ITempDataProvider>());
+            var result = await _controller.Edit(5);
 
-            _controller.ControllerContext = new ControllerContext
-            {
-                HttpContext = httpContext
-            };
-            _controller.TempData = tempData;
-
-            var novaOs = new OrdemServicoCreateDto
-            {
-                ClienteId = 1,
-                Equipamento = "PC Gamer Novo",
-                NumeroSerie = "SN123456", // Mesmo número de série
-                CustoPecas = 100,
-                CustoMaoDeObra = 100
-            };
-
-            // Act
-            var result = await _controller.Create(new OrdemServicoCreateDto { ClienteId = novaOs.ClienteId, Equipamento = novaOs.Equipamento, ProblemaRelatado = novaOs.ProblemaRelatado, NumeroSerie = novaOs.NumeroSerie }) as RedirectToActionResult;
-
-            // Assert
-            result.Should().NotBeNull();
-            result.ActionName.Should().Be("Index");
-            _controller.TempData.Should().ContainKey("AlertaGarantia");
-            _controller.TempData["AlertaGarantia"].ToString().Should().Contain("ATENÇÃO: O equipamento com NS SN123456 já deu entrada na assistência nos últimos 30 dias. Verifique se é um retorno em garantia!");
-        }
-
-
-        [Theory]
-        [InlineData("test.jpg", "image/jpeg")]
-        [InlineData("test.jpeg", "image/jpeg")]
-        [InlineData("test.png", "image/png")]
-        [InlineData("test.gif", "image/gif")]
-        [InlineData("test.pdf", "application/pdf")]
-        public void GetEvidencia_ValidFile_ReturnsPhysicalFileResult_ForVariousExtensions(string fileName, string expectedContentType)
-        {
-            // Arrange
-            var tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-            var uploadsFolder = Path.Combine(tempPath, "SecureUploads", "Evidencias");
-            Directory.CreateDirectory(uploadsFolder);
-            var filePath = Path.Combine(uploadsFolder, fileName);
-            System.IO.File.WriteAllText(filePath, "dummy content");
-
-            _mockEnv.Setup(e => e.ContentRootPath).Returns(tempPath);
-
-            // Act
-            var result = _controller.GetEvidencia(fileName) as PhysicalFileResult;
-
-            // Assert
-            result.Should().NotBeNull();
-            result.ContentType.Should().Be(expectedContentType);
-            result.FileName.Should().Be(filePath);
-
-            // Cleanup
-            Directory.Delete(tempPath, true);
-        }
-
-        [Theory]
-        [InlineData("")]
-        [InlineData(null)]
-        public void GetEvidencia_NullOrEmptyFileName_ReturnsBadRequest(string? fileName)
-        {
-            // Act
-            var result = _controller.GetEvidencia(fileName);
-
-            // Assert
-            result.Should().BeOfType<BadRequestResult>();
-        }
-
-
-
-        [Theory]
-        [InlineData("test.txt")]
-        [InlineData("test.exe")]
-        [InlineData("test")]
-        public void GetEvidencia_InvalidExtension_ReturnsBadRequest(string fileName)
-        {
-            // Act
-            var result = _controller.GetEvidencia(fileName);
-
-            // Assert
-            result.Should().BeOfType<BadRequestResult>();
-        }
-
-        [Fact]
-        public void GetEvidencia_FileDoesNotExist_ReturnsNotFound()
-        {
-            // Arrange
-            var tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-            _mockEnv.Setup(e => e.ContentRootPath).Returns(tempPath);
-
-            // To ensure the path checks pass (directory separator, starts with), we need the uploads directory to exist
-            var uploadsFolder = Path.Combine(tempPath, "SecureUploads", "Evidencias");
-            Directory.CreateDirectory(uploadsFolder);
-
-            var fileName = "not_found.jpg";
-
-            // Act
-            var result = _controller.GetEvidencia(fileName);
-
-            // Assert
-            result.Should().BeOfType<NotFoundResult>();
-
-            // Cleanup
-            Directory.Delete(tempPath, true);
-        }
-
-        [Fact]
-        public async Task Edit_Get_ReturnsNotFound_WhenIdIsNull()
-        {
-            // Act
-            var result = await _controller.Edit((int?)null);
-
-            // Assert
-            result.Should().BeOfType<NotFoundResult>();
-        }
-
-        [Fact]
-        public async Task Edit_Get_ReturnsNotFound_WhenOrdemServicoDoesNotExist()
-        {
-            // Act
-            var result = await _controller.Edit(999);
-
-            // Assert
-            result.Should().BeOfType<NotFoundResult>();
-        }
-
-        [Fact]
-        public async Task Edit_Get_ReturnsViewResult_WithOrdemServico_WhenIdExists()
-        {
-            // Arrange
-            var cliente = new Cliente { Nome = "Cliente Teste", Email = "teste@teste.com", Telefone = "12345678", Cpf = "12345678901" };
-            _context.Clientes.Add(cliente);
-            await _context.SaveChangesAsync();
-
-            var os = new OrdemServico { ClienteId = cliente.Id, Status = "Orçamento", Equipamento = "PC" };
-            _context.OrdensServico.Add(os);
-
-            var tecnico = new Tecnico { Nome = "Tecnico 1", Ativo = true };
-            _context.Tecnicos.Add(tecnico);
-
-            var equipamentoBackup = new EquipamentoBackup { Descricao = "Backup 1", Disponivel = true };
-            _context.EquipamentosBackup.Add(equipamentoBackup);
-
-            var contrato = new Contrato { ClienteId = cliente.Id, HorasSLA = 10, ValorMensal = 100 };
-            _context.Contratos.Add(contrato);
-
-            await _context.SaveChangesAsync();
-
-            // Act
-            var result = await _controller.Edit(os.Id);
-
-            // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
-            var model = viewResult.Model.Should().BeAssignableTo<OrdemServico>().Subject;
-            model.Id.Should().Be(os.Id);
-
-            // Verify ViewBags
-            var viewData = viewResult.ViewData;
-            viewData["Tecnicos"].Should().BeOfType<SelectList>();
-            viewData["EquipamentosBackup"].Should().BeOfType<SelectList>();
-            viewData["Contratos"].Should().BeOfType<SelectList>();
-        }
-
-
-        [Fact]
-        public async Task Edit_Get_ReturnsRedirectToIndex_WhenDatabaseFails()
-        {
-            // Arrange
-            var mockConnection = new Mock<System.Data.Common.DbConnection>();
-            mockConnection.Setup(m => m.Open()).Throws(new Exception("Simulated DB connection error"));
-            mockConnection.Setup(m => m.OpenAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new Exception("Simulated DB connection error"));
-            mockConnection.Setup(m => m.State).Returns(System.Data.ConnectionState.Closed);
-
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlite(mockConnection.Object)
-                .Options;
-
-            var exceptionContext = new AppDbContext(options);
-
-            var localController = CreateAdminController(exceptionContext);
-
-            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
-            var tempData = new TempDataDictionary(httpContext, Mock.Of<ITempDataProvider>());
-
-            localController.ControllerContext = new ControllerContext
-            {
-                HttpContext = httpContext
-            };
-            localController.TempData = tempData;
-
-            // Act
-            var result = await localController.Edit(1) as RedirectToActionResult;
-
-            // Assert
-            result.Should().NotBeNull();
-            result.ActionName.Should().Be("Index");
-            localController.TempData["ErroBanco"].Should().Be("Não foi possível carregar a tela de edição. O banco de dados está inacessível.");
-
-            exceptionContext.Dispose();
-        }
-        [Fact]
-        public async Task Edit_Post_ReturnsNotFound_WhenIdMismatch()
-        {
-            // Act
-            var ordemServico = new OrdemServico { Id = 2 };
-            var result = await _controller.Edit(1, ordemServico, null);
-
-            // Assert
-            result.Should().BeOfType<NotFoundResult>();
+            viewResult.Model.Should().BeSameAs(dto.Ordem);
+            viewResult.ViewData["Tecnicos"].Should().BeOfType<SelectList>();
+            viewResult.ViewData["EquipamentosBackup"].Should().BeOfType<SelectList>();
+            viewResult.ViewData["Contratos"].Should().BeOfType<SelectList>();
         }
 
         [Fact]
-        public async Task Edit_Post_ReturnsNotFound_WhenOrdemServicoDoesNotExist()
+        public async Task Edit_Get_ReturnsRedirectToIndex_WhenLifecycleThrows()
         {
-            // Act
-            var ordemServico = new OrdemServico { Id = 999 };
-            var result = await _controller.Edit(999, ordemServico, null);
+            _mockLifecycle
+                .Setup(l => l.ObterDadosEdicaoAsync(1))
+                .ThrowsAsync(new InvalidOperationException("DB offline"));
 
-            // Assert
-            result.Should().BeOfType<NotFoundResult>();
+            var result = await _controller.Edit(1);
+
+            var redirect = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirect.ActionName.Should().Be("Index");
+            _controller.TempData["ErroBanco"].Should().Be("Não foi possível carregar a tela de edição. O banco de dados está inacessível.");
+        }
+
+        [Fact]
+        public async Task Edit_Post_ReturnsNotFound_WhenIdMismatchOrNaoEncontrada()
+        {
+            var mismatch = await _controller.Edit(1, new OrdemServico { Id = 2 }, null);
+            mismatch.Should().BeOfType<NotFoundResult>();
+
+            _mockLifecycle
+                .Setup(l => l.AtualizarOrdemAsync(999, It.IsAny<OrdemServico>(), null, It.IsAny<string?>()))
+                .ReturnsAsync(OrdemServicoResult.NaoEncontrado());
+
+            var notFound = await _controller.Edit(999, new OrdemServico { Id = 999 }, null);
+            notFound.Should().BeOfType<NotFoundResult>();
         }
 
         [Fact]
         public async Task Edit_Post_ReturnsRedirectToIndex_WhenValid()
         {
-            // Arrange
-            var cliente = new Cliente { Nome = "Cliente Teste", Email = "teste@teste.com", Telefone = "12345678", Cpf = "12345678901" };
-            _context.Clientes.Add(cliente);
-            await _context.SaveChangesAsync();
+            var os = new OrdemServico { Id = 10, Equipamento = "Dell" };
+            _mockLifecycle
+                .Setup(l => l.AtualizarOrdemAsync(10, os, null, It.IsAny<string?>()))
+                .ReturnsAsync(OrdemServicoResult.Ok(os));
 
-            var osExistente = new OrdemServico { ClienteId = cliente.Id, Status = "Orçamento", Equipamento = "PC", Id = 101 };
-            _context.OrdensServico.Add(osExistente);
-            await _context.SaveChangesAsync();
-            _context.ChangeTracker.Clear(); // Clear tracking so context can find it anew
+            var result = await _controller.Edit(10, os, null);
 
-            var osAlterada = new OrdemServico
-            {
-                Id = 101,
-                ClienteId = cliente.Id,
-                Equipamento = "PC Atualizado",
-                Status = "Orçamento" // Keep same status to bypass workflow validation errors
-            };
-
-            // Act
-            var result = await _controller.Edit(101, osAlterada, null);
-
-            // Assert
-            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Which;
-            redirectResult.ActionName.Should().Be("Index");
-
-            var osDb = await _context.OrdensServico.FindAsync(101);
-            osDb.Equipamento.Should().Be("PC Atualizado");
+            var redirect = result.Should().BeOfType<RedirectToActionResult>().Subject;
+            redirect.ActionName.Should().Be("Index");
         }
 
         [Fact]
-        public async Task Edit_Post_ReturnsView_WhenDatabaseThrowsException()
+        public async Task Edit_Post_RepopulatesLookupsAndReturnsView_WhenValidationFailsOrExceptionOccurs()
         {
-            // Arrange
-            var dbName = Guid.NewGuid().ToString();
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseInMemoryDatabase(databaseName: dbName)
-                .Options;
+            var os = new OrdemServico { Id = 10, ClienteId = 1, EquipamentoBackupId = 2 };
+            _mockLifecycle
+                .Setup(l => l.AtualizarOrdemAsync(10, os, null, It.IsAny<string?>()))
+                .ReturnsAsync(OrdemServicoResult.Falha("Backup não devolvido."));
+            _mockLifecycle
+                .Setup(l => l.ObterLookupsEdicaoAsync(1, 2))
+                .ReturnsAsync(new OrdemEdicaoLookupsDto());
 
-            using (var seedContext = new AppDbContext(options))
-            {
-                var os = new OrdemServico { Id = 102, Equipamento = "Teste DB Error", Status = "Orçamento", ClienteId = 1 };
-                var cliente = new Cliente { Id = 1, Nome = "Cliente Teste", Cpf = "11111111111", Telefone = "11999999999" };
-                seedContext.Clientes.Add(cliente);
-                seedContext.OrdensServico.Add(os);
-                await seedContext.SaveChangesAsync();
-            }
+            var result = await _controller.Edit(10, os, null);
 
-            var exceptionContext = new TestExceptionDbContext(options);
-            var localController = CreateAdminController(exceptionContext);
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            viewResult.Model.Should().BeSameAs(os);
+            _controller.ModelState.ErrorCount.Should().Be(1);
+            viewResult.ViewData["Tecnicos"].Should().BeOfType<SelectList>();
+        }
 
-            var osAlterada = new OrdemServico { Id = 102, Equipamento = "PC Atualizado", Status = "Orçamento", ClienteId = 1 };
+        [Fact]
+        public async Task Edit_Post_WhenLifecycleThrowsException_LogsErrorAndRepopulatesLookups()
+        {
+            var os = new OrdemServico { Id = 10, ClienteId = 1, EquipamentoBackupId = 2 };
+            _mockLifecycle
+                .Setup(l => l.AtualizarOrdemAsync(10, os, null, It.IsAny<string?>()))
+                .ThrowsAsync(new InvalidOperationException("DB update failed"));
+            _mockLifecycle
+                .Setup(l => l.ObterLookupsEdicaoAsync(1, 2))
+                .ReturnsAsync(new OrdemEdicaoLookupsDto());
 
-            // Act
-            var result = await localController.Edit(102, osAlterada, null);
+            var result = await _controller.Edit(10, os, null);
 
-            // Assert
-            var viewResult = result.Should().BeOfType<ViewResult>().Which;
-            viewResult.Model.Should().BeEquivalentTo(osAlterada);
-            localController.ModelState.ErrorCount.Should().Be(1);
-
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            viewResult.Model.Should().BeSameAs(os);
+            _controller.ModelState.ErrorCount.Should().Be(1);
             _mockLogger.Verify(
                 x => x.Log(
                     LogLevel.Error,
                     It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("DB_UPDATE_ERROR_EDIT")),
+                    It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("DB_UPDATE_ERROR_EDIT")),
                     It.IsAny<Exception>(),
-                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
                 Times.Once);
-
-            localController.Dispose();
-            exceptionContext.Dispose();
         }
 
         [Fact]
-        public async Task ImprimirOs_ReturnsNotFound_WhenOrdemServicoDoesNotExist()
+        public async Task Delete_MapsLifecycleResultAndExceptionsCorrectly()
         {
-            // Act
-            var result = await _controller.ImprimirOs(999);
+            _mockLifecycle.Setup(l => l.ExcluirOrdemAsync(1, It.IsAny<string?>()))
+                .ReturnsAsync(OrdemServicoResult.Ok(new OrdemServico { Id = 1 }));
+            var okResult = (await _controller.Delete(1)).Should().BeOfType<RedirectToActionResult>().Subject;
+            okResult.RouteValues.Should().BeNull();
 
-            // Assert
-            result.Should().BeOfType<NotFoundResult>();
+            _mockLifecycle.Setup(l => l.ExcluirOrdemAsync(999, It.IsAny<string?>()))
+                .ReturnsAsync(OrdemServicoResult.NaoEncontrado());
+            var notFoundResult = (await _controller.Delete(999)).Should().BeOfType<RedirectToActionResult>().Subject;
+            notFoundResult.RouteValues.Should().BeNull();
+
+            _mockLifecycle.Setup(l => l.ExcluirOrdemAsync(2, It.IsAny<string?>()))
+                .ReturnsAsync(OrdemServicoResult.Falha("Possui faturamento."));
+            var blockedResult = (await _controller.Delete(2)).Should().BeOfType<RedirectToActionResult>().Subject;
+            blockedResult.RouteValues!["erro"].Should().Be("Possui faturamento.");
+
+            _mockLifecycle.Setup(l => l.ExcluirOrdemAsync(3, It.IsAny<string?>()))
+                .ThrowsAsync(new SimulatedDbException("FK violation"));
+            var dbErrResult = (await _controller.Delete(3)).Should().BeOfType<RedirectToActionResult>().Subject;
+            dbErrResult.RouteValues!["erro"].Should().Be("Não foi possível excluir a OS.");
+
+            _mockLifecycle.Setup(l => l.ExcluirOrdemAsync(4, It.IsAny<string?>()))
+                .ThrowsAsync(new InvalidOperationException("Unexpected"));
+            var genErrResult = (await _controller.Delete(4)).Should().BeOfType<RedirectToActionResult>().Subject;
+            genErrResult.RouteValues.Should().BeNull();
+            _controller.TempData["ErrorMessage"].Should().Be("Ocorreu um erro ao tentar excluir a Ordem de Serviço.");
         }
 
         [Fact]
-        public async Task ImprimirOs_ReturnsFileResult_WithPdf_WhenOrdemServicoExists()
+        public async Task ImprimirOs_ReturnsNotFoundOrPdfFile()
         {
-            // Arrange
-            var cliente = new Cliente { Nome = "Cliente Teste", Email = "teste@teste.com", Telefone = "12345678", Cpf = "12345678901" };
-            _context.Clientes.Add(cliente);
-            await _context.SaveChangesAsync();
+            _mockLifecycle.Setup(l => l.ObterOrdemParaImpressaoAsync(999)).ReturnsAsync((OrdemServico?)null);
+            (await _controller.ImprimirOs(999)).Should().BeOfType<NotFoundResult>();
 
-            var os = new OrdemServico { ClienteId = cliente.Id, Status = "Orçamento", Equipamento = "PC" };
-            _context.OrdensServico.Add(os);
-            await _context.SaveChangesAsync();
+            var os = new OrdemServico { Id = 12, Cliente = new Cliente { Nome = "Ana" } };
+            var pdfBytes = new byte[] { 0x25, 0x50, 0x44, 0x46 };
+            _mockLifecycle.Setup(l => l.ObterOrdemParaImpressaoAsync(12)).ReturnsAsync(os);
+            _mockPdfGeneratorService.Setup(p => p.GenerateOsPdf(os)).Returns(pdfBytes);
 
-            var dummyPdfBytes = new byte[] { 1, 2, 3 };
-            _mockPdfGeneratorService.Setup(s => s.GenerateOsPdf(It.IsAny<OrdemServico>()))
-                                    .Returns(dummyPdfBytes);
-
-            // Act
-            var result = await _controller.ImprimirOs(os.Id);
-
-            // Assert
-            var fileResult = result.Should().BeOfType<FileContentResult>().Subject;
+            var fileResult = (await _controller.ImprimirOs(12)).Should().BeOfType<FileContentResult>().Subject;
             fileResult.ContentType.Should().Be("application/pdf");
-            fileResult.FileDownloadName.Should().Be($"OS_{os.Id}_{cliente.Nome}.pdf");
-            fileResult.FileContents.Should().BeEquivalentTo(dummyPdfBytes);
+            fileResult.FileDownloadName.Should().Be("OS_12_Ana.pdf");
+            fileResult.FileContents.Should().Equal(pdfBytes);
         }
 
         [Fact]
-        public async Task ImprimirOs_CallsPdfGeneratorService_WithCorrectOrdemServico()
+        public async Task GetEvidencia_MapeiaResultadosDoStorageEDeveExporRotaCanonicaELegada()
         {
-            // Arrange
-            var cliente = new Cliente { Nome = "Cliente Verificacao", Email = "verificacao@teste.com", Telefone = "87654321", Cpf = "98765432100" };
-            _context.Clientes.Add(cliente);
-            await _context.SaveChangesAsync();
+            var routeTemplates = typeof(AdminController)
+                .GetMethod(nameof(AdminController.GetEvidencia))!
+                .GetCustomAttributes<HttpGetAttribute>()
+                .Select(a => a.Template)
+                .ToList();
 
-            var os = new OrdemServico { ClienteId = cliente.Id, Status = "Em Andamento", Equipamento = "Notebook" };
-            _context.OrdensServico.Add(os);
-            await _context.SaveChangesAsync();
+            routeTemplates.Should().Contain("/Admin/GetEvidencia");
+            routeTemplates.Should().Contain("/Admin/DownloadEvidencia/{fileName}");
 
-            var dummyPdfBytes = new byte[] { 7, 8, 9 };
-            _mockPdfGeneratorService.Setup(s => s.GenerateOsPdf(It.Is<OrdemServico>(o => o.Id == os.Id && o.Cliente != null && o.Cliente.Nome == cliente.Nome)))
-                                    .Returns(dummyPdfBytes);
+            _mockEvidenciaStorage.Setup(s => s.AbrirLeituraAsync("../x.jpg"))
+                .ReturnsAsync(EvidenciaReadResult.Invalido());
+            (await _controller.GetEvidencia("../x.jpg")).Should().BeOfType<BadRequestResult>();
 
-            // Act
-            var result = await _controller.ImprimirOs(os.Id);
+            _mockEvidenciaStorage.Setup(s => s.AbrirLeituraAsync("missing.jpg"))
+                .ReturnsAsync(EvidenciaReadResult.NaoEncontrado());
+            (await _controller.GetEvidencia("missing.jpg")).Should().BeOfType<NotFoundResult>();
 
-            // Assert
-            result.Should().BeOfType<FileContentResult>();
-            _mockPdfGeneratorService.Verify(s => s.GenerateOsPdf(It.Is<OrdemServico>(o => o.Id == os.Id && o.Cliente != null && o.Cliente.Id == cliente.Id)), Times.Once);
+            await using var ms = new MemoryStream(new byte[] { 0xFF, 0xD8, 0xFF });
+            _mockEvidenciaStorage.Setup(s => s.AbrirLeituraAsync("foto.jpg"))
+                .ReturnsAsync(EvidenciaReadResult.Ok(ms, "image/jpeg"));
+
+            var streamResult = (await _controller.GetEvidencia("foto.jpg")).Should().BeOfType<FileStreamResult>().Subject;
+            streamResult.ContentType.Should().Be("image/jpeg");
+            streamResult.FileStream.Should().BeSameAs(ms);
         }
 
-
-
-
-        [Fact]
-        public async Task ImprimirOs_ReturnsFileResult_WithExpectedFileName_WhenClienteIsNull()
+        private sealed class SimulatedDbException : DbException
         {
-            // Arrange
-            var cliente = new Cliente { Nome = "Cliente Temp", Email = "x@x.com", Telefone = "123" };
-            _context.Clientes.Add(cliente);
-            await _context.SaveChangesAsync();
-
-            var os = new OrdemServico { ClienteId = cliente.Id, Status = "Orçamento", Equipamento = "PC Sem Cliente" };
-            _context.OrdensServico.Add(os);
-            await _context.SaveChangesAsync();
-
-            var savedId = os.Id;
-
-            var dummyPdfBytes = new byte[] { 4, 5, 6 };
-            _mockPdfGeneratorService.Setup(s => s.GenerateOsPdf(It.IsAny<OrdemServico>()))
-                                    .Returns(dummyPdfBytes);
-
-            // Mock an OS with null client directly in memory by fetching it and setting client to null
-            var fetchedOs = await _context.OrdensServico.Include(o => o.Cliente).FirstOrDefaultAsync(o => o.Id == savedId);
-            fetchedOs.Cliente = null; // Setting to null manually to test ImprimirOs string formatting
-
-            // Act
-            var result = await _controller.ImprimirOs(savedId);
-
-            // Assert
-            var fileResult = result.Should().BeOfType<FileContentResult>().Subject;
-            fileResult.ContentType.Should().Be("application/pdf");
-            // Since we mocked fetchedOs.Cliente = null, but the controller executes its own query `_context.OrdensServico.Include...`
-            // the controller will fetch it fresh from the InMemory db, which means Cliente will be loaded.
-            // Oh, since they share the same _context instance, the object is tracked!
-            // Wait, if it's tracked and we set it to null, will EF Core return it with null? Yes, because FirstOrDefaultAsync returns the tracked entity instance!
-
-            fileResult.FileDownloadName.Should().Be($"OS_{savedId}_.pdf");
-            fileResult.FileContents.Should().BeEquivalentTo(dummyPdfBytes);
+            public SimulatedDbException(string message) : base(message) { }
         }
-
-        [Fact]
-        public async Task Delete_OSComPecasUtilizadas_DeveRetornarRedirectComErro()
-        {
-            // Arrange
-            var cliente = new Cliente { Nome = "Teste Cliente", Email = "teste@teste.com", Telefone = "12345678" };
-            _context.Clientes.Add(cliente);
-            await _context.SaveChangesAsync();
-
-            var os = new OrdemServico
-            {
-                ClienteId = cliente.Id,
-                Equipamento = "Notebook",
-                ProblemaRelatado = "Teclado Falhando",
-                Status = "Recebido"
-            };
-
-            // Adicionar uma peça utilizada para gerar dependência
-            var peca = new Peca { Nome = "Teclado Novo", QuantidadeEstoque = 10, ValorUnitario = 100 };
-            _context.Pecas.Add(peca);
-            await _context.SaveChangesAsync();
-
-            os.PecasUtilizadas.Add(new OrdemServicoPeca { PecaId = peca.Id, Quantidade = 1, ValorVenda = 100 });
-
-            _context.OrdensServico.Add(os);
-            await _context.SaveChangesAsync();
-
-            // Act
-            var result = await _controller.Delete(os.Id);
-
-            // Assert
-            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
-            redirectResult.ActionName.Should().Be("Index");
-            redirectResult.RouteValues.Should().ContainKey("erro");
-            redirectResult.RouteValues["erro"].ToString().Should().Contain("dependências");
-
-            // Verifica que não foi deletado
-            var osNoBanco = await _context.OrdensServico.FindAsync(os.Id);
-            osNoBanco.Should().NotBeNull();
-        }
-
-        [Fact]
-        public async Task Delete_OSComDependencias_DeveRetornarRedirectComErro()
-        {
-            // Arrange
-            var cliente = new Cliente { Nome = "Teste Cliente", Email = "teste@teste.com", Telefone = "12345678" };
-            _context.Clientes.Add(cliente);
-            await _context.SaveChangesAsync();
-
-            var os = new OrdemServico
-            {
-                ClienteId = cliente.Id,
-                Equipamento = "Notebook",
-                ProblemaRelatado = "Tela Quebrada",
-                Status = "Recebido"
-            };
-
-            // Adicionar uma evidência para gerar dependência
-            os.Evidencias.Add(new Evidencia { CaminhoArquivo = "caminho/teste.jpg" });
-
-            _context.OrdensServico.Add(os);
-            await _context.SaveChangesAsync();
-
-            // Act
-            var result = await _controller.Delete(os.Id);
-
-            // Assert
-            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
-            redirectResult.ActionName.Should().Be("Index");
-            redirectResult.RouteValues.Should().ContainKey("erro");
-            redirectResult.RouteValues["erro"].ToString().Should().Contain("dependências");
-
-            // Verifica que não foi deletado
-            var osNoBanco = await _context.OrdensServico.FindAsync(os.Id);
-            osNoBanco.Should().NotBeNull();
-        }
-
-        [Fact]
-        public async Task Delete_OSComFaturamento_DeveRetornarRedirectComErro()
-        {
-            // Arrange
-            var cliente = new Cliente { Nome = "Teste Cliente", Email = "teste@teste.com", Telefone = "12345678" };
-            _context.Clientes.Add(cliente);
-            await _context.SaveChangesAsync();
-
-            var os = new OrdemServico
-            {
-                ClienteId = cliente.Id,
-                Equipamento = "Notebook",
-                ProblemaRelatado = "Tela Quebrada",
-                Status = "Concluído"
-            };
-
-            _context.OrdensServico.Add(os);
-            await _context.SaveChangesAsync();
-
-            // Adicionar faturamento
-            var faturamento = new Faturamento
-            {
-                OrdemServicoId = os.Id,
-                ValorTotal = 150.00m,
-                DataVencimento = DateTime.UtcNow.AddDays(5)
-            };
-            _context.Faturamentos.Add(faturamento);
-            await _context.SaveChangesAsync();
-
-            // Act
-            var result = await _controller.Delete(os.Id);
-
-            // Assert
-            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
-            redirectResult.ActionName.Should().Be("Index");
-            redirectResult.RouteValues.Should().ContainKey("erro");
-            redirectResult.RouteValues["erro"].ToString().Should().Contain("faturamento");
-
-            // Verifica que não foi deletado
-            var osNoBanco = await _context.OrdensServico.FindAsync(os.Id);
-            osNoBanco.Should().NotBeNull();
-        }
-
-        [Fact]
-        public async Task Delete_OSSemDependencias_DeveDeletarERetornarRedirectIndex()
-        {
-            // Arrange
-            var cliente = new Cliente { Nome = "Teste Cliente", Email = "teste@teste.com", Telefone = "12345678" };
-            _context.Clientes.Add(cliente);
-            await _context.SaveChangesAsync();
-
-            var os = new OrdemServico
-            {
-                ClienteId = cliente.Id,
-                Equipamento = "Notebook",
-                ProblemaRelatado = "Tela Quebrada",
-                Status = "Recebido"
-            };
-            _context.OrdensServico.Add(os);
-            await _context.SaveChangesAsync();
-
-            // Act
-            var result = await _controller.Delete(os.Id);
-
-            // Assert
-            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
-            redirectResult.ActionName.Should().Be("Index");
-            redirectResult.RouteValues.Should().BeNull(); // Sem erro
-
-            // Verifica que foi deletado
-            var osNoBanco = await _context.OrdensServico.FindAsync(os.Id);
-            osNoBanco.Should().BeNull();
-        }
-
-        [Fact]
-        public async Task Delete_OSInexistente_DeveRetornarRedirectIndex()
-        {
-            // Act
-            var result = await _controller.Delete(999);
-
-            // Assert
-            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
-            redirectResult.ActionName.Should().Be("Index");
-            redirectResult.RouteValues.Should().BeNull(); // Sem erro
-        }
-
-
-        [Fact]
-        public async Task Delete_DbExceptionThrown_ReturnsRedirectWithErro()
-        {
-            // Arrange
-            var dbName = Guid.NewGuid().ToString();
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseInMemoryDatabase(databaseName: dbName)
-                .Options;
-
-            // Seed normal context
-            using (var seedContext = new AppDbContext(options))
-            {
-                var os = new OrdemServico { Id = 9999, Equipamento = "Teste DB Error", ProblemaRelatado = "Falha", ClienteId = 1, Status = "Recebido" };
-                seedContext.OrdensServico.Add(os);
-                await seedContext.SaveChangesAsync();
-            }
-
-            // Create context that will throw exception
-            var exceptionContext = new TestExceptionDbContext(options);
-            var localController = CreateAdminController(exceptionContext);
-
-            // Act
-            var result = await localController.Delete(9999);
-
-            // Assert
-            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Which;
-            redirectResult.ActionName.Should().Be("Index");
-            redirectResult.RouteValues.Should().NotBeNull();
-            redirectResult.RouteValues["erro"].Should().Be("Não foi possível excluir a OS.");
-
-            // Verify logger was called
-            _mockLogger.Verify(
-                x => x.Log(
-                    LogLevel.Error,
-                    It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("DB_DELETE_ERROR")),
-                    It.IsAny<Exception>(),
-                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
-                Times.Once);
-
-            localController.Dispose();
-            exceptionContext.Dispose();
-        }
-
-
-
-
-        [Fact]
-        public async Task Delete_GenericExceptionThrown_ReturnsRedirectWithErro()
-        {
-            // Arrange
-            var dbName = Guid.NewGuid().ToString();
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseInMemoryDatabase(databaseName: dbName)
-                .Options;
-
-            // Seed normal context
-            using (var seedContext = new AppDbContext(options))
-            {
-                var os = new OrdemServico { Id = 9998, Equipamento = "Teste Generic Error", ProblemaRelatado = "Falha Gen", ClienteId = 1, Status = "Recebido" };
-                seedContext.OrdensServico.Add(os);
-                await seedContext.SaveChangesAsync();
-            }
-
-            // Create context that will throw generic Exception
-            var exceptionContext = new TestGenericExceptionDbContext(options);
-            var localController = CreateAdminController(exceptionContext);
-
-            // Setup TempData
-            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
-            var tempData = new Microsoft.AspNetCore.Mvc.ViewFeatures.TempDataDictionary(httpContext, Mock.Of<Microsoft.AspNetCore.Mvc.ViewFeatures.ITempDataProvider>());
-            localController.TempData = tempData;
-
-            // Act
-            var result = await localController.Delete(9998);
-
-            // Assert
-            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Which;
-            redirectResult.ActionName.Should().Be("Index");
-
-            // Verify TempData ErrorMessage
-            localController.TempData["ErrorMessage"].Should().NotBeNull();
-            localController.TempData["ErrorMessage"].ToString().Should().Be("Ocorreu um erro ao tentar excluir a Ordem de Serviço.");
-
-            // Verify logger was called
-            _mockLogger.Verify(
-                x => x.Log(
-                    LogLevel.Error,
-                    It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Erro ao excluir a OS 9998.")),
-                    It.IsAny<Exception>(),
-                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
-                Times.Once);
-
-            localController.Dispose();
-            exceptionContext.Dispose();
-        }
-        [Fact]
-        public void GetEvidencia_NullFileName_NoArg_ReturnsBadRequest()
-        {
-            // Act
-            var result = _controller.GetEvidencia(null);
-
-            // Assert
-            result.Should().BeOfType<BadRequestResult>();
-        }
-
-        [Fact]
-        public void GetEvidencia_EmptyFileName_NoArg_ReturnsBadRequest()
-        {
-            // Act
-            var result = _controller.GetEvidencia("");
-
-            // Assert
-            result.Should().BeOfType<BadRequestResult>();
-        }
-
-        [Fact]
-        public void GetEvidencia_PathTraversal_NoArg_ReturnsBadRequest()
-        {
-            // Act
-            var result = _controller.GetEvidencia("../secret.txt");
-
-            // Assert
-            result.Should().BeOfType<BadRequestResult>();
-        }
-
-        [Fact]
-        public void GetEvidencia_FileNotFound_NoArg_ReturnsNotFound()
-        {
-            // Act
-            var result = _controller.GetEvidencia("nonexistent.jpg");
-
-            // Assert
-            result.Should().BeOfType<NotFoundResult>();
-        }
-
-        [Fact]
-        public void GetEvidencia_ValidFile_NoArg_ReturnsPhysicalFile()
-        {
-            // Arrange
-            string tempPath = _mockEnv.Object.ContentRootPath;
-            string uploadsFolder = Path.Combine(tempPath, "SecureUploads", "Evidencias");
-            Directory.CreateDirectory(uploadsFolder);
-            string filePath = Path.Combine(uploadsFolder, "test.jpg");
-            File.WriteAllText(filePath, "dummy content");
-
-            try
-            {
-                // Act
-                var result = _controller.GetEvidencia("test.jpg");
-
-                // Assert
-                var fileResult = result.Should().BeOfType<PhysicalFileResult>().Which;
-                fileResult.FileName.Should().Be(filePath);
-                fileResult.ContentType.Should().Be("image/jpeg");
-            }
-            finally
-            {
-                // Cleanup
-                File.Delete(filePath);
-                Directory.Delete(uploadsFolder, true);
-            }
-        }
-        [Fact]
-        public async Task ExportarCsv_DbExceptionThrown_ReturnsRedirectWithErro()
-        {
-            // Arrange
-            var dbName = Guid.NewGuid().ToString();
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseInMemoryDatabase(databaseName: dbName)
-                .Options;
-
-            var mockContext = new Mock<AppDbContext>(options);
-            mockContext.Setup(c => c.OrdensServico).Throws(new Exception("Simulated DB connection error"));
-
-            var _mockNotificationService = new Mock<AssistenciaTech.Services.INotificationService>();
-            var localController = CreateAdminController(mockContext.Object);
-
-            // Set up Controller Context for TempData and Response
-            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
-            var responseStream = new NonDisposableMemoryStream();
-            httpContext.Response.Body = responseStream;
-            localController.ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
-            {
-                HttpContext = httpContext
-            };
-            var tempData = new Microsoft.AspNetCore.Mvc.ViewFeatures.TempDataDictionary(
-                httpContext,
-                Mock.Of<Microsoft.AspNetCore.Mvc.ViewFeatures.ITempDataProvider>()
-            );
-            localController.TempData = tempData;
-
-            // Act
-            var result = await localController.ExportarCsv();
-
-            // Assert
-            var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Which;
-            redirectResult.ActionName.Should().Be("Index");
-            localController.TempData["ErroBanco"].Should().Be("Erro ao exportar os dados. O banco de dados está inacessível.");
-
-            // Verify logger was called
-            _mockLogger.Verify(
-                x => x.Log(
-                    LogLevel.Error,
-                    It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("DB_CONNECTION_ERROR (Admin/ExportarCsv)")),
-                    It.IsAny<Exception>(),
-                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
-                Times.Once);
-
-            localController.Dispose();
-        }
-
-
-
-
-        private class TestInnerExceptionDbContext : AppDbContext
-        {
-            public TestInnerExceptionDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
-
-            public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-            {
-                var inner = new Exception("Inner exception message");
-                throw new Exception("Outer exception message", inner);
-            }
-        }
-
-        private class TestExceptionDbContext : AppDbContext
-        {
-            public TestExceptionDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
-
-            public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-            {
-                throw new TestDbException("Simulated database error");
-            }
-        }
-
-        private class TestDbException : System.Data.Common.DbException
-        {
-            public TestDbException(string message) : base(message) { }
-        }
-
-
-        private class TestGenericExceptionDbContext : AppDbContext
-        {
-            public TestGenericExceptionDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
-
-            public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-            {
-                throw new Exception("Simulated generic error");
-            }
-        }
-        public void Dispose()
-        {
-            // We might have disposed the context in the test above, so we handle it gracefully
-            try { _context.Database.EnsureDeleted(); } catch { }
-            try { _context.Dispose(); } catch { }
-            try { _controller.Dispose(); } catch { }
-        }
-
-    }
-
-    public class NonDisposableMemoryStream : MemoryStream
-    {
-        public override void Close() { }
-        protected override void Dispose(bool disposing) { }
     }
 }

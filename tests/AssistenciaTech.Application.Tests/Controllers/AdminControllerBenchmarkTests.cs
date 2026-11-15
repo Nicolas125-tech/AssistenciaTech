@@ -1,16 +1,11 @@
 using System;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading.Tasks;
 using AssistenciaTech.Controllers;
 using AssistenciaTech.Data;
 using AssistenciaTech.Models;
 using AssistenciaTech.Services;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -36,7 +31,6 @@ namespace AssistenciaTech.Application.Tests.Controllers
 
             using var context = new AppDbContext(options);
 
-            // Seed data
             for (int i = 0; i < 1000; i++)
             {
                 context.EquipamentosBackup.Add(new EquipamentoBackup { Descricao = $"Equip {i}", Disponivel = true });
@@ -45,24 +39,25 @@ namespace AssistenciaTech.Application.Tests.Controllers
             context.Clientes.Add(new Cliente { Id = 1, Nome = "Cliente 1" });
             await context.SaveChangesAsync();
 
-            var mockEnv = new Mock<IWebHostEnvironment>();
+            var estoqueMock = new Mock<IEstoqueEngine>();
+            var notificationMock = new Mock<INotificationService>();
+            var evidenciaStorageMock = new Mock<IEvidenciaStorage>();
+            var lifecycle = new OrdemServicoLifecycle(
+                context,
+                estoqueMock.Object,
+                notificationMock.Object,
+                evidenciaStorageMock.Object,
+                new Mock<ILogger<OrdemServicoLifecycle>>().Object);
+
             var mockPdfGeneratorService = new Mock<IPdfGeneratorService>();
             var mockDashboardService = new Mock<IAdminDashboardService>();
 
-            var cacheMock = new Mock<AssistenciaTech.Extensions.IResilientCacheService>();
-            var cachedData = context.EquipamentosBackup.ToList();
-            cacheMock.Setup(c => c.GetAsync<System.Collections.Generic.List<EquipamentoBackup>>(It.IsAny<string>()))
-                .ReturnsAsync(cachedData);
-
-            var mockLifecycle = new Mock<IOrdemServicoLifecycle>();
             var controller = new AdminController(
-                context,
                 new Mock<ILogger<AdminController>>().Object,
-                mockLifecycle.Object,
+                lifecycle,
                 mockDashboardService.Object,
                 mockPdfGeneratorService.Object,
-                cacheMock.Object,
-                mockEnv.Object);
+                evidenciaStorageMock.Object);
 
             // Warmup
             await controller.Edit(1);

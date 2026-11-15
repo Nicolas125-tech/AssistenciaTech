@@ -21,6 +21,7 @@ builder.Services.AddControllersWithViews(options =>
 builder.Services.AddProblemDetails();
 builder.Services.AddScoped<IEstoqueEngine, EstoqueEngine>();
 builder.Services.AddScoped<IPdfGeneratorService, PdfGeneratorService>();
+builder.Services.AddScoped<IEvidenciaStorage, LocalEvidenciaStorage>();
 builder.Services.AddScoped<IOrdemServicoLifecycle, OrdemServicoLifecycle>();
 builder.Services.AddScoped<IVisitaCampoEngine, VisitaCampoEngine>();
 builder.Services.AddScoped<IAreaClienteEngine, AreaClienteEngine>();
