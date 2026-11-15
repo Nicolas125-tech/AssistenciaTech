@@ -1,13 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using AssistenciaTech.Data;
 using AssistenciaTech.Domain.States;
 using AssistenciaTech.DTOs;
 using AssistenciaTech.Models;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -19,34 +21,20 @@ namespace AssistenciaTech.Services
         private readonly AppDbContext _context;
         private readonly IEstoqueEngine _estoqueEngine;
         private readonly INotificationService _notificationService;
-        private readonly IWebHostEnvironment _env;
+        private readonly IEvidenciaStorage _evidenciaStorage;
         private readonly ILogger<OrdemServicoLifecycle> _logger;
-
-        private static readonly HashSet<string> _allowedExtensions = new(StringComparer.OrdinalIgnoreCase)
-        {
-            ".jpg", ".jpeg", ".png", ".gif", ".pdf"
-        };
-
-        private static readonly Dictionary<string, List<byte[]>> _fileSignatures = new()
-        {
-            { ".jpg", new List<byte[]> { new byte[] { 0xFF, 0xD8, 0xFF } } },
-            { ".jpeg", new List<byte[]> { new byte[] { 0xFF, 0xD8, 0xFF } } },
-            { ".png", new List<byte[]> { new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A } } },
-            { ".gif", new List<byte[]> { new byte[] { 0x47, 0x49, 0x46, 0x38 } } },
-            { ".pdf", new List<byte[]> { new byte[] { 0x25, 0x50, 0x44, 0x46, 0x2D } } }
-        };
 
         public OrdemServicoLifecycle(
             AppDbContext context,
             IEstoqueEngine estoqueEngine,
             INotificationService notificationService,
-            IWebHostEnvironment env,
+            IEvidenciaStorage evidenciaStorage,
             ILogger<OrdemServicoLifecycle> logger)
         {
             _context = context;
             _estoqueEngine = estoqueEngine;
             _notificationService = notificationService;
-            _env = env;
+            _evidenciaStorage = evidenciaStorage;
             _logger = logger;
         }
 
@@ -106,7 +94,7 @@ namespace AssistenciaTech.Services
                 .FirstOrDefaultAsync(o => o.Id == osId);
 
             if (ordemExistente == null)
-                return OrdemServicoResult.Falha($"Ordem de serviço #{osId} não encontrada.");
+                return OrdemServicoResult.NaoEncontrado($"Ordem de serviço #{osId} não encontrada.");
 
             string statusAnterior = ordemExistente.Status;
 
@@ -123,15 +111,27 @@ namespace AssistenciaTech.Services
                 return OrdemServicoResult.Falha(erroDominio ?? "Transição de status inválida.");
             }
 
-            // 4. Upload de fotos de evidência se houver
+            // 4. Upload de fotos de evidência via seam IEvidenciaStorage
+            var uploadedFiles = new List<string>();
             if (fotos != null && fotos.Count > 0)
             {
-                await ProcessarEvidenciasUploadAsync(ordemExistente, fotos);
+                uploadedFiles = await ProcessarEvidenciasUploadAsync(ordemExistente, fotos);
             }
 
-            // 5. Persistência atômica no banco de dados
-            _context.Update(ordemExistente);
-            await _context.SaveChangesAsync();
+            // 5. Persistência atômica no banco de dados (com rollback de arquivos em caso de falha)
+            try
+            {
+                _context.Update(ordemExistente);
+                await _context.SaveChangesAsync();
+            }
+            catch
+            {
+                foreach (var savedFile in uploadedFiles)
+                {
+                    await _evidenciaStorage.RemoverAsync(savedFile);
+                }
+                throw;
+            }
 
             // 6. Notificação pós-commit com isolamento de falha
             if (ordemExistente.Status != statusAnterior && ordemExistente.Cliente != null)
@@ -179,6 +179,160 @@ namespace AssistenciaTech.Services
                 ordemExistente.Id, novoStatus, usuarioResponsavel ?? "sistema");
 
             return OrdemServicoResult.Ok(ordemExistente, $"Status atualizado para {novoStatus}.");
+        }
+
+        public Task<List<SelecaoItemDto>> ObterClientesParaSelecaoAsync() =>
+            _context.Clientes
+                .AsNoTracking()
+                .Select(c => new SelecaoItemDto(c.Id, $"{c.Nome} - CPF: {c.Cpf} - Tel: {c.Telefone}"))
+                .ToListAsync();
+
+        public async Task<OrdemEdicaoDto?> ObterDadosEdicaoAsync(int id)
+        {
+            var ordem = await _context.OrdensServico
+                .AsNoTracking()
+                .Include(o => o.Cliente)
+                .Include(o => o.TecnicoResponsavel)
+                .Include(o => o.EquipamentoBackup)
+                .Include(o => o.Evidencias)
+                .Include(o => o.Contrato)
+                .FirstOrDefaultAsync(m => m.Id == id);
+
+            if (ordem == null)
+            {
+                return null;
+            }
+
+            var lookups = await ObterLookupsEdicaoAsync(ordem.ClienteId, ordem.EquipamentoBackupId);
+            return new OrdemEdicaoDto { Ordem = ordem, Lookups = lookups };
+        }
+
+        public async Task<OrdemEdicaoLookupsDto> ObterLookupsEdicaoAsync(int clienteId, int? equipamentoBackupId)
+        {
+            var tecnicos = await _context.Tecnicos
+                .AsNoTracking()
+                .Where(t => t.Ativo)
+                .Select(t => new SelecaoItemDto(t.Id, t.Nome))
+                .ToListAsync();
+
+            var equipamentosBackup = await _context.EquipamentosBackup
+                .AsNoTracking()
+                .Where(e => e.Disponivel || e.Id == equipamentoBackupId)
+                .Select(e => new SelecaoItemDto(e.Id, e.Descricao))
+                .ToListAsync();
+
+            var contratosRaw = await _context.Contratos
+                .AsNoTracking()
+                .Where(c => c.ClienteId == clienteId)
+                .Select(c => new { c.Id, c.HorasSLA, c.ValorMensal })
+                .ToListAsync();
+
+            var contratos = contratosRaw
+                .Select(c => new SelecaoItemDto(c.Id, $"Contrato: SLA {c.HorasSLA}h - R$ {c.ValorMensal}"))
+                .ToList();
+
+            return new OrdemEdicaoLookupsDto
+            {
+                Tecnicos = tecnicos,
+                EquipamentosBackup = equipamentosBackup,
+                Contratos = contratos
+            };
+        }
+
+        public async Task<OrdemServicoResult> ExcluirOrdemAsync(int id, string? usuarioResponsavel = null)
+        {
+            var ordem = await _context.OrdensServico
+                .Include(o => o.Evidencias)
+                .Include(o => o.PecasUtilizadas)
+                .FirstOrDefaultAsync(o => o.Id == id);
+
+            if (ordem == null)
+            {
+                return OrdemServicoResult.NaoEncontrado($"Ordem de serviço #{id} não encontrada.");
+            }
+
+            if (ordem.Evidencias.Any() || ordem.PecasUtilizadas.Any())
+            {
+                return OrdemServicoResult.Falha("Não é possível excluir a OS pois ela possui dependências (Evidências ou Peças).");
+            }
+
+            if (await _context.Faturamentos.AnyAsync(f => f.OrdemServicoId == id))
+            {
+                return OrdemServicoResult.Falha("Não é possível excluir a OS pois ela possui faturamento.");
+            }
+
+            if (ordem.EquipamentoBackupId.HasValue)
+            {
+                return OrdemServicoResult.Falha("Não é possível excluir a OS pois ela possui um Equipamento de Backup alocado. Devolva ou desvincule o backup antes de excluir.");
+            }
+
+            _context.OrdensServico.Remove(ordem);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Ordem de serviço #{OsId} excluída com sucesso por {Usuario}.", id, usuarioResponsavel ?? "sistema");
+            return OrdemServicoResult.Ok(ordem, "Ordem de serviço excluída com sucesso.");
+        }
+
+        public Task<OrdemServico?> ObterOrdemParaImpressaoAsync(int id) =>
+            _context.OrdensServico
+                .AsNoTracking()
+                .Include(o => o.Cliente)
+                .Include(o => o.TecnicoResponsavel)
+                .Include(o => o.PecasUtilizadas)
+                    .ThenInclude(p => p.Peca)
+                .FirstOrDefaultAsync(o => o.Id == id);
+
+        public async Task ExportarOrdensCsvAsync(Stream destino, CancellationToken ct = default)
+        {
+            var todasOS = (
+                from os in _context.OrdensServico.AsNoTracking()
+                join c in _context.Clientes.AsNoTracking() on os.ClienteId equals c.Id into cj
+                from cliente in cj.DefaultIfEmpty()
+                orderby os.Id descending
+                select new
+                {
+                    os.Id,
+                    ClienteNome = cliente != null ? cliente.Nome : null,
+                    os.Equipamento,
+                    os.DataEntrada,
+                    os.Status,
+                    os.ValorOrcamento
+                })
+                .AsAsyncEnumerable();
+
+            await using var streamWriter = new StreamWriter(destino, new UTF8Encoding(false), leaveOpen: true);
+            await streamWriter.WriteLineAsync("Id,Cliente,Equipamento,Data Entrada,Status,Valor Orçamento".AsMemory(), ct);
+
+            var sb = new StringBuilder(128 * 100);
+            int batchCount = 0;
+
+            await foreach (var os in todasOS.WithCancellation(ct))
+            {
+                sb.Append(os.Id)
+                  .Append(",\"")
+                  .Append(os.ClienteNome)
+                  .Append("\",\"")
+                  .Append(os.Equipamento)
+                  .Append("\",")
+                  .Append(os.DataEntrada.ToString("dd/MM/yyyy"))
+                  .Append(',')
+                  .Append(os.Status)
+                  .Append(',')
+                  .AppendLine(os.ValorOrcamento.ToString(CultureInfo.InvariantCulture));
+
+                batchCount++;
+                if (batchCount >= 100)
+                {
+                    await streamWriter.WriteAsync(sb, ct);
+                    sb.Clear();
+                    batchCount = 0;
+                }
+            }
+
+            if (sb.Length > 0)
+            {
+                await streamWriter.WriteAsync(sb, ct);
+            }
         }
 
         private async Task ProcessarTrocaEquipamentoBackupAsync(int? equipamentoAntigoId, int? equipamentoNovoId)
@@ -285,60 +439,27 @@ namespace AssistenciaTech.Services
             return (true, null);
         }
 
-        private async Task ProcessarEvidenciasUploadAsync(OrdemServico ordem, IFormFileCollection fotos)
+        private async Task<List<string>> ProcessarEvidenciasUploadAsync(OrdemServico ordem, IFormFileCollection fotos)
         {
-            string contentRoot = _env.ContentRootPath ?? AppDomain.CurrentDomain.BaseDirectory;
-            string uploadsFolder = Path.Combine(contentRoot, "SecureUploads", "Evidencias");
-            Directory.CreateDirectory(uploadsFolder);
-
+            var uploadedFiles = new List<string>();
             foreach (var foto in fotos)
             {
-                if (foto.Length == 0) continue;
-
-                var extension = Path.GetExtension(foto.FileName).ToLowerInvariant();
-                if (!_allowedExtensions.Contains(extension)) continue;
-
-                if (!await IsValidFileSignatureAsync(foto, extension)) continue;
-
-                string uniqueFileName = $"{Guid.NewGuid()}{extension}";
-                string filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                await using (var fileStream = new FileStream(filePath, FileMode.Create))
+                var saveResult = await _evidenciaStorage.SalvarAsync(foto);
+                if (!saveResult.Sucesso || string.IsNullOrEmpty(saveResult.CaminhoUrl) || string.IsNullOrEmpty(saveResult.FileName))
                 {
-                    await foto.CopyToAsync(fileStream);
+                    continue;
                 }
 
-                var evidencia = new Evidencia
+                uploadedFiles.Add(saveResult.FileName);
+                ordem.Evidencias.Add(new Evidencia
                 {
                     OrdemServicoId = ordem.Id,
-                    CaminhoArquivo = $"/Admin/DownloadEvidencia/{uniqueFileName}",
+                    CaminhoArquivo = saveResult.CaminhoUrl,
                     DataUpload = DateTime.UtcNow
-                };
-
-                ordem.Evidencias.Add(evidencia);
-            }
-        }
-
-        private static async Task<bool> IsValidFileSignatureAsync(IFormFile file, string extension)
-        {
-            if (file == null || file.Length == 0) return false;
-
-            await using var stream = file.OpenReadStream();
-
-            if (!_fileSignatures.TryGetValue(extension, out var expectedSignatures))
-                return false;
-
-            var maxSignatureLength = expectedSignatures.Max(s => s.Length);
-            var headerBytes = new byte[maxSignatureLength];
-
-            int bytesRead = await stream.ReadAsync(headerBytes.AsMemory(0, maxSignatureLength));
-            if (bytesRead < maxSignatureLength && bytesRead < expectedSignatures.Min(s => s.Length))
-            {
-                return false;
+                });
             }
 
-            return expectedSignatures.Any(signature =>
-                headerBytes.Take(signature.Length).SequenceEqual(signature));
+            return uploadedFiles;
         }
 
         private async Task DispararNotificacaoSeguraAsync(Cliente cliente, OrdemServico ordem, string statusAnterior)

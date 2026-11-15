@@ -6,17 +6,30 @@ namespace AssistenciaTech.Services
     public class OrdemServicoResult
     {
         public bool Sucesso { get; set; }
+        public bool NaoEncontrada { get; set; }
         public string? Mensagem { get; set; }
         public List<string> Erros { get; set; } = new();
         public OrdemServico? Ordem { get; set; }
 
-        public static OrdemServicoResult Ok(OrdemServico ordem, string? mensagem = null) =>
+        public static OrdemServicoResult Ok(OrdemServico? ordem, string? mensagem = null) =>
             new()
             {
                 Sucesso = true,
                 Ordem = ordem,
                 Mensagem = mensagem
             };
+
+        public static OrdemServicoResult NaoEncontrado(string? erro = null)
+        {
+            var mensagem = erro ?? "Ordem de serviço não encontrada.";
+            return new OrdemServicoResult
+            {
+                Sucesso = false,
+                NaoEncontrada = true,
+                Mensagem = mensagem,
+                Erros = new List<string> { mensagem }
+            };
+        }
 
         public static OrdemServicoResult Falha(string erro, params string[] outrosErros)
         {
