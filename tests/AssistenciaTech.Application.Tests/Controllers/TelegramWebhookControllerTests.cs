@@ -1,11 +1,12 @@
 using System;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using AssistenciaTech.Controllers;
-using AssistenciaTech.Services.TelegramCommands;
+using AssistenciaTech.Services;
 using FluentAssertions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -15,173 +16,87 @@ namespace AssistenciaTech.Application.Tests.Controllers
     public class TelegramWebhookControllerTests
     {
         private readonly Mock<ILogger<TelegramWebhookController>> _mockLogger;
-        private readonly Mock<ITelegramCommandHandler> _mockCommandHandler;
-        private readonly Mock<IConfiguration> _mockConfiguration;
+        private readonly Mock<IMensageriaEngine> _mockMensageria;
         private readonly TelegramWebhookController _controller;
 
         public TelegramWebhookControllerTests()
         {
             _mockLogger = new Mock<ILogger<TelegramWebhookController>>();
-            _mockCommandHandler = new Mock<ITelegramCommandHandler>();
-            _mockConfiguration = new Mock<IConfiguration>();
-            _mockConfiguration.Setup(c => c["Telegram:WebhookSecretToken"]).Returns("secret-token-123");
-            _controller = new TelegramWebhookController(_mockLogger.Object, _mockCommandHandler.Object, _mockConfiguration.Object);
+            _mockMensageria = new Mock<IMensageriaEngine>();
+            _controller = new TelegramWebhookController(_mockLogger.Object, _mockMensageria.Object)
+            {
+                ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
+            };
         }
 
-        private JsonElement CreateUpdateJson(string text, long chatId = 123456)
+        private static JsonElement CreateUpdateJson(string text = "/start 1", long chatId = 123456)
         {
-            var json = $@"
-            {{
-                ""message"": {{
-                    ""text"": ""{text}"",
-                    ""chat"": {{
-                        ""id"": {chatId}
-                    }}
-                }}
-            }}";
-
-            using var doc = JsonDocument.Parse(json);
-            return doc.RootElement.Clone();
-        }
-
-        private JsonElement CreateEmptyUpdateJson()
-        {
-            var json = "{}";
-            using var doc = JsonDocument.Parse(json);
+            using var doc = JsonDocument.Parse(
+                JsonSerializer.Serialize(new { message = new { text, chat = new { id = chatId } } }));
             return doc.RootElement.Clone();
         }
 
         [Fact]
-        public async Task Webhook_ValidJson_CallsHandlerAndReturnsOk()
+        public async Task Webhook_QuandoEngineRetornaNaoAutorizado_RetornaUnauthorized()
         {
-            // Arrange
-            var text = "/start 1";
-            var chatId = 123456;
-            var json = CreateUpdateJson(text, chatId);
+            var json = CreateUpdateJson();
+            _mockMensageria
+                .Setup(m => m.ProcessarWebhookAsync(It.IsAny<JsonElement>(), "token-errado", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(WebhookProcessResult.NaoAutorizado());
 
-            // Act
-            var result = await _controller.Webhook(json, "secret-token-123");
+            var result = await _controller.Webhook(json, "token-errado");
 
-            // Assert
-            result.Should().BeOfType<OkResult>();
-            _mockCommandHandler.Verify(h => h.HandleCommandAsync(text, chatId.ToString()), Times.Once);
+            result.Should().BeOfType<UnauthorizedResult>();
         }
 
         [Fact]
-        public async Task Webhook_InvalidJson_DoesNotCallHandlerAndReturnsOk()
+        public async Task Webhook_QuandoEngineProcessaComSucesso_RetornaOk()
         {
-            // Arrange
-            var json = CreateEmptyUpdateJson();
+            var json = CreateUpdateJson("/start 15", 999);
+            _mockMensageria
+                .Setup(m => m.ProcessarWebhookAsync(It.IsAny<JsonElement>(), "secret-123", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(WebhookProcessResult.Processado(MensageriaDeliveryResult.Ok()));
 
-            // Act
-            var result = await _controller.Webhook(json, "secret-token-123");
+            var result = await _controller.Webhook(json, "secret-123");
 
-            // Assert
             result.Should().BeOfType<OkResult>();
-            _mockCommandHandler.Verify(h => h.HandleCommandAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+            _mockMensageria.Verify(
+                m => m.ProcessarWebhookAsync(It.IsAny<JsonElement>(), "secret-123", It.IsAny<CancellationToken>()),
+                Times.Once);
         }
 
         [Fact]
-        public async Task Webhook_Exception_ReturnsOkAndLogsError()
+        public async Task Webhook_QuandoEngineIgnoraUpdate_RetornaOk()
         {
-            // Arrange
-            var json = CreateUpdateJson("/start");
-            _mockCommandHandler.Setup(h => h.HandleCommandAsync(It.IsAny<string>(), It.IsAny<string>()))
-                .ThrowsAsync(new Exception("Test error"));
+            var json = CreateUpdateJson();
+            _mockMensageria
+                .Setup(m => m.ProcessarWebhookAsync(It.IsAny<JsonElement>(), "secret-123", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(WebhookProcessResult.Ignorado());
 
-            // Act
-            var result = await _controller.Webhook(json, "secret-token-123");
+            var result = await _controller.Webhook(json, "secret-123");
 
-            // Assert
+            result.Should().BeOfType<OkResult>();
+        }
+
+        [Fact]
+        public async Task Webhook_QuandoEngineLancaExcecao_RegistraLogERetornaOk()
+        {
+            var json = CreateUpdateJson();
+            _mockMensageria
+                .Setup(m => m.ProcessarWebhookAsync(It.IsAny<JsonElement>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException("Database error"));
+
+            var result = await _controller.Webhook(json, "secret-123");
+
             result.Should().BeOfType<OkResult>();
             _mockLogger.Verify(
                 x => x.Log(
                     LogLevel.Error,
                     It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => true),
+                    It.Is<It.IsAnyType>((v, _) => true),
                     It.IsAny<Exception>(),
-                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
-                Times.Once
-            );
-        }
-
-        [Fact]
-        public async Task Webhook_InvalidToken_ReturnsUnauthorized()
-        {
-            // Arrange
-            var json = CreateEmptyUpdateJson();
-
-            // Act
-            var result = await _controller.Webhook(json, "wrong-token");
-
-            // Assert
-            result.Should().BeOfType<UnauthorizedResult>();
-        }
-
-        [Fact]
-        public async Task Webhook_MissingToken_ReturnsUnauthorized()
-        {
-            // Arrange
-            var json = CreateEmptyUpdateJson();
-
-            // Act
-            var result = await _controller.Webhook(json);
-
-            // Assert
-            result.Should().BeOfType<UnauthorizedResult>();
-        }
-
-        [Fact]
-        public async Task Webhook_TokenNotConfigured_ReturnsUnauthorized()
-        {
-            // Arrange
-            _mockConfiguration.Setup(c => c["Telegram:WebhookSecretToken"]).Returns((string)null);
-            var json = CreateEmptyUpdateJson();
-
-            // Act
-            var result = await _controller.Webhook(json);
-
-            // Assert
-            result.Should().BeOfType<UnauthorizedResult>();
-        }
-
-        [Fact]
-        public async Task Webhook_MissingMessageProperty_DoesNotCallHandlerAndReturnsOk()
-        {
-            var jsonStr = "{}";
-            using var doc = JsonDocument.Parse(jsonStr);
-            var json = doc.RootElement.Clone();
-
-            var result = await _controller.Webhook(json, "secret-token-123");
-
-            result.Should().BeOfType<OkResult>();
-            _mockCommandHandler.Verify(h => h.HandleCommandAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-        }
-
-        [Fact]
-        public async Task Webhook_MissingTextProperty_DoesNotCallHandlerAndReturnsOk()
-        {
-            var jsonStr = @"{ ""message"": { ""chat"": { ""id"": 123456 } } }";
-            using var doc = JsonDocument.Parse(jsonStr);
-            var json = doc.RootElement.Clone();
-
-            var result = await _controller.Webhook(json, "secret-token-123");
-
-            result.Should().BeOfType<OkResult>();
-            _mockCommandHandler.Verify(h => h.HandleCommandAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-        }
-
-        [Fact]
-        public async Task Webhook_MissingChatIdProperty_DoesNotCallHandlerAndReturnsOk()
-        {
-            var jsonStr = @"{ ""message"": { ""text"": ""/start"" } }";
-            using var doc = JsonDocument.Parse(jsonStr);
-            var json = doc.RootElement.Clone();
-
-            var result = await _controller.Webhook(json, "secret-token-123");
-
-            result.Should().BeOfType<OkResult>();
-            _mockCommandHandler.Verify(h => h.HandleCommandAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
         }
     }
 }

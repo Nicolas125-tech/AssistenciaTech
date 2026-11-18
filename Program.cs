@@ -28,9 +28,19 @@ builder.Services.AddScoped<IAreaClienteEngine, AreaClienteEngine>();
 builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddHttpClient<INotificationService, TelegramNotificationService>();
-builder.Services.AddHttpClient();
-builder.Services.AddScoped<AssistenciaTech.Services.TelegramCommands.ITelegramCommandHandler, AssistenciaTech.Services.TelegramCommands.TelegramCommandHandler>();
+builder.Services.Configure<MensageriaOptions>(options => options.BindFromConfiguration(builder.Configuration));
+builder.Services.AddHttpClient<TelegramBotApiTransport>();
+builder.Services.AddScoped<LogMensageriaTransport>();
+builder.Services.AddScoped<IMensageriaTransport>(sp =>
+{
+    var opts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<MensageriaOptions>>().Value;
+    return opts.DeveUsarTelegramApi()
+        ? sp.GetRequiredService<TelegramBotApiTransport>()
+        : sp.GetRequiredService<LogMensageriaTransport>();
+});
+builder.Services.AddScoped<MensageriaEngine>();
+builder.Services.AddScoped<IMensageriaEngine>(sp => sp.GetRequiredService<MensageriaEngine>());
+builder.Services.AddScoped<INotificationService>(sp => sp.GetRequiredService<MensageriaEngine>());
 
 // Configurando o Redis (IDistributedCache)
 var redisConnectionString = builder.Configuration.GetConnectionString("Redis");

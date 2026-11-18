@@ -1,17 +1,9 @@
-using AssistenciaTech.Data;
-using AssistenciaTech.Models;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using System;
-using System.Security.Cryptography;
-using System.Linq;
-using System.Net.Http;
-using System.Text;
 using System.Text.Json;
-using AssistenciaTech.Services.TelegramCommands;
 using System.Threading.Tasks;
+using AssistenciaTech.Services;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace AssistenciaTech.Controllers
 {
@@ -20,50 +12,30 @@ namespace AssistenciaTech.Controllers
     public class TelegramWebhookController : ControllerBase
     {
         private readonly ILogger<TelegramWebhookController> _logger;
-        private readonly ITelegramCommandHandler _commandHandler;
-        private readonly IConfiguration _configuration;
+        private readonly IMensageriaEngine _mensageria;
 
-        public TelegramWebhookController(ILogger<TelegramWebhookController> logger, ITelegramCommandHandler commandHandler, IConfiguration configuration)
+        public TelegramWebhookController(ILogger<TelegramWebhookController> logger, IMensageriaEngine mensageria)
         {
             _logger = logger;
-            _commandHandler = commandHandler;
-            _configuration = configuration;
+            _mensageria = mensageria;
         }
 
         [HttpPost("webhook")]
-        public async Task<IActionResult> Webhook([FromBody] JsonElement update, [FromHeader(Name = "X-Telegram-Bot-Api-Secret-Token")] string? secretToken = null)
+        public async Task<IActionResult> Webhook(
+            [FromBody] JsonElement update,
+            [FromHeader(Name = "X-Telegram-Bot-Api-Secret-Token")] string? secretToken = null)
         {
             try
             {
-                var configuredToken = _configuration["Telegram:WebhookSecretToken"];
-                if (string.IsNullOrEmpty(configuredToken) || string.IsNullOrEmpty(secretToken))
+                var ct = HttpContext?.RequestAborted ?? default;
+                var result = await _mensageria.ProcessarWebhookAsync(update, secretToken, ct);
+
+                if (result.Status == WebhookProcessStatus.NaoAutorizado)
                 {
-                    _logger.LogWarning("Unauthorized webhook request. Token mismatch or not configured.");
                     return Unauthorized();
                 }
 
-                var secretBytes = Encoding.UTF8.GetBytes(secretToken);
-                var configuredBytes = Encoding.UTF8.GetBytes(configuredToken);
-
-                if (secretBytes.Length != configuredBytes.Length ||
-                    !CryptographicOperations.FixedTimeEquals(secretBytes, configuredBytes))
-                {
-                    _logger.LogWarning("Unauthorized webhook request. Token mismatch or not configured.");
-                    return Unauthorized();
-                }
-                // Verifica se há uma mensagem de texto no update
-                if (update.TryGetProperty("message", out JsonElement message) &&
-                    message.TryGetProperty("text", out JsonElement textElement) &&
-                    message.TryGetProperty("chat", out JsonElement chat) &&
-                    chat.TryGetProperty("id", out JsonElement chatIdElement))
-                {
-                    string text = textElement.GetString() ?? string.Empty;
-                    string chatId = chatIdElement.GetInt64().ToString();
-
-                    await _commandHandler.HandleCommandAsync(text, chatId);
-                }
-
-                return Ok(); // Sempre retorne 200 OK para o Telegram, senão ele fica repetindo o envio
+                return Ok(); // Sempre retorna 200 OK para updates válidos/ignorados para evitar retries em loop do Telegram
             }
             catch (Exception ex)
             {
